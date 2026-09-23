@@ -525,41 +525,56 @@ function enableDeskToken() {
   const board = document.querySelector(".board");
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const edge = 12;
-  const boardGap = 16;
+  const boardGap = 12;
   let pointerId = null;
   let startX = 0;
   let startY = 0;
-  let startLeft = 0;
-  let startTop = 0;
+  let lastPointerX = 0;
+  let lastPointerY = 0;
   let left = 0;
   let top = 0;
   let placed = false;
   let dragged = false;
   let suppressTokenClick = false;
+  let bounds = null;
   function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
   }
-  function safePosition(x, y) {
-    const width = deskToken.offsetWidth;
-    const height = deskToken.offsetHeight;
-    const maxX = Math.max(edge, window.innerWidth - width - edge);
-    const maxY = Math.max(edge, window.innerHeight - height - edge);
-    const desired = { x: clamp(x, edge, maxX), y: clamp(y, edge, maxY) };
-    if (!board) return desired;
-    const rect = board.getBoundingClientRect();
-    const overlaps = function (point) {
-      return point.x < rect.right + boardGap && point.x + width > rect.left - boardGap
-        && point.y < rect.bottom + boardGap && point.y + height > rect.top - boardGap;
+  function measure() {
+    const tokenRect = deskToken.getBoundingClientRect();
+    if (!tokenRect.width || !tokenRect.height) {
+      bounds = null;
+      return;
+    }
+    const boardRect = board && board.getBoundingClientRect();
+    bounds = {
+      maxX: Math.max(edge, window.innerWidth - tokenRect.width - edge),
+      maxY: Math.max(edge, window.innerHeight - tokenRect.height - edge),
+      wall: boardRect && {
+        left: boardRect.left - tokenRect.width - boardGap,
+        right: boardRect.right + boardGap,
+        top: boardRect.top - tokenRect.height - boardGap,
+        bottom: boardRect.bottom + boardGap
+      }
     };
-    if (!overlaps(desired)) return desired;
+  }
+  function overlapsBoard(point) {
+    const wall = bounds.wall;
+    return wall && point.x > wall.left && point.x < wall.right
+      && point.y > wall.top && point.y < wall.bottom;
+  }
+  function safePosition(x, y) {
+    const desired = { x: clamp(x, edge, bounds.maxX), y: clamp(y, edge, bounds.maxY) };
+    if (!overlapsBoard(desired)) return desired;
+    const wall = bounds.wall;
     const candidates = [
-      { x: rect.left - width - boardGap, y: desired.y },
-      { x: rect.right + boardGap, y: desired.y },
-      { x: desired.x, y: rect.top - height - boardGap },
-      { x: desired.x, y: rect.bottom + boardGap }
+      { x: wall.left, y: desired.y },
+      { x: wall.right, y: desired.y },
+      { x: desired.x, y: wall.top },
+      { x: desired.x, y: wall.bottom }
     ].map(function (point) {
-      return { x: clamp(point.x, edge, maxX), y: clamp(point.y, edge, maxY) };
-    }).filter(function (point) { return !overlaps(point); });
+      return { x: clamp(point.x, edge, bounds.maxX), y: clamp(point.y, edge, bounds.maxY) };
+    }).filter(function (point) { return !overlapsBoard(point); });
     if (!candidates.length) return desired;
     candidates.sort(function (a, b) {
       const distanceA = (a.x - desired.x) ** 2 + (a.y - desired.y) ** 2;
@@ -568,9 +583,9 @@ function enableDeskToken() {
     });
     return candidates[0];
   }
-  function place(x, y) {
-    if (!deskToken.offsetWidth) return;
-    const point = safePosition(x, y);
+  function place(point) {
+    if (!bounds) return;
+    if (placed && point.x === left && point.y === top) return;
     left = point.x;
     top = point.y;
     deskToken.style.left = left + "px";
@@ -578,6 +593,56 @@ function enableDeskToken() {
     deskToken.style.right = "auto";
     deskToken.style.bottom = "auto";
     placed = true;
+  }
+  // Sweep the token's top-left corner against the board enlarged by its own size.
+  // This catches fast pointer moves that would otherwise skip straight across it.
+  function collision(dx, dy) {
+    const wall = bounds.wall;
+    if (!wall || (!dx && !dy)) return null;
+    let enterX = -Infinity;
+    let leaveX = Infinity;
+    let enterY = -Infinity;
+    let leaveY = Infinity;
+    if (dx) {
+      const a = (wall.left - left) / dx;
+      const b = (wall.right - left) / dx;
+      enterX = Math.min(a, b);
+      leaveX = Math.max(a, b);
+    } else if (left <= wall.left || left >= wall.right) return null;
+    if (dy) {
+      const a = (wall.top - top) / dy;
+      const b = (wall.bottom - top) / dy;
+      enterY = Math.min(a, b);
+      leaveY = Math.max(a, b);
+    } else if (top <= wall.top || top >= wall.bottom) return null;
+    const time = Math.max(enterX, enterY);
+    if (time < 0 || time > 1 || time >= Math.min(leaveX, leaveY)) return null;
+    return {
+      time,
+      axis: enterX === enterY ? (Math.abs(dx) > Math.abs(dy) ? "x" : "y")
+        : enterX > enterY ? "x" : "y"
+    };
+  }
+  function moveBy(deltaX, deltaY) {
+    if (!bounds) return false;
+    const targetX = clamp(left + deltaX, edge, bounds.maxX);
+    const targetY = clamp(top + deltaY, edge, bounds.maxY);
+    const dx = targetX - left;
+    const dy = targetY - top;
+    const hit = collision(dx, dy);
+    if (!hit) {
+      place({ x: targetX, y: targetY });
+      return false;
+    }
+    // Keep the contact edge fixed and spend the remaining motion along it.
+    // Releasing or reversing the pointer responds immediately, with no snap.
+    const wall = bounds.wall;
+    if (hit.axis === "x") {
+      place({ x: dx > 0 ? wall.left : wall.right, y: targetY });
+    } else {
+      place({ x: targetX, y: dy > 0 ? wall.top : wall.bottom });
+    }
+    return true;
   }
   function tilt(x, y, z) {
     if (reducedMotion.matches) return;
@@ -597,43 +662,51 @@ function enableDeskToken() {
     tilt(-y * 15, base + x * 18, x * 5);
   }
   function fitToViewport() {
-    if (!deskToken.offsetWidth) return;
-    if (placed) place(left, top);
+    measure();
+    if (!bounds) return;
+    if (placed) place(safePosition(left, top));
     else {
       const initial = deskToken.getBoundingClientRect();
-      place(initial.left, initial.top);
+      place(safePosition(initial.left, initial.top));
     }
   }
   fitToViewport();
   tokenCard.addEventListener("pointerdown", function (event) {
-    if (pointerId !== null || (event.pointerType === "mouse" && event.button !== 0)) return;
+    if (!bounds || pointerId !== null || (event.pointerType === "mouse" && event.button !== 0)) return;
     pointerId = event.pointerId;
     startX = event.clientX;
     startY = event.clientY;
-    startLeft = left;
-    startTop = top;
+    lastPointerX = startX;
+    lastPointerY = startY;
     dragged = false;
     tokenCard.setPointerCapture(pointerId);
-    tokenCard.classList.add("is-dragging");
   });
   tokenCard.addEventListener("pointermove", function (event) {
     if (event.pointerId !== pointerId) {
       if (event.pointerType === "mouse") hover(event);
       return;
     }
-    const distanceX = event.clientX - startX;
-    const distanceY = event.clientY - startY;
-    if (Math.hypot(distanceX, distanceY) > 5) dragged = true;
-    if (dragged) {
-      place(startLeft + distanceX, startTop + distanceY);
-      tilt(clamp(-distanceY / 18, -11, 11), clamp(distanceX / 14, -20, 20), clamp(distanceX / 30, -7, 7));
+    const wasDragging = dragged;
+    if (!dragged && Math.hypot(event.clientX - startX, event.clientY - startY) > 5) {
+      dragged = true;
+      tokenCard.classList.add("is-dragging");
     }
+    if (dragged) {
+      const dx = event.clientX - (wasDragging ? lastPointerX : startX);
+      const dy = event.clientY - (wasDragging ? lastPointerY : startY);
+      tokenCard.classList.toggle("is-blocked", moveBy(dx, dy));
+      const base = tokenCard.classList.contains("is-turned") ? 28 : -14;
+      tilt(clamp(-dy / 3, -11, 11), base + clamp(dx / 3, -12, 12), clamp(dx / 5, -7, 7));
+    }
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
   });
   tokenCard.addEventListener("pointerup", function (event) {
     if (event.pointerId !== pointerId) return;
-    if (tokenCard.hasPointerCapture(pointerId)) tokenCard.releasePointerCapture(pointerId);
-    tokenCard.classList.remove("is-dragging");
+    const activePointerId = pointerId;
     pointerId = null;
+    if (tokenCard.hasPointerCapture(activePointerId)) tokenCard.releasePointerCapture(activePointerId);
+    tokenCard.classList.remove("is-dragging", "is-blocked");
     rest();
     suppressTokenClick = dragged;
     if (suppressTokenClick) window.setTimeout(function () { suppressTokenClick = false; }, 0);
@@ -649,7 +722,13 @@ function enableDeskToken() {
   });
   tokenCard.addEventListener("pointercancel", function () {
     pointerId = null;
-    tokenCard.classList.remove("is-dragging");
+    tokenCard.classList.remove("is-dragging", "is-blocked");
+    rest();
+  });
+  tokenCard.addEventListener("lostpointercapture", function () {
+    if (pointerId === null) return;
+    pointerId = null;
+    tokenCard.classList.remove("is-dragging", "is-blocked");
     rest();
   });
   tokenCard.addEventListener("pointerleave", function () {
@@ -661,7 +740,7 @@ function enableDeskToken() {
     if (!direction) return;
     event.preventDefault();
     const step = event.shiftKey ? 40 : 16;
-    place(left + direction[0] * step, top + direction[1] * step);
+    moveBy(direction[0] * step, direction[1] * step);
   });
   window.addEventListener("resize", fitToViewport);
 }
