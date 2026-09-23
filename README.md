@@ -32,6 +32,8 @@ The project has no build step. Upload these files to any static host, then keep 
 
 The public board has no sign-in button. To manage it locally, open `http://127.0.0.1:4174/?manage=1`, enter the owner's email, and use the sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears. The composer offers `save draft` and `publish`; drafts stay private even when somebody knows their direct URL. After deployment, replace this address with the final HTTPS site URL and add it to Supabase Redirect URLs.
 
+For GitHub Pages, the included `deploy-pages.yml` workflow copies only the static site into the deployment artifact. On GitHub Free, the repository must be public. After enabling Pages with GitHub Actions as its source, the site will be available at `https://maximkochergin.github.io/portfolio-board/` and every push to `main` will publish an update.
+
 ## structure
 
     index.html              the page
