@@ -378,7 +378,6 @@ function openAuthDialog() {
 }
 
 document.querySelector("#close-auth").addEventListener("click", function () { authDialog.close(); });
-document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
 authForm.addEventListener("submit", async function (event) {
   event.preventDefault();
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
