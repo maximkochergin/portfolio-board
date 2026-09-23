@@ -18,6 +18,13 @@ create table if not exists public.site_settings (
   owner_id uuid not null references auth.users(id) on delete restrict
 );
 
+create index if not exists posts_published_at_idx
+on public.posts (published_at desc);
+
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
+
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
@@ -34,7 +41,7 @@ create trigger posts_touch_updated_at
 before update on public.posts
 for each row execute procedure public.touch_updated_at();
 
-create or replace function public.can_manage_posts()
+create or replace function private.can_manage_posts()
 returns boolean
 language sql
 stable
@@ -48,11 +55,16 @@ as $$
   );
 $$;
 
-revoke all on table public.site_settings from anon, authenticated;
-revoke all on function public.can_manage_posts() from public;
-grant execute on function public.can_manage_posts() to authenticated;
-
 alter table public.posts enable row level security;
+alter table public.site_settings enable row level security;
+
+revoke all on table public.posts from anon, authenticated;
+revoke all on table public.site_settings from anon, authenticated;
+revoke all on function private.can_manage_posts() from public;
+
+grant select on table public.posts to anon, authenticated;
+grant insert, update, delete on table public.posts to authenticated;
+grant execute on function private.can_manage_posts() to authenticated;
 
 drop policy if exists "public can read posts" on public.posts;
 create policy "public can read posts"
@@ -64,19 +76,19 @@ drop policy if exists "owner can create posts" on public.posts;
 create policy "owner can create posts"
 on public.posts for insert
 to authenticated
-with check (public.can_manage_posts());
+with check ((select private.can_manage_posts()));
 
 drop policy if exists "owner can update posts" on public.posts;
 create policy "owner can update posts"
 on public.posts for update
 to authenticated
-using (public.can_manage_posts())
-with check (public.can_manage_posts());
+using ((select private.can_manage_posts()))
+with check ((select private.can_manage_posts()));
 
 drop policy if exists "owner can delete posts" on public.posts;
 create policy "owner can delete posts"
 on public.posts for delete
 to authenticated
-using (public.can_manage_posts());
+using ((select private.can_manage_posts()));
 
 commit;

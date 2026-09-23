@@ -205,12 +205,9 @@ async function refreshOwnerState() {
   }
   canPublish = false;
   if (session) {
-    try {
-      const ownerResult = await client.rpc("can_manage_posts");
-      canPublish = ownerResult.data === true;
-    } catch {
-      canPublish = false;
-    }
+    const currentEmail = typeof session.user.email === "string" ? session.user.email.trim().toLowerCase() : "";
+    const ownerEmail = typeof config.ownerEmail === "string" ? config.ownerEmail.trim().toLowerCase() : "";
+    canPublish = Boolean(currentEmail && ownerEmail && currentEmail === ownerEmail);
   }
   ownerAccessButton.textContent = session ? "sign out" : "owner access";
   newPostButton.hidden = !canPublish || Boolean(openPostId);

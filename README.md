@@ -17,7 +17,7 @@ This is deliberately a small static site. The public page reads from Supabase. P
        on conflict (singleton) do update set owner_id = excluded.owner_id;
 
 4. Fill in config.js with the project URL, the public anon key, and your owner email. The anon key is safe to use in a browser because the database policies above enforce access.
-5. In Authentication → URL Configuration, add the final site URL to Redirect URLs. For local testing, add http://localhost:4173.
+5. In Authentication → URL Configuration, add the final site URL to Redirect URLs. For local testing, add http://localhost:4174 and http://127.0.0.1:4174.
 
 Do not put the service role key in this project or in the browser.
 
