@@ -13,9 +13,13 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <aside class="desk-token" id="desk-token" aria-label="movable desk token">
-      <button class="token-card" id="token-card" type="button" aria-pressed="false" aria-label="move the desk token or change its shade" title="drag to move · click to change shade">
-        <span class="token-image-wrap"><img src="./assets/images/chapman-token.png" alt="chapman package" draggable="false" /></span>
+    <aside class="desk-token" id="desk-token" aria-label="movable desk object">
+      <button class="token-card" id="token-card" type="button" aria-pressed="false" aria-label="chapman pack. drag or use arrow keys to move; press to turn" title="drag or use arrow keys to move · click to turn">
+        <span class="token-object" aria-hidden="true">
+          <span class="token-spine token-spine-right"></span>
+          <span class="token-spine token-spine-left"></span>
+          <span class="token-face"><img src="./assets/images/chapman-cutout.png" alt="" draggable="false" /></span>
+        </span>
       </button>
     </aside>
     <main class="page">

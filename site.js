@@ -521,44 +521,120 @@ function isOwnerRoute() {
 }
 
 function enableDeskToken() {
-  if (!deskToken || !tokenCard || window.matchMedia("(max-width: 42rem)").matches) return;
+  if (!deskToken || !tokenCard) return;
+  const board = document.querySelector(".board");
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const edge = 12;
+  const boardGap = 16;
   let pointerId = null;
   let startX = 0;
   let startY = 0;
-  let offsetX = 0;
-  let offsetY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+  let left = 0;
+  let top = 0;
+  let placed = false;
   let dragged = false;
   let suppressTokenClick = false;
-  function place(x, y) {
-    const limitX = Math.max(0, window.innerWidth - deskToken.offsetWidth - 20);
-    const limitY = Math.max(0, window.innerHeight - deskToken.offsetHeight - 20);
-    offsetX = Math.min(limitX, Math.max(-limitX, x));
-    offsetY = Math.min(limitY, Math.max(-limitY, y));
-    deskToken.style.setProperty("--token-x", offsetX + "px");
-    deskToken.style.setProperty("--token-y", offsetY + "px");
+  function clamp(value, minimum, maximum) {
+    return Math.min(maximum, Math.max(minimum, value));
   }
+  function safePosition(x, y) {
+    const width = deskToken.offsetWidth;
+    const height = deskToken.offsetHeight;
+    const maxX = Math.max(edge, window.innerWidth - width - edge);
+    const maxY = Math.max(edge, window.innerHeight - height - edge);
+    const desired = { x: clamp(x, edge, maxX), y: clamp(y, edge, maxY) };
+    if (!board) return desired;
+    const rect = board.getBoundingClientRect();
+    const overlaps = function (point) {
+      return point.x < rect.right + boardGap && point.x + width > rect.left - boardGap
+        && point.y < rect.bottom + boardGap && point.y + height > rect.top - boardGap;
+    };
+    if (!overlaps(desired)) return desired;
+    const candidates = [
+      { x: rect.left - width - boardGap, y: desired.y },
+      { x: rect.right + boardGap, y: desired.y },
+      { x: desired.x, y: rect.top - height - boardGap },
+      { x: desired.x, y: rect.bottom + boardGap }
+    ].map(function (point) {
+      return { x: clamp(point.x, edge, maxX), y: clamp(point.y, edge, maxY) };
+    }).filter(function (point) { return !overlaps(point); });
+    if (!candidates.length) return desired;
+    candidates.sort(function (a, b) {
+      const distanceA = (a.x - desired.x) ** 2 + (a.y - desired.y) ** 2;
+      const distanceB = (b.x - desired.x) ** 2 + (b.y - desired.y) ** 2;
+      return distanceA - distanceB;
+    });
+    return candidates[0];
+  }
+  function place(x, y) {
+    if (!deskToken.offsetWidth) return;
+    const point = safePosition(x, y);
+    left = point.x;
+    top = point.y;
+    deskToken.style.left = left + "px";
+    deskToken.style.top = top + "px";
+    deskToken.style.right = "auto";
+    deskToken.style.bottom = "auto";
+    placed = true;
+  }
+  function tilt(x, y, z) {
+    if (reducedMotion.matches) return;
+    tokenCard.style.setProperty("--tilt-x", x + "deg");
+    tokenCard.style.setProperty("--tilt-y", y + "deg");
+    tokenCard.style.setProperty("--tilt-z", z + "deg");
+  }
+  function rest() {
+    const turned = tokenCard.classList.contains("is-turned");
+    tilt(0, turned ? 28 : -14, turned ? 3 : -4);
+  }
+  function hover(event) {
+    const rect = tokenCard.getBoundingClientRect();
+    const x = clamp((event.clientX - rect.left) / rect.width, 0, 1) - 0.5;
+    const y = clamp((event.clientY - rect.top) / rect.height, 0, 1) - 0.5;
+    const base = tokenCard.classList.contains("is-turned") ? 28 : -14;
+    tilt(-y * 15, base + x * 18, x * 5);
+  }
+  function fitToViewport() {
+    if (!deskToken.offsetWidth) return;
+    if (placed) place(left, top);
+    else {
+      const initial = deskToken.getBoundingClientRect();
+      place(initial.left, initial.top);
+    }
+  }
+  fitToViewport();
   tokenCard.addEventListener("pointerdown", function (event) {
+    if (pointerId !== null || (event.pointerType === "mouse" && event.button !== 0)) return;
     pointerId = event.pointerId;
     startX = event.clientX;
     startY = event.clientY;
+    startLeft = left;
+    startTop = top;
     dragged = false;
     tokenCard.setPointerCapture(pointerId);
     tokenCard.classList.add("is-dragging");
   });
   tokenCard.addEventListener("pointermove", function (event) {
-    if (event.pointerId !== pointerId) return;
+    if (event.pointerId !== pointerId) {
+      if (event.pointerType === "mouse") hover(event);
+      return;
+    }
     const distanceX = event.clientX - startX;
     const distanceY = event.clientY - startY;
-    if (Math.abs(distanceX) > 4 || Math.abs(distanceY) > 4) dragged = true;
-    if (dragged) place(offsetX + distanceX, offsetY + distanceY);
-    startX = event.clientX;
-    startY = event.clientY;
+    if (Math.hypot(distanceX, distanceY) > 5) dragged = true;
+    if (dragged) {
+      place(startLeft + distanceX, startTop + distanceY);
+      tilt(clamp(-distanceY / 18, -11, 11), clamp(distanceX / 14, -20, 20), clamp(distanceX / 30, -7, 7));
+    }
   });
   tokenCard.addEventListener("pointerup", function (event) {
     if (event.pointerId !== pointerId) return;
     if (tokenCard.hasPointerCapture(pointerId)) tokenCard.releasePointerCapture(pointerId);
     tokenCard.classList.remove("is-dragging");
     pointerId = null;
+    rest();
     suppressTokenClick = dragged;
     if (suppressTokenClick) window.setTimeout(function () { suppressTokenClick = false; }, 0);
   });
@@ -567,13 +643,27 @@ function enableDeskToken() {
       suppressTokenClick = false;
       return;
     }
-    const colored = tokenCard.classList.toggle("is-color");
-    tokenCard.setAttribute("aria-pressed", String(colored));
+    const turned = tokenCard.classList.toggle("is-turned");
+    tokenCard.setAttribute("aria-pressed", String(turned));
+    rest();
   });
   tokenCard.addEventListener("pointercancel", function () {
     pointerId = null;
     tokenCard.classList.remove("is-dragging");
+    rest();
   });
+  tokenCard.addEventListener("pointerleave", function () {
+    if (pointerId === null) rest();
+  });
+  tokenCard.addEventListener("keydown", function (event) {
+    const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const direction = directions[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    const step = event.shiftKey ? 40 : 16;
+    place(left + direction[0] * step, top + direction[1] * step);
+  });
+  window.addEventListener("resize", fitToViewport);
 }
 
 async function start() {
