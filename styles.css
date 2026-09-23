@@ -45,4 +45,4 @@ textarea { min-height: 8rem; resize: vertical; }
 .actions { margin-top: 1.25rem; }
 .plain:disabled { cursor: default; opacity: 0.55; text-decoration: none; }
 @media (max-width: 23rem) { .board { padding: 1.1rem; } .switcher { gap: 1.06rem; } }
-@media (prefers-reduced-motion: reduce) { .add { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .add { transition: none; } .add:hover { transform: none; } }

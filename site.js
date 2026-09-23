@@ -7,6 +7,7 @@ const newPostButton = document.querySelector("#new-post");
 const ownerActions = document.querySelector("#owner-actions");
 const confirmDialog = document.querySelector("#confirm-dialog");
 const authDialog = document.querySelector("#auth-dialog");
+const authForm = document.querySelector("#auth-form");
 
 const config = window.portfolioConfig || {};
 const hasConfig = typeof config.supabaseUrl === "string"
@@ -22,6 +23,9 @@ let editingId = null;
 let canPublish = false;
 let loading = true;
 let loadError = false;
+let nextMagicLinkAt = 0;
+
+const magicLinkCooldownMs = 60 * 1000;
 
 function safeLink(raw) {
   try {
@@ -362,14 +366,28 @@ document.querySelector("#delete-post").addEventListener("click", async function 
 function openAuthDialog() {
   document.querySelector("#auth-error").hidden = true;
   document.querySelector("#auth-copy").textContent = "enter your email to receive a sign-in link.";
-  document.querySelector("#auth-email").value = "";
+  const emailInput = document.querySelector("#auth-email");
+  const button = document.querySelector("#send-sign-in");
+  const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
+  emailInput.disabled = secondsRemaining > 0;
+  button.disabled = secondsRemaining > 0;
+  button.textContent = secondsRemaining > 0 ? "link sent" : "send link";
+  if (secondsRemaining <= 0) emailInput.value = "";
   authDialog.showModal();
-  document.querySelector("#auth-email").focus();
+  if (secondsRemaining <= 0) emailInput.focus();
 }
 
 document.querySelector("#close-auth").addEventListener("click", function () { authDialog.close(); });
 document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
-document.querySelector("#send-sign-in").addEventListener("click", async function () {
+authForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
+  if (secondsRemaining > 0) {
+    const error = document.querySelector("#auth-error");
+    error.textContent = "a link was just sent. try again in about a minute.";
+    error.hidden = false;
+    return;
+  }
   const emailInput = document.querySelector("#auth-email");
   const email = emailInput.value.trim();
   const error = document.querySelector("#auth-error");
@@ -385,7 +403,7 @@ document.querySelector("#send-sign-in").addEventListener("click", async function
     result = await client.auth.signInWithOtp({
       email: email,
       options: {
-        emailRedirectTo: window.location.origin + window.location.pathname,
+        emailRedirectTo: window.location.origin + window.location.pathname + "?manage=1",
         shouldCreateUser: false
       }
     });
@@ -398,7 +416,16 @@ document.querySelector("#send-sign-in").addEventListener("click", async function
     error.hidden = false;
     return;
   }
+  nextMagicLinkAt = Date.now() + magicLinkCooldownMs;
+  emailInput.disabled = true;
+  button.textContent = "link sent";
   document.querySelector("#auth-copy").textContent = "check your inbox for the sign-in link.";
+  window.setTimeout(function () {
+    if (Date.now() < nextMagicLinkAt) return;
+    emailInput.disabled = false;
+    button.disabled = false;
+    button.textContent = "send link";
+  }, magicLinkCooldownMs);
 });
 
 function showAuthLinkError() {
@@ -422,7 +449,11 @@ async function start() {
     return;
   }
   client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-  client.auth.onAuthStateChange(function () { void refreshOwnerState(); });
+  client.auth.onAuthStateChange(function (event) {
+    void refreshOwnerState().then(function () {
+      if (event === "SIGNED_IN" && canPublish && authDialog.open) authDialog.close();
+    });
+  });
   showAuthLinkError();
   await Promise.all([refreshOwnerState(), refreshPosts()]);
   if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
