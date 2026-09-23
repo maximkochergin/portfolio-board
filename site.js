@@ -4,7 +4,6 @@ const composer = document.querySelector("#composer");
 const form = document.querySelector("#post-form");
 const detail = document.querySelector("#post-detail");
 const newPostButton = document.querySelector("#new-post");
-const ownerAccessButton = document.querySelector("#owner-access");
 const ownerActions = document.querySelector("#owner-actions");
 const confirmDialog = document.querySelector("#confirm-dialog");
 const authDialog = document.querySelector("#auth-dialog");
@@ -215,7 +214,6 @@ async function refreshOwnerState() {
       canPublish = false;
     }
   }
-  ownerAccessButton.textContent = session ? "sign out" : "owner access";
   newPostButton.hidden = !canPublish || Boolean(openPostId);
   ownerActions.hidden = !canPublish || !openPostId;
 }
@@ -369,22 +367,6 @@ function openAuthDialog() {
   document.querySelector("#auth-email").focus();
 }
 
-ownerAccessButton.addEventListener("click", async function () {
-  if (!client) return;
-  let sessionResult;
-  try {
-    sessionResult = await client.auth.getSession();
-  } catch {
-    return;
-  }
-  if (sessionResult.data && sessionResult.data.session) {
-    await client.auth.signOut();
-    await refreshOwnerState();
-    return;
-  }
-  openAuthDialog();
-});
-
 document.querySelector("#close-auth").addEventListener("click", function () { authDialog.close(); });
 document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
 document.querySelector("#send-sign-in").addEventListener("click", async function () {
@@ -430,16 +412,20 @@ function showAuthLinkError() {
   document.querySelector("#auth-email").focus();
 }
 
+function isOwnerRoute() {
+  return new URLSearchParams(window.location.search).get("manage") === "1";
+}
+
 async function start() {
   renderPosts();
   if (!hasConfig || !window.supabase) {
-    ownerAccessButton.disabled = true;
     return;
   }
   client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
   client.auth.onAuthStateChange(function () { void refreshOwnerState(); });
   showAuthLinkError();
   await Promise.all([refreshOwnerState(), refreshPosts()]);
+  if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
 }
 
 start();

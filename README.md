@@ -28,7 +28,7 @@ The project has no build step. Upload these files to any static host, then keep 
     npm run dev
     npm run check
 
-Use the quiet owner access link in the lower-left corner to receive a sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears and can publish to Supabase.
+The public board has no sign-in button. To manage it locally, open `http://127.0.0.1:4174/?manage=1`, enter the owner's email, and use the sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears and can publish to Supabase. After deployment, replace this address with the final HTTPS site URL and add it to Supabase Redirect URLs.
 
 ## structure
 
