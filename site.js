@@ -205,9 +205,15 @@ async function refreshOwnerState() {
   }
   canPublish = false;
   if (session) {
-    const currentEmail = typeof session.user.email === "string" ? session.user.email.trim().toLowerCase() : "";
-    const ownerEmail = typeof config.ownerEmail === "string" ? config.ownerEmail.trim().toLowerCase() : "";
-    canPublish = Boolean(currentEmail && ownerEmail && currentEmail === ownerEmail);
+    try {
+      const result = await client.from("site_settings")
+        .select("owner_id")
+        .eq("singleton", true)
+        .maybeSingle();
+      canPublish = Boolean(result.data && !result.error);
+    } catch {
+      canPublish = false;
+    }
   }
   ownerAccessButton.textContent = session ? "sign out" : "owner access";
   newPostButton.hidden = !canPublish || Boolean(openPostId);
@@ -357,8 +363,10 @@ document.querySelector("#delete-post").addEventListener("click", async function 
 
 function openAuthDialog() {
   document.querySelector("#auth-error").hidden = true;
-  document.querySelector("#auth-copy").textContent = "a sign-in link will be sent to the owner's email.";
+  document.querySelector("#auth-copy").textContent = "enter your email to receive a sign-in link.";
+  document.querySelector("#auth-email").value = "";
   authDialog.showModal();
+  document.querySelector("#auth-email").focus();
 }
 
 ownerAccessButton.addEventListener("click", async function () {
@@ -380,10 +388,11 @@ ownerAccessButton.addEventListener("click", async function () {
 document.querySelector("#close-auth").addEventListener("click", function () { authDialog.close(); });
 document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
 document.querySelector("#send-sign-in").addEventListener("click", async function () {
-  const email = typeof config.ownerEmail === "string" ? config.ownerEmail.trim() : "";
+  const emailInput = document.querySelector("#auth-email");
+  const email = emailInput.value.trim();
   const error = document.querySelector("#auth-error");
-  if (!email) {
-    error.textContent = "add the owner's email to config.js first.";
+  if (!email || !emailInput.checkValidity()) {
+    error.textContent = "enter a valid email address.";
     error.hidden = false;
     return;
   }
@@ -393,7 +402,10 @@ document.querySelector("#send-sign-in").addEventListener("click", async function
   try {
     result = await client.auth.signInWithOtp({
       email: email,
-      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+      options: {
+        emailRedirectTo: window.location.origin + window.location.pathname,
+        shouldCreateUser: false
+      }
     });
   } catch {
     result = { error: true };
@@ -407,6 +419,17 @@ document.querySelector("#send-sign-in").addEventListener("click", async function
   document.querySelector("#auth-copy").textContent = "check your inbox for the sign-in link.";
 });
 
+function showAuthLinkError() {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  if (!params.has("error")) return;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search + "#work");
+  document.querySelector("#auth-error").textContent = "this sign-in link is no longer valid. request a new one.";
+  document.querySelector("#auth-error").hidden = false;
+  document.querySelector("#auth-copy").textContent = "enter your email to receive a fresh sign-in link.";
+  authDialog.showModal();
+  document.querySelector("#auth-email").focus();
+}
+
 async function start() {
   renderPosts();
   if (!hasConfig || !window.supabase) {
@@ -414,7 +437,8 @@ async function start() {
     return;
   }
   client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-  client.auth.onAuthStateChange(function () { refreshOwnerState(); });
+  client.auth.onAuthStateChange(function () { void refreshOwnerState(); });
+  showAuthLinkError();
   await Promise.all([refreshOwnerState(), refreshPosts()]);
 }
 

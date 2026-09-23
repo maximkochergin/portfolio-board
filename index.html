@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
     <meta name="theme-color" content="#f3f0e8" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'" />
     <title>work and notes</title>
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./styles.css" />
@@ -58,7 +60,9 @@
     </dialog>
     <dialog id="auth-dialog" aria-labelledby="auth-title">
       <div class="dialog-header"><h2 id="auth-title">owner access</h2><button class="plain close" type="button" id="close-auth" aria-label="close">close</button></div>
-      <p class="dialog-copy" id="auth-copy">a sign-in link will be sent to the owner's email.</p>
+      <p class="dialog-copy" id="auth-copy">enter your email to receive a sign-in link.</p>
+      <label for="auth-email">email</label>
+      <input id="auth-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required />
       <p class="error" id="auth-error" role="alert" hidden></p>
       <div class="actions"><button type="button" class="plain" id="cancel-auth">cancel</button><button type="button" class="plain" id="send-sign-in">send link</button></div>
     </dialog>
@@ -70,7 +74,7 @@
       </form>
     </dialog>
     <script src="./config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
     <script src="./site.js" defer></script>
   </body>
 </html>

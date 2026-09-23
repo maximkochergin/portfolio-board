@@ -8,7 +8,7 @@ create table if not exists public.posts (
   title text not null check (char_length(btrim(title)) between 1 and 120),
   body text not null check (char_length(btrim(body)) between 1 and 20000),
   subtitle text check (subtitle is null or char_length(subtitle) <= 160),
-  link text check (link is null or link ~* '^https?://'),
+  link text check (link is null or (char_length(link) <= 500 and link ~* '^https?://')),
   published_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -20,6 +20,9 @@ create table if not exists public.site_settings (
 
 create index if not exists posts_published_at_idx
 on public.posts (published_at desc);
+
+create index if not exists site_settings_owner_id_idx
+on public.site_settings (owner_id);
 
 create schema if not exists private;
 revoke all on schema private from public;
@@ -51,19 +54,23 @@ as $$
   select exists (
     select 1
     from public.site_settings
-    where owner_id = auth.uid()
+    where owner_id = (select auth.uid())
   );
 $$;
 
 alter table public.posts enable row level security;
 alter table public.site_settings enable row level security;
+alter table public.posts force row level security;
+alter table public.site_settings force row level security;
 
 revoke all on table public.posts from anon, authenticated;
 revoke all on table public.site_settings from anon, authenticated;
-revoke all on function private.can_manage_posts() from public;
+revoke all on function public.touch_updated_at() from public, anon, authenticated, service_role;
+revoke all on function private.can_manage_posts() from public, anon, authenticated, service_role;
 
 grant select on table public.posts to anon, authenticated;
 grant insert, update, delete on table public.posts to authenticated;
+grant select on table public.site_settings to authenticated;
 grant execute on function private.can_manage_posts() to authenticated;
 
 drop policy if exists "public can read posts" on public.posts;
@@ -71,6 +78,12 @@ create policy "public can read posts"
 on public.posts for select
 to anon, authenticated
 using (true);
+
+drop policy if exists "owner can read own setting" on public.site_settings;
+create policy "owner can read own setting"
+on public.site_settings for select
+to authenticated
+using (owner_id = (select auth.uid()));
 
 drop policy if exists "owner can create posts" on public.posts;
 create policy "owner can create posts"

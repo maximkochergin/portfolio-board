@@ -16,7 +16,7 @@ This is deliberately a small static site. The public page reads from Supabase. P
        values (true, 'paste-the-auth-user-uuid-here')
        on conflict (singleton) do update set owner_id = excluded.owner_id;
 
-4. Fill in config.js with the project URL, the public anon key, and your owner email. The anon key is safe to use in a browser because the database policies above enforce access.
+4. Fill in config.js with the project URL and the public publishable key. The publishable key is safe to use in a browser because the database policies above enforce access.
 5. In Authentication → URL Configuration, add the final site URL to Redirect URLs. For local testing, add http://localhost:4174 and http://127.0.0.1:4174.
 
 Do not put the service role key in this project or in the browser.
@@ -28,7 +28,7 @@ The project has no build step. Upload these files to any static host, then keep 
     npm run dev
     npm run check
 
-Use the quiet owner access link in the lower-left corner to receive a sign-in link. Once the session belongs to the configured owner UUID, the small plus appears and can publish to Supabase.
+Use the quiet owner access link in the lower-left corner to receive a sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears and can publish to Supabase.
 
 ## structure
 
@@ -39,3 +39,9 @@ Use the quiet owner access link in the lower-left corner to receive a sign-in li
     supabase/schema.sql     database and access rules
 
 No server, local database, or framework is required.
+
+## security
+
+The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates the client script before each push.
+
+The browser never contains a Supabase service-role key. Do not add one later. When choosing a host, configure its equivalent response headers and add its exact HTTPS URL to Supabase Authentication → URL Configuration.

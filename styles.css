@@ -38,6 +38,7 @@ dialog::backdrop { background: rgb(64 59 52 / 14%); }
 .close { color: var(--quiet); }
 .dialog-copy { margin: 1rem 0 0; color: var(--quiet); font-size: 0.875rem; line-height: 1.5; }
 form label { display: block; margin: 1rem 0 0.4rem; font-size: 0.8125rem; }
+#auth-dialog label { display: block; margin: 1rem 0 0.4rem; font-size: 0.8125rem; }
 form label span { color: var(--quiet); }
 input, textarea, select { width: 100%; border: 1px solid #d7cfc1; border-radius: 0; padding: 0.65rem; background: transparent; color: var(--ink); font-size: 16px; line-height: 1.45; }
 textarea { min-height: 8rem; resize: vertical; }
