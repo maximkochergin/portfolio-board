@@ -11,6 +11,8 @@ const authForm = document.querySelector("#auth-form");
 const searchRegion = document.querySelector("#search-region");
 const searchInput = document.querySelector("#search-input");
 const clearSearchButton = document.querySelector("#clear-search");
+const deskToken = document.querySelector("#desk-token");
+const tokenCard = document.querySelector("#token-card");
 
 const config = window.portfolioConfig || {};
 const hasConfig = typeof config.supabaseUrl === "string"
@@ -365,7 +367,6 @@ newPostButton.addEventListener("click", function () { openComposer(null); });
 document.querySelector("#edit-post").addEventListener("click", function () {
   openComposer(posts.find(function (post) { return post.id === openPostId; }));
 });
-document.querySelector("#close-composer").addEventListener("click", function () { composer.close(); });
 document.querySelector("#cancel-composer").addEventListener("click", function () { composer.close(); });
 form.elements.category.addEventListener("change", updateAboutFields);
 
@@ -454,7 +455,7 @@ function openAuthDialog() {
   if (secondsRemaining <= 0) emailInput.focus();
 }
 
-document.querySelector("#close-auth").addEventListener("click", function () { authDialog.close(); });
+document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
 authForm.addEventListener("submit", async function (event) {
   event.preventDefault();
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
@@ -519,6 +520,62 @@ function isOwnerRoute() {
   return new URLSearchParams(window.location.search).get("manage") === "1";
 }
 
+function enableDeskToken() {
+  if (!deskToken || !tokenCard || window.matchMedia("(max-width: 42rem)").matches) return;
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let offsetX = 0;
+  let offsetY = 0;
+  let dragged = false;
+  let suppressTokenClick = false;
+  function place(x, y) {
+    const limitX = Math.max(0, window.innerWidth - deskToken.offsetWidth - 20);
+    const limitY = Math.max(0, window.innerHeight - deskToken.offsetHeight - 20);
+    offsetX = Math.min(limitX, Math.max(-limitX, x));
+    offsetY = Math.min(limitY, Math.max(-limitY, y));
+    deskToken.style.setProperty("--token-x", offsetX + "px");
+    deskToken.style.setProperty("--token-y", offsetY + "px");
+  }
+  tokenCard.addEventListener("pointerdown", function (event) {
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startY = event.clientY;
+    dragged = false;
+    tokenCard.setPointerCapture(pointerId);
+    tokenCard.classList.add("is-dragging");
+  });
+  tokenCard.addEventListener("pointermove", function (event) {
+    if (event.pointerId !== pointerId) return;
+    const distanceX = event.clientX - startX;
+    const distanceY = event.clientY - startY;
+    if (Math.abs(distanceX) > 4 || Math.abs(distanceY) > 4) dragged = true;
+    if (dragged) place(offsetX + distanceX, offsetY + distanceY);
+    startX = event.clientX;
+    startY = event.clientY;
+  });
+  tokenCard.addEventListener("pointerup", function (event) {
+    if (event.pointerId !== pointerId) return;
+    if (tokenCard.hasPointerCapture(pointerId)) tokenCard.releasePointerCapture(pointerId);
+    tokenCard.classList.remove("is-dragging");
+    pointerId = null;
+    suppressTokenClick = dragged;
+    if (suppressTokenClick) window.setTimeout(function () { suppressTokenClick = false; }, 0);
+  });
+  tokenCard.addEventListener("click", function () {
+    if (suppressTokenClick) {
+      suppressTokenClick = false;
+      return;
+    }
+    const colored = tokenCard.classList.toggle("is-color");
+    tokenCard.setAttribute("aria-pressed", String(colored));
+  });
+  tokenCard.addEventListener("pointercancel", function () {
+    pointerId = null;
+    tokenCard.classList.remove("is-dragging");
+  });
+}
+
 async function start() {
   renderPosts();
   if (!hasConfig || !window.supabase) return;
@@ -535,4 +592,5 @@ async function start() {
   if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
 }
 
+enableDeskToken();
 start();

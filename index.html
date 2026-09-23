@@ -4,14 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
-    <meta name="theme-color" content="#f3f0e8" />
+    <meta name="theme-color" content="#e9e8e1" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'" />
     <title>work and notes</title>
+    <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <aside class="desk-token" id="desk-token" aria-label="movable desk token">
+      <button class="token-card" id="token-card" type="button" aria-pressed="false" aria-label="move the desk token or change its shade" title="drag to move · click to change shade">
+        <span class="token-image-wrap"><img src="./assets/images/chapman-token.png" alt="chapman package" draggable="false" /></span>
+      </button>
+    </aside>
     <main class="page">
       <article class="board" aria-label="personal space">
         <nav class="switcher" aria-label="sections" role="tablist">
@@ -46,7 +52,7 @@
     </main>
     <dialog id="composer" aria-labelledby="composer-title">
       <form id="post-form">
-        <div class="dialog-header"><h2 id="composer-title">new post</h2><button class="plain close" type="button" id="close-composer" aria-label="close">close</button></div>
+        <div class="dialog-header"><h2 id="composer-title">new post</h2></div>
         <label for="category">publish in</label>
         <select id="category" name="category"><option value="work">work</option><option value="notes">notes</option><option value="about">about</option></select>
         <label for="post-title">title</label>
@@ -61,26 +67,26 @@
         <textarea id="post-body" name="body" maxlength="20000" required placeholder="write something..."></textarea>
         <p class="error" id="form-error" role="alert" hidden></p>
         <div class="actions">
-          <button type="button" class="plain" id="cancel-composer">cancel</button>
+          <button type="button" class="plain" id="cancel-composer">discard</button>
           <div class="publish-actions"><button type="submit" class="plain" id="save-draft" name="intent" value="draft">save draft</button><button type="submit" class="plain" id="submit-post" name="intent" value="published">publish</button></div>
         </div>
       </form>
     </dialog>
     <dialog id="auth-dialog" aria-labelledby="auth-title">
       <form id="auth-form" novalidate>
-        <div class="dialog-header"><h2 id="auth-title">owner access</h2><button class="plain close" type="button" id="close-auth" aria-label="close">close</button></div>
+        <div class="dialog-header"><h2 id="auth-title">owner access</h2></div>
         <p class="dialog-copy" id="auth-copy">enter your email to receive a sign-in link.</p>
         <label for="auth-email">email</label>
         <input id="auth-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required />
         <p class="error" id="auth-error" role="alert" hidden></p>
-        <div class="actions single-action"><button type="submit" class="plain" id="send-sign-in">send link</button></div>
+        <div class="actions"><button type="button" class="plain" id="cancel-auth">cancel</button><button type="submit" class="plain" id="send-sign-in">send link</button></div>
       </form>
     </dialog>
     <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-copy">
       <form method="dialog">
         <div class="dialog-header"><h2 id="confirm-title"></h2></div>
         <p class="dialog-copy" id="confirm-copy"></p>
-        <div class="actions"><button class="plain" value="cancel">cancel</button><button class="plain" value="confirm" id="confirm-action"></button></div>
+        <div class="actions"><button class="plain" value="cancel">keep post</button><button class="plain" value="confirm" id="confirm-action"></button></div>
       </form>
     </dialog>
     <script src="./config.js"></script>
