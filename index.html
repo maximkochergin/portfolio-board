@@ -19,12 +19,18 @@
           <button id="tab-notes" type="button" role="tab" aria-selected="false" aria-controls="panel-notes" tabindex="-1">notes</button>
           <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1">about</button>
         </nav>
+        <div class="search-region" id="search-region" hidden>
+          <label class="sr-only" for="search-input">search posts</label>
+          <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="search" />
+          <button class="plain clear-search" id="clear-search" type="button" hidden>clear</button>
+        </div>
         <div class="content">
           <section class="panel" id="panel-work" role="tabpanel" aria-labelledby="tab-work" tabindex="0"><div class="post-list" data-category="work"></div></section>
           <section class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden><div class="post-list" data-category="notes"></div></section>
           <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden><div class="post-list" data-category="about"></div></section>
           <section class="panel detail" id="post-detail" aria-label="post" tabindex="-1" hidden>
             <button class="plain back" type="button" id="back-to-list">back</button>
+            <p class="detail-meta" id="detail-meta" hidden>draft</p>
             <h1 id="detail-title"></h1>
             <p class="subtitle" id="detail-subtitle" hidden></p>
             <p class="body" id="detail-body"></p>
@@ -54,7 +60,10 @@
         <label for="post-body">text</label>
         <textarea id="post-body" name="body" maxlength="20000" required placeholder="write something..."></textarea>
         <p class="error" id="form-error" role="alert" hidden></p>
-        <div class="actions"><button type="button" class="plain" id="cancel-composer">cancel</button><button type="submit" class="plain" id="submit-post">publish</button></div>
+        <div class="actions">
+          <button type="button" class="plain" id="cancel-composer">cancel</button>
+          <div class="publish-actions"><button type="submit" class="plain" id="save-draft" name="intent" value="draft">save draft</button><button type="submit" class="plain" id="submit-post" name="intent" value="published">publish</button></div>
+        </div>
       </form>
     </dialog>
     <dialog id="auth-dialog" aria-labelledby="auth-title">

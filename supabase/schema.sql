@@ -9,6 +9,7 @@ create table if not exists public.posts (
   body text not null check (char_length(btrim(body)) between 1 and 20000),
   subtitle text check (subtitle is null or char_length(subtitle) <= 160),
   link text check (link is null or (char_length(link) <= 500 and link ~* '^https?://')),
+  status text not null default 'published' check (status in ('draft', 'published')),
   published_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -18,8 +19,9 @@ create table if not exists public.site_settings (
   owner_id uuid not null references auth.users(id) on delete restrict
 );
 
-create index if not exists posts_published_at_idx
-on public.posts (published_at desc);
+create index if not exists posts_public_feed_idx
+on public.posts (published_at desc)
+where status = 'published';
 
 create index if not exists site_settings_owner_id_idx
 on public.site_settings (owner_id);
@@ -74,10 +76,17 @@ grant select on table public.site_settings to authenticated;
 grant execute on function private.can_manage_posts() to authenticated;
 
 drop policy if exists "public can read posts" on public.posts;
-create policy "public can read posts"
+drop policy if exists "public can read published posts" on public.posts;
+create policy "public can read published posts"
 on public.posts for select
 to anon, authenticated
-using (true);
+using (status = 'published');
+
+drop policy if exists "owner can read all posts" on public.posts;
+create policy "owner can read all posts"
+on public.posts for select
+to authenticated
+using ((select private.can_manage_posts()));
 
 drop policy if exists "owner can read own setting" on public.site_settings;
 create policy "owner can read own setting"

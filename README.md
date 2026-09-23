@@ -4,7 +4,7 @@
 
 > a small personal archive for work, notes, and quiet progress.
 
-This is deliberately a small static site. The public page reads from Supabase. Publishing, editing, and deleting are limited to one authenticated owner by row-level security.
+This is deliberately a small static site. The public page reads from Supabase. Publishing, editing, and deleting are limited to one authenticated owner by row-level security. The owner can save private drafts; visitors only receive published posts.
 
 ## connect Supabase
 
@@ -19,6 +19,8 @@ This is deliberately a small static site. The public page reads from Supabase. P
 4. Fill in config.js with the project URL and the public publishable key. The publishable key is safe to use in a browser because the database policies above enforce access.
 5. In Authentication → URL Configuration, add the final site URL to Redirect URLs. For local testing, add http://localhost:4174 and http://127.0.0.1:4174.
 
+If the project was connected before the draft feature, run [supabase/migrations/20260923143253_add_post_status_and_search.sql](./supabase/migrations/20260923143253_add_post_status_and_search.sql) once in the SQL Editor instead. It preserves existing posts, marks them as published, and restricts public reads to published posts.
+
 Do not put the service role key in this project or in the browser.
 
 ## publish
@@ -28,7 +30,7 @@ The project has no build step. Upload these files to any static host, then keep 
     npm run dev
     npm run check
 
-The public board has no sign-in button. To manage it locally, open `http://127.0.0.1:4174/?manage=1`, enter the owner's email, and use the sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears and can publish to Supabase. After deployment, replace this address with the final HTTPS site URL and add it to Supabase Redirect URLs.
+The public board has no sign-in button. To manage it locally, open `http://127.0.0.1:4174/?manage=1`, enter the owner's email, and use the sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears. The composer offers `save draft` and `publish`; drafts stay private even when somebody knows their direct URL. After deployment, replace this address with the final HTTPS site URL and add it to Supabase Redirect URLs.
 
 ## structure
 
@@ -36,7 +38,8 @@ The public board has no sign-in button. To manage it locally, open `http://127.0
     styles.css              visual system
     site.js                 UI, auth, and Supabase calls
     config.js               project connection settings
-    supabase/schema.sql     database and access rules
+    supabase/schema.sql     database and access rules for a new project
+    supabase/migrations/    safe upgrades for a connected project
 
 No server, local database, or framework is required.
 

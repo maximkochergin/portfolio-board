@@ -10,3 +10,4 @@ config.local.js
 /dist/
 next-env.d.ts
 tsconfig.tsbuildinfo
+/supabase/.temp/

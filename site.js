@@ -8,24 +8,29 @@ const ownerActions = document.querySelector("#owner-actions");
 const confirmDialog = document.querySelector("#confirm-dialog");
 const authDialog = document.querySelector("#auth-dialog");
 const authForm = document.querySelector("#auth-form");
+const searchRegion = document.querySelector("#search-region");
+const searchInput = document.querySelector("#search-input");
+const clearSearchButton = document.querySelector("#clear-search");
 
 const config = window.portfolioConfig || {};
 const hasConfig = typeof config.supabaseUrl === "string"
   && /^https:\/\/.+\.supabase\.co$/i.test(config.supabaseUrl)
   && typeof config.supabaseAnonKey === "string"
   && config.supabaseAnonKey.length > 20;
+const categories = ["work", "notes", "about"];
+const magicLinkCooldownMs = 60 * 1000;
 
 let client = null;
 let posts = [];
 let activeCategory = "work";
 let openPostId = null;
 let editingId = null;
+let editingStatus = "published";
 let canPublish = false;
 let loading = true;
 let loadError = false;
 let nextMagicLinkAt = 0;
-
-const magicLinkCooldownMs = 60 * 1000;
+let searchTerm = "";
 
 function safeLink(raw) {
   try {
@@ -36,7 +41,38 @@ function safeLink(raw) {
   }
 }
 
+function normalizeSearch(value) {
+  return value.toLocaleLowerCase().trim();
+}
+
+function matchesSearch(post) {
+  if (!searchTerm) return true;
+  return [post.title, post.subtitle, post.body].filter(Boolean).join(" ").toLocaleLowerCase().includes(searchTerm);
+}
+
+function postsForCategory(category) {
+  return posts.filter(function (post) {
+    return post.category === category && matchesSearch(post);
+  });
+}
+
+function emptyCopy(category) {
+  if (searchTerm) return "nothing matches that search.";
+  if (loading) return "loading...";
+  if (loadError) return "couldn't load this page.";
+  if (category === "about") return "a little more soon.";
+  return "nothing published yet.";
+}
+
+function syncSearch() {
+  const showSearch = Boolean(posts.length || searchTerm);
+  searchRegion.hidden = !showSearch;
+  clearSearchButton.hidden = !searchTerm;
+  if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
+}
+
 function showMessage(message, retry) {
+  searchRegion.hidden = true;
   document.querySelectorAll(".post-list").forEach(function (list) {
     list.replaceChildren();
     const state = document.createElement("div");
@@ -61,22 +97,23 @@ function renderPosts() {
     showMessage("this place is being connected.");
     return;
   }
+  syncSearch();
   document.querySelectorAll(".post-list").forEach(function (list) {
     list.replaceChildren();
-    const items = posts.filter(function (post) { return post.category === list.dataset.category; });
+    const items = postsForCategory(list.dataset.category);
     if (!items.length) {
       const state = document.createElement("div");
       state.className = "empty-state";
       const copy = document.createElement("p");
-      copy.textContent = loading ? "loading..." : loadError ? "couldn't load this page." : "nothing published yet.";
+      copy.textContent = emptyCopy(list.dataset.category);
       state.append(copy);
       if (loadError) {
-        const retry = document.createElement("button");
-        retry.type = "button";
-        retry.className = "plain";
-        retry.textContent = "try again";
-        retry.addEventListener("click", refreshPosts);
-        state.append(retry);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "plain";
+        button.textContent = "try again";
+        button.addEventListener("click", refreshPosts);
+        state.append(button);
       }
       list.append(state);
       return;
@@ -94,6 +131,12 @@ function renderPosts() {
         setHash("post/" + post.id);
       });
       item.append(title);
+      if (canPublish && post.status === "draft") {
+        const state = document.createElement("span");
+        state.className = "post-state";
+        state.textContent = "draft";
+        item.append(state);
+      }
       list.append(item);
     });
   });
@@ -112,6 +155,8 @@ function showPost(id, resetScroll) {
   document.querySelector("#detail-error").hidden = true;
   document.querySelector("#detail-title").textContent = post.title;
   document.querySelector("#detail-body").textContent = post.body;
+  const meta = document.querySelector("#detail-meta");
+  meta.hidden = !(canPublish && post.status === "draft");
   const subtitle = document.querySelector("#detail-subtitle");
   subtitle.textContent = post.subtitle || "";
   subtitle.hidden = !post.subtitle;
@@ -126,6 +171,7 @@ function showPost(id, resetScroll) {
   }
   ownerActions.hidden = !canPublish;
   newPostButton.hidden = true;
+  searchRegion.hidden = true;
   panels.forEach(function (panel) { panel.hidden = true; });
   detail.hidden = false;
   if (resetScroll !== false) detail.scrollTop = 0;
@@ -136,6 +182,7 @@ function showList(restoreFocus) {
   const previous = openPostId;
   openPostId = null;
   detail.hidden = true;
+  syncSearch();
   newPostButton.hidden = !canPublish;
   panels.forEach(function (panel) {
     panel.hidden = panel.id !== "panel-" + activeCategory;
@@ -168,17 +215,21 @@ function restoreLocation() {
       return;
     }
   }
-  const category = ["work", "notes", "about"].includes(hash) ? hash : "work";
+  const category = categories.includes(hash) ? hash : "work";
   selectTab(document.querySelector("#tab-" + category));
+  if (!categories.includes(hash)) setHash(category, true);
 }
 
 async function refreshPosts() {
   if (!client) return;
   loading = true;
+  loadError = false;
   renderPosts();
   let result;
   try {
-    result = await client.from("posts").select("id, category, title, body, subtitle, link, published_at").order("published_at", { ascending: false });
+    result = await client.from("posts")
+      .select("id, category, title, body, subtitle, link, status, published_at")
+      .order("published_at", { ascending: false });
   } catch {
     loading = false;
     loadError = true;
@@ -229,19 +280,32 @@ function updateAboutFields() {
   form.elements.link.disabled = !about;
 }
 
+function updateComposerActions() {
+  const saveDraft = document.querySelector("#save-draft");
+  const publish = document.querySelector("#submit-post");
+  if (!editingId) {
+    saveDraft.textContent = "save draft";
+    publish.textContent = "publish";
+    return;
+  }
+  saveDraft.textContent = editingStatus === "draft" ? "save draft" : "move to drafts";
+  publish.textContent = editingStatus === "draft" ? "publish" : "save";
+}
+
 function openComposer(post) {
   if (!canPublish) return;
   form.reset();
   editingId = post ? post.id : null;
+  editingStatus = post ? post.status : "published";
   form.elements.category.value = post ? post.category : activeCategory;
   form.elements.title.value = post ? post.title : "";
   form.elements.body.value = post ? post.body : "";
   form.elements.subtitle.value = post ? post.subtitle || "" : "";
   form.elements.link.value = post ? post.link || "" : "";
   document.querySelector("#composer-title").textContent = post ? "edit post" : "new post";
-  document.querySelector("#submit-post").textContent = post ? "save" : "publish";
   document.querySelector("#form-error").hidden = true;
   updateAboutFields();
+  updateComposerActions();
   composer.showModal();
   form.elements.title.focus();
 }
@@ -281,6 +345,17 @@ tabs.forEach(function (tab, index) {
   });
 });
 
+searchInput.addEventListener("input", function () {
+  searchTerm = normalizeSearch(searchInput.value);
+  renderPosts();
+  showList(false);
+});
+clearSearchButton.addEventListener("click", function () {
+  searchTerm = "";
+  renderPosts();
+  showList(false);
+  searchInput.focus();
+});
 window.addEventListener("hashchange", restoreLocation);
 document.querySelector("#back-to-list").addEventListener("click", function () {
   showList(true);
@@ -297,12 +372,14 @@ form.elements.category.addEventListener("change", updateAboutFields);
 form.addEventListener("submit", async function (event) {
   event.preventDefault();
   if (!canPublish || !client) return;
+  const intent = event.submitter && event.submitter.value === "draft" ? "draft" : "published";
   const payload = {
     category: form.elements.category.value,
     title: form.elements.title.value.trim(),
     body: form.elements.body.value.trim(),
     subtitle: form.elements.category.value === "about" ? form.elements.subtitle.value.trim() || null : null,
-    link: form.elements.category.value === "about" ? form.elements.link.value.trim() || null : null
+    link: form.elements.category.value === "about" ? form.elements.link.value.trim() || null : null,
+    status: intent
   };
   if (!payload.title || !payload.body) {
     showFormError("please add a title and some text.");
@@ -312,8 +389,9 @@ form.addEventListener("submit", async function (event) {
     showFormError("please use a full http or https link.");
     return;
   }
-  const button = document.querySelector("#submit-post");
-  button.disabled = true;
+  if (intent === "published" && editingStatus === "draft") payload.published_at = new Date().toISOString();
+  const buttons = [document.querySelector("#save-draft"), document.querySelector("#submit-post")];
+  buttons.forEach(function (button) { button.disabled = true; });
   document.querySelector("#form-error").hidden = true;
   const query = editingId
     ? client.from("posts").update(payload).eq("id", editingId).select().single()
@@ -322,16 +400,15 @@ form.addEventListener("submit", async function (event) {
   try {
     result = await query;
   } catch {
-    button.disabled = false;
-    showFormError("could not save this post. your text is still here.");
-    return;
+    result = { error: true };
   }
-  button.disabled = false;
-  if (result.error) {
+  buttons.forEach(function (button) { button.disabled = false; });
+  if (result.error || !result.data) {
     showFormError("could not save this post. your text is still here.");
     return;
   }
   composer.close();
+  editingStatus = result.data.status;
   await refreshPosts();
   selectTab(document.querySelector("#tab-" + result.data.category));
   if (editingId) {
@@ -444,17 +521,17 @@ function isOwnerRoute() {
 
 async function start() {
   renderPosts();
-  if (!hasConfig || !window.supabase) {
-    return;
-  }
+  if (!hasConfig || !window.supabase) return;
   client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
   client.auth.onAuthStateChange(function (event) {
-    void refreshOwnerState().then(function () {
+    void refreshOwnerState().then(async function () {
+      await refreshPosts();
       if (event === "SIGNED_IN" && canPublish && authDialog.open) authDialog.close();
     });
   });
   showAuthLinkError();
-  await Promise.all([refreshOwnerState(), refreshPosts()]);
+  await refreshOwnerState();
+  await refreshPosts();
   if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
 }
 
