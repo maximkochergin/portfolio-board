@@ -1,0 +1,10 @@
+{
+  "name": "portfolio-board",
+  "private": true,
+  "version": "1.0.0",
+  "description": "a small personal archive for work, notes, and quiet progress.",
+  "scripts": {
+    "dev": "node serve.mjs",
+    "check": "node --check site.js"
+  }
+}

@@ -1,0 +1,12 @@
+# local dependencies and tooling
+/node_modules
+.DS_Store
+npm-debug.log*
+config.local.js
+/.next/
+/.vinext/
+/.wrangler/
+/.sites-runtime/
+/dist/
+next-env.d.ts
+tsconfig.tsbuildinfo
