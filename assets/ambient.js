@@ -2,17 +2,20 @@
   const root = document.documentElement;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const clockPreference = "portfolio-clock-hidden";
+  const introPreference = "portfolio-intro-seen";
   let preferenceStorage = null;
+  let sessionStorage = null;
   try { preferenceStorage = window.localStorage; } catch { /* Storage can be disabled. */ }
+  try { sessionStorage = window.sessionStorage; } catch { /* Storage can be disabled. */ }
 
   function storedFlag(storage, key) {
-    try { return storage.getItem(key) === "1"; } catch { return false; }
+    try { return storage?.getItem(key) === "1"; } catch { return false; }
   }
 
   function saveFlag(storage, key, value) {
     try {
-      if (value) storage.setItem(key, "1");
-      else storage.removeItem(key);
+      if (value) storage?.setItem(key, "1");
+      else storage?.removeItem(key);
     } catch { /* Browsing without storage still works. */ }
   }
 
@@ -25,18 +28,16 @@
 
   let introAllowed = window.self === window.top
     && !reducedMotion.matches
-    && new URLSearchParams(window.location.search).get("manage") !== "1";
+    && new URLSearchParams(window.location.search).get("manage") !== "1"
+    && !window.location.hash.startsWith("#post/")
+    && !storedFlag(sessionStorage, introPreference);
   if (introAllowed) root.classList.add("intro-pending");
 
+  let finishImmediately = null;
   const safety = window.setTimeout(() => {
     introAllowed = false;
-    root.classList.remove("intro-pending", "intro-revealing");
-    const intro = document.querySelector("#intro");
-    const page = document.querySelector(".page");
-    const clock = document.querySelector("#ambient-clock");
-    if (intro) intro.hidden = true;
-    if (page) page.inert = false;
-    if (clock) clock.inert = false;
+    if (finishImmediately) finishImmediately();
+    else root.classList.remove("intro-pending", "intro-revealing");
   }, 7000);
 
   function initialize() {
@@ -84,100 +85,81 @@
       return;
     }
 
-    const greeting = greetingForHour(new Date().getHours());
-    introClear.textContent = greeting;
+    introClear.textContent = greetingForHour(new Date().getHours());
     intro.hidden = false;
     page.inert = true;
     clock.inert = true;
+    saveFlag(sessionStorage, introPreference, true);
+    let phaseTimer = 0;
+    let exitTimer = 0;
     let leaving = false;
-    let revealFrame = 0;
+    let finished = false;
 
-    function revealLetters(onComplete) {
-      const bounds = introClear.getBoundingClientRect();
-      const letters = introClear.firstChild;
-      const maskSupported = window.CSS?.supports?.("mask-image", "linear-gradient(to right, black, transparent)")
-        || window.CSS?.supports?.("-webkit-mask-image", "linear-gradient(to right, black, transparent)");
-      if (!bounds.width || !letters || !maskSupported) {
-        introClear.style.maskImage = "none";
-        introClear.style.webkitMaskImage = "none";
-        window.setTimeout(onComplete, 1400);
+    function completeIntro() {
+      if (finished) return;
+      finished = true;
+      leaving = true;
+      window.clearTimeout(phaseTimer);
+      window.clearTimeout(exitTimer);
+      window.clearTimeout(safety);
+      intro.hidden = true;
+      page.inert = false;
+      clock.inert = false;
+      root.classList.remove("intro-pending", "intro-revealing");
+      if (document.activeElement === document.querySelector("#intro-skip")) {
+        document.querySelector('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true });
+      }
+    }
+    finishImmediately = completeIntro;
+
+    function finishIntro(immediate = false) {
+      if (finished || leaving) {
+        if (immediate) completeIntro();
         return;
       }
-
-      const count = letters.textContent.length;
-      const range = document.createRange();
-      const edges = [0];
-      for (let index = 1; index <= count; index += 1) {
-        range.setStart(letters, 0);
-        range.setEnd(letters, index);
-        const right = Math.min(bounds.width, range.getBoundingClientRect().right - bounds.left);
-        edges.push(index === count ? bounds.width : Math.max(edges[index - 1], right));
-      }
-
-      const letterMs = 225;
-      const duration = count * letterMs;
-      let startedAt = null;
-      function draw(now) {
-        if (leaving) return;
-        if (startedAt === null) startedAt = now;
-        const elapsed = Math.min(duration, now - startedAt);
-        const index = Math.min(count - 1, Math.floor(elapsed / letterMs));
-        const fraction = Math.min(1, (elapsed / letterMs - index) / 0.9);
-        const eased = fraction * fraction * (3 - 2 * fraction);
-        const edge = edges[index] + (edges[index + 1] - edges[index]) * eased;
-        const solid = Math.max(0, edge - 24);
-        const feather = Math.max(solid + 1, edge + 12);
-        const mask = `linear-gradient(to right, #000 0px, #000 ${solid}px, transparent ${feather}px)`;
-        introClear.style.maskImage = mask;
-        introClear.style.webkitMaskImage = mask;
-        if (elapsed < duration) {
-          revealFrame = window.requestAnimationFrame(draw);
-        } else {
-          introClear.style.maskImage = "none";
-          introClear.style.webkitMaskImage = "none";
-          onComplete();
-        }
-      }
-      revealFrame = window.requestAnimationFrame(draw);
-    }
-
-    function finishIntro() {
-      if (leaving) return;
       leaving = true;
-      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(phaseTimer);
+      if (immediate || reducedMotion.matches) {
+        completeIntro();
+        return;
+      }
       root.classList.add("intro-revealing");
       intro.classList.add("is-leaving");
-      window.setTimeout(() => {
-        intro.hidden = true;
-        page.inert = false;
-        clock.inert = false;
-        root.classList.remove("intro-pending", "intro-revealing");
-        window.clearTimeout(safety);
-      }, 720);
+      const onTransitionEnd = (event) => {
+        if (event.target === intro && event.propertyName === "opacity") completeIntro();
+      };
+      intro.addEventListener("transitionend", onTransitionEnd, { once: true });
+      exitTimer = window.setTimeout(completeIntro, 850);
     }
 
-    document.querySelector("#intro-skip").addEventListener("click", finishIntro);
+    document.querySelector("#intro-skip").addEventListener("click", () => finishIntro());
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !intro.hidden) finishIntro();
     });
     reducedMotion.addEventListener("change", () => {
-      if (reducedMotion.matches) finishIntro();
+      if (reducedMotion.matches) finishIntro(true);
     });
 
     const fontReady = document.fonts?.load('100 48px "Pencerio"') || Promise.resolve();
-    Promise.race([fontReady.catch(() => {}), new Promise((resolve) => window.setTimeout(resolve, 1500))])
-      .then(() => {
-        if (leaving || !introAllowed) return;
-        window.requestAnimationFrame(() => {
+    Promise.race([
+      fontReady.then(() => true, () => false),
+      new Promise((resolve) => window.setTimeout(() => resolve(false), 1500))
+    ]).then((ready) => {
+      if (leaving || !introAllowed) return;
+      if (!ready) {
+        finishIntro(true);
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        if (leaving) return;
+        intro.classList.add("is-playing");
+        phaseTimer = window.setTimeout(() => {
           if (leaving) return;
-          intro.classList.add("is-playing");
-          revealLetters(() => {
-            if (leaving) return;
-            intro.classList.add("is-holding");
-            window.setTimeout(finishIntro, 680);
-          });
-        });
+          intro.classList.add("is-holding");
+          phaseTimer = window.setTimeout(() => finishIntro(), 500);
+        }, 1050);
       });
+    });
   }
 
   if (document.readyState === "loading") {

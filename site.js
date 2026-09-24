@@ -11,6 +11,8 @@ const authForm = document.querySelector("#auth-form");
 const searchRegion = document.querySelector("#search-region");
 const searchInput = document.querySelector("#search-input");
 const clearSearchButton = document.querySelector("#clear-search");
+const boardStatus = document.querySelector("#board-status");
+const content = document.querySelector(".content");
 
 const config = window.portfolioConfig || {};
 const hasConfig = typeof config.supabaseUrl === "string"
@@ -34,6 +36,10 @@ let searchTerm = "";
 let postsRevision = 0;
 let ownerRevision = 0;
 let savingPost = false;
+let deletingPost = false;
+let initialFormState = "";
+let searchIndex = new Map();
+let locationRestored = false;
 
 function safeLink(raw) {
   try {
@@ -48,30 +54,33 @@ function normalizeSearch(value) {
   return value.toLocaleLowerCase().trim().replace(/\s+/g, " ");
 }
 
-function matchesSearch(post) {
-  const term = normalizeSearch(searchTerm);
+function matchesSearch(post, term) {
   if (!term) return true;
-  return normalizeSearch([post.title, post.subtitle, post.body].filter(Boolean).join(" ")).includes(term);
+  return searchIndex.get(post.id)?.includes(term) || false;
 }
 
-function postsForCategory(category) {
+function postsForCategory(category, term) {
   return posts.filter(function (post) {
-    return post.category === category && matchesSearch(post);
+    return post.category === category && matchesSearch(post, term);
   });
 }
 
-function emptyCopy() {
-  if (normalizeSearch(searchTerm)) return "nothing matches that search.";
+function emptyCopy(category) {
   if (loading) return "loading...";
   if (loadError) return "couldn't load this page.";
+  if (normalizeSearch(searchTerm)) return "nothing matches that search.";
+  if (posts.length) return `nothing in ${category} yet.`;
   return "nothing published yet.";
 }
 
 function syncSearch() {
-  const showSearch = Boolean(posts.length || normalizeSearch(searchTerm));
-  searchRegion.hidden = !showSearch;
+  searchRegion.hidden = false;
   clearSearchButton.hidden = !searchTerm;
   if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
+}
+
+function announce(message) {
+  if (boardStatus.textContent !== message) boardStatus.textContent = message;
 }
 
 function retryPosts() {
@@ -81,6 +90,8 @@ function retryPosts() {
 
 function showMessage(message, retry) {
   searchRegion.hidden = true;
+  content.setAttribute("aria-busy", "false");
+  announce(message);
   document.querySelectorAll(".post-list").forEach(function (list) {
     list.replaceChildren();
     const state = document.createElement("div");
@@ -100,7 +111,7 @@ function showMessage(message, retry) {
   });
 }
 
-function renderPosts() {
+function renderPosts(onlyCategory = null) {
   if (!hasConfig) {
     showMessage("this place is being connected.");
     return;
@@ -110,14 +121,21 @@ function renderPosts() {
     return;
   }
   syncSearch();
+  content.setAttribute("aria-busy", String(loading));
+  const term = normalizeSearch(searchTerm);
+  const currentCount = postsForCategory(activeCategory, term).length;
+  announce(loading ? "loading posts." : term
+    ? currentCount ? `${currentCount} matching posts.` : "nothing matches that search."
+    : currentCount ? `${currentCount} posts in ${activeCategory}.` : "nothing published yet.");
   document.querySelectorAll(".post-list").forEach(function (list) {
+    if (onlyCategory && list.dataset.category !== onlyCategory) return;
     list.replaceChildren();
-    const items = postsForCategory(list.dataset.category);
+    const items = postsForCategory(list.dataset.category, term);
     if (!items.length) {
       const state = document.createElement("div");
       state.className = "empty-state";
       const copy = document.createElement("p");
-      copy.textContent = emptyCopy();
+      copy.textContent = emptyCopy(list.dataset.category);
       state.append(copy);
       if (!loading && !normalizeSearch(searchTerm)) {
         const detail = document.createElement("p");
@@ -158,7 +176,7 @@ function setHash(value, replace, state = null) {
   window.history[replace ? "replaceState" : "pushState"](state, "", hash);
 }
 
-function showPost(id, resetScroll) {
+function showPost(id, resetScroll = true, moveFocus = true) {
   const post = posts.find(function (item) { return item.id === id; });
   if (!post) return;
   openPostId = id;
@@ -178,14 +196,39 @@ function showPost(id, resetScroll) {
     link.textContent = new URL(href).hostname;
   } else {
     link.removeAttribute("href");
+    link.textContent = "";
   }
   ownerActions.hidden = !canPublish;
   newPostButton.hidden = true;
   searchRegion.hidden = true;
   panels.forEach(function (panel) { panel.hidden = true; });
   detail.hidden = false;
-  if (resetScroll !== false) detail.scrollTop = 0;
-  detail.focus();
+  if (resetScroll) detail.scrollTop = 0;
+  if (moveFocus) detail.focus();
+  announce(`opened ${post.title}.`);
+}
+
+function showMissingPost(moveFocus = true) {
+  const alreadyShown = !detail.hidden && document.querySelector("#detail-title").textContent === "this post isn't available.";
+  openPostId = null;
+  document.querySelector("#detail-meta").hidden = true;
+  document.querySelector("#detail-title").textContent = "this post isn't available.";
+  document.querySelector("#detail-body").textContent = "the link may be out of date.";
+  document.querySelector("#detail-subtitle").textContent = "";
+  document.querySelector("#detail-subtitle").hidden = true;
+  const link = document.querySelector("#detail-link");
+  link.hidden = true;
+  link.removeAttribute("href");
+  link.textContent = "";
+  document.querySelector("#detail-error").hidden = true;
+  ownerActions.hidden = true;
+  newPostButton.hidden = true;
+  searchRegion.hidden = true;
+  panels.forEach(function (panel) { panel.hidden = true; });
+  detail.hidden = false;
+  detail.scrollTop = 0;
+  if (moveFocus && !alreadyShown) detail.focus();
+  announce("this post isn't available.");
 }
 
 function showList(restoreFocus) {
@@ -212,16 +255,23 @@ function selectTab(tab) {
     item.tabIndex = selected ? 0 : -1;
   });
   showList(false);
+  renderPosts(activeCategory);
 }
 
-function restoreLocation() {
+function restoreLocation(moveFocus = true) {
   const hash = window.location.hash.slice(1);
   if (hash.indexOf("post/") === 0) {
     const id = hash.slice(5);
     const post = posts.find(function (item) { return item.id === id; });
     if (post) {
-      selectTab(document.querySelector("#tab-" + post.category));
-      showPost(post.id, false);
+      if (openPostId !== post.id || activeCategory !== post.category) {
+        selectTab(document.querySelector("#tab-" + post.category));
+      }
+      showPost(post.id, false, moveFocus);
+      return;
+    }
+    if (!loading && !loadError) {
+      showMissingPost(moveFocus);
       return;
     }
   }
@@ -257,15 +307,20 @@ async function refreshPosts() {
   posts = Array.isArray(result.data)
     ? result.data.filter(function (post) { return canPublish || post.status === "published"; })
     : [];
+  searchIndex = new Map(posts.map(function (post) {
+    return [post.id, normalizeSearch([post.title, post.subtitle, post.body].filter(Boolean).join(" "))];
+  }));
   loadError = false;
   renderPosts();
-  restoreLocation();
+  restoreLocation(!locationRestored);
+  locationRestored = true;
 }
 
 function clearPrivateView() {
   ++postsRevision;
   canPublish = false;
   posts = [];
+  searchIndex.clear();
   searchTerm = "";
   loading = true;
   loadError = false;
@@ -334,6 +389,16 @@ function updateComposerActions() {
   publish.textContent = editingStatus === "draft" ? "publish" : "save";
 }
 
+function formSnapshot() {
+  return JSON.stringify([
+    form.elements.category.value,
+    form.elements.title.value,
+    form.elements.body.value,
+    form.elements.subtitle.value,
+    form.elements.link.value
+  ]);
+}
+
 function openComposer(post) {
   if (!canPublish) return;
   form.reset();
@@ -348,6 +413,8 @@ function openComposer(post) {
   document.querySelector("#form-error").hidden = true;
   updateAboutFields();
   updateComposerActions();
+  initialFormState = formSnapshot();
+  form.removeAttribute("aria-busy");
   composer.showModal();
   form.elements.title.focus();
 }
@@ -358,10 +425,11 @@ function showFormError(message) {
   error.hidden = false;
 }
 
-function askConfirmation(title, copy, action) {
+function askConfirmation(title, copy, action, cancelText = "keep post") {
   document.querySelector("#confirm-title").textContent = title;
   document.querySelector("#confirm-copy").textContent = copy;
   document.querySelector("#confirm-action").textContent = action;
+  document.querySelector('#confirm-dialog button[value="cancel"]').textContent = cancelText;
   confirmDialog.returnValue = "";
   return new Promise(function (resolve) {
     confirmDialog.addEventListener("close", function () {
@@ -369,6 +437,20 @@ function askConfirmation(title, copy, action) {
     }, { once: true });
     confirmDialog.showModal();
   });
+}
+
+async function closeComposer() {
+  if (savingPost || confirmDialog.open) return;
+  if (formSnapshot() !== initialFormState) {
+    const discard = await askConfirmation(
+      "discard your changes?",
+      "the text you entered has not been saved.",
+      "discard changes",
+      "keep editing"
+    );
+    if (!discard) return;
+  }
+  composer.close();
 }
 
 tabs.forEach(function (tab, index) {
@@ -389,13 +471,13 @@ tabs.forEach(function (tab, index) {
 
 searchInput.addEventListener("input", function () {
   searchTerm = searchInput.value;
-  renderPosts();
-  showList(false);
+  renderPosts(activeCategory);
+  document.querySelector("#panel-" + activeCategory + " .post-list").scrollTop = 0;
 });
 clearSearchButton.addEventListener("click", function () {
   searchTerm = "";
-  renderPosts();
-  showList(false);
+  renderPosts(activeCategory);
+  document.querySelector("#panel-" + activeCategory + " .post-list").scrollTop = 0;
   searchInput.focus();
 });
 window.addEventListener("hashchange", restoreLocation);
@@ -409,11 +491,10 @@ newPostButton.addEventListener("click", function () { openComposer(null); });
 document.querySelector("#edit-post").addEventListener("click", function () {
   openComposer(posts.find(function (post) { return post.id === openPostId; }));
 });
-document.querySelector("#cancel-composer").addEventListener("click", function () {
-  if (!savingPost) composer.close();
-});
+document.querySelector("#cancel-composer").addEventListener("click", () => { void closeComposer(); });
 composer.addEventListener("cancel", function (event) {
-  if (savingPost) event.preventDefault();
+  event.preventDefault();
+  void closeComposer();
 });
 form.elements.category.addEventListener("change", updateAboutFields);
 
@@ -439,8 +520,12 @@ form.addEventListener("submit", async function (event) {
   }
   if (intent === "published" && editingStatus === "draft") payload.published_at = new Date().toISOString();
   const buttons = [document.querySelector("#save-draft"), document.querySelector("#submit-post"), document.querySelector("#cancel-composer")];
+  const fields = [form.elements.category, form.elements.title, form.elements.body, form.elements.subtitle, form.elements.link];
   savingPost = true;
   buttons.forEach(function (button) { button.disabled = true; });
+  fields.forEach(function (field) { field.disabled = true; });
+  form.setAttribute("aria-busy", "true");
+  announce("saving post.");
   document.querySelector("#form-error").hidden = true;
   const query = editingId
     ? client.from("posts").update(payload).eq("id", editingId).select().single()
@@ -453,12 +538,16 @@ form.addEventListener("submit", async function (event) {
   }
   savingPost = false;
   buttons.forEach(function (button) { button.disabled = false; });
+  fields.forEach(function (field) { field.disabled = false; });
+  updateAboutFields();
+  form.removeAttribute("aria-busy");
   if (!canPublish) return;
   if (result.error || !result.data) {
     showFormError("could not save this post. your text is still here.");
     return;
   }
   composer.close();
+  announce(intent === "draft" ? "draft saved." : "post saved.");
   editingStatus = result.data.status;
   await refreshPosts();
   selectTab(document.querySelector("#tab-" + result.data.category));
@@ -471,21 +560,32 @@ form.addEventListener("submit", async function (event) {
 });
 
 document.querySelector("#delete-post").addEventListener("click", async function () {
-  if (!canPublish || !client || !openPostId) return;
+  if (!canPublish || !client || !openPostId || deletingPost) return;
+  const postId = openPostId;
   const confirmed = await askConfirmation("delete this post?", "this can't be undone.", "delete");
-  if (!confirmed) return;
+  if (!confirmed || !canPublish) return;
+  deletingPost = true;
+  const actionButtons = Array.from(ownerActions.querySelectorAll("button"));
+  actionButtons.forEach(function (button) { button.disabled = true; });
+  ownerActions.setAttribute("aria-busy", "true");
+  announce("deleting post.");
   let result;
   try {
-    result = await client.from("posts").delete().eq("id", openPostId);
+    result = await client.from("posts").delete().eq("id", postId);
   } catch {
     result = { error: true };
   }
+  deletingPost = false;
+  actionButtons.forEach(function (button) { button.disabled = false; });
+  ownerActions.removeAttribute("aria-busy");
+  if (!canPublish) return;
   if (result.error) {
     const error = document.querySelector("#detail-error");
     error.textContent = "couldn't delete this post.";
     error.hidden = false;
     return;
   }
+  announce("post deleted.");
   showList(false);
   setHash(activeCategory, true);
   await refreshPosts();
@@ -495,6 +595,8 @@ function openAuthDialog() {
   document.querySelector("#auth-error").hidden = true;
   document.querySelector("#auth-copy").textContent = "enter your email to receive a sign-in link.";
   const emailInput = document.querySelector("#auth-email");
+  emailInput.removeAttribute("aria-invalid");
+  emailInput.removeAttribute("aria-describedby");
   const button = document.querySelector("#send-sign-in");
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
   emailInput.disabled = secondsRemaining > 0;
@@ -521,10 +623,16 @@ authForm.addEventListener("submit", async function (event) {
   if (!email || !emailInput.checkValidity()) {
     error.textContent = "enter a valid email address.";
     error.hidden = false;
+    emailInput.setAttribute("aria-invalid", "true");
+    emailInput.setAttribute("aria-describedby", "auth-error");
     return;
   }
+  error.hidden = true;
+  emailInput.removeAttribute("aria-invalid");
+  emailInput.removeAttribute("aria-describedby");
   const button = document.querySelector("#send-sign-in");
   button.disabled = true;
+  button.textContent = "sending...";
   let result;
   try {
     result = await client.auth.signInWithOtp({
@@ -538,9 +646,11 @@ authForm.addEventListener("submit", async function (event) {
     result = { error: true };
   }
   button.disabled = false;
+  button.textContent = "send link";
   if (result.error) {
     error.textContent = "couldn't send the sign-in link. please try again.";
     error.hidden = false;
+    emailInput.setAttribute("aria-describedby", "auth-error");
     return;
   }
   nextMagicLinkAt = Date.now() + magicLinkCooldownMs;
@@ -548,6 +658,7 @@ authForm.addEventListener("submit", async function (event) {
   button.disabled = true;
   button.textContent = "link sent";
   document.querySelector("#auth-copy").textContent = "check your inbox for the sign-in link.";
+  announce("sign-in link sent.");
   window.setTimeout(function () {
     if (Date.now() < nextMagicLinkAt) return;
     emailInput.disabled = false;
@@ -564,6 +675,7 @@ function showAuthLinkError() {
   document.querySelector("#auth-error").hidden = false;
   document.querySelector("#auth-copy").textContent = "enter your email to receive a fresh sign-in link.";
   authDialog.showModal();
+  document.querySelector("#auth-email").setAttribute("aria-describedby", "auth-error");
   document.querySelector("#auth-email").focus();
 }
 

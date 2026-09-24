@@ -26,8 +26,8 @@
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=paper-1" />
-    <script src="./assets/ambient.js?v=release-review-1"></script>
+    <link rel="stylesheet" href="./styles.css?v=ui-audit-1" />
+    <script src="./assets/ambient.js?v=ui-audit-1"></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"work and notes","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
@@ -39,6 +39,7 @@
       <button class="intro-skip" id="intro-skip" type="button">skip intro</button>
     </main>
     <main class="page">
+      <p class="sr-only" id="board-status" role="status" aria-live="polite">loading posts.</p>
       <div class="paper-lift"><article class="board" aria-label="personal space">
         <header class="board-head">
           <h1 class="sr-only">work and notes</h1>
@@ -54,7 +55,7 @@
           <button class="plain clear-search" id="clear-search" type="button" hidden>clear</button>
         </div>
         <div class="content">
-          <section class="panel" id="panel-work" role="tabpanel" aria-labelledby="tab-work" tabindex="0"><div class="post-list" data-category="work"></div></section>
+          <section class="panel" id="panel-work" role="tabpanel" aria-labelledby="tab-work" tabindex="0"><div class="post-list" data-category="work"><div class="empty-state"><p>loading...</p></div></div></section>
           <section class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden><div class="post-list" data-category="notes"></div></section>
           <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden><div class="post-list" data-category="about"></div></section>
           <section class="panel detail" id="post-detail" aria-label="post" tabindex="-1" hidden>
@@ -119,6 +120,6 @@
     </dialog>
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./site.js?v=release-review-1" defer></script>
+    <script src="./site.js?v=ui-audit-1" defer></script>
   </body>
 </html>
