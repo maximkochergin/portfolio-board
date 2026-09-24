@@ -11,12 +11,15 @@
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=arrival-2" />
-    <script src="./assets/ambient.js?v=arrival-2"></script>
+    <link rel="stylesheet" href="./styles.css?v=arrival-3" />
+    <script src="./assets/ambient.js?v=arrival-3"></script>
   </head>
   <body>
     <div class="intro" id="intro" hidden>
-      <p class="intro-greeting" id="intro-greeting"></p>
+      <div class="intro-stage">
+        <p class="intro-greeting" id="intro-greeting"><span class="intro-blur" id="intro-blur" aria-hidden="true"></span><span class="intro-clear" id="intro-clear"></span></p>
+        <span class="intro-progress" aria-hidden="true"></span>
+      </div>
       <button class="intro-skip" id="intro-skip" type="button">skip intro</button>
     </div>
     <main class="page">
@@ -97,6 +100,6 @@
     </dialog>
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./site.js?v=arrival-2" defer></script>
+    <script src="./site.js?v=arrival-3" defer></script>
   </body>
 </html>

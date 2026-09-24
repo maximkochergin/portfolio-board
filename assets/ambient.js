@@ -44,7 +44,8 @@
     const clockTime = document.querySelector("#clock-time");
     const clockToggle = document.querySelector("#clock-toggle");
     const intro = document.querySelector("#intro");
-    const introGreeting = document.querySelector("#intro-greeting");
+    const introBlur = document.querySelector("#intro-blur");
+    const introClear = document.querySelector("#intro-clear");
     const page = document.querySelector(".page");
 
     if (window.self !== window.top) {
@@ -84,10 +85,42 @@
       return;
     }
 
-    introGreeting.textContent = greetingForHour(new Date().getHours());
+    const greeting = greetingForHour(new Date().getHours());
+    introBlur.textContent = greeting;
+    introClear.textContent = greeting;
     intro.hidden = false;
     page.inert = true;
     clock.inert = true;
+
+    function revealLetters() {
+      const bounds = introClear.getBoundingClientRect();
+      const letters = introClear.firstChild;
+      if (!bounds.width || !letters || !introClear.animate) {
+        introBlur.style.clipPath = "none";
+        introClear.style.clipPath = "none";
+        return 900;
+      }
+
+      const count = letters.textContent.length;
+      const range = document.createRange();
+      const frames = [{ clipPath: "inset(0 100% 0 0)", offset: 0 }];
+      let previousInset = 100;
+      for (let index = 1; index <= count; index += 1) {
+        range.setStart(letters, 0);
+        range.setEnd(letters, index);
+        const visibleWidth = Math.max(0, range.getBoundingClientRect().right - bounds.left + 1);
+        const nextInset = index === count ? 0 : Math.min(previousInset, Math.max(0, 100 - visibleWidth / bounds.width * 100));
+        frames.push({ clipPath: `inset(0 ${previousInset}% 0 0)`, offset: (index - 0.68) / count });
+        frames.push({ clipPath: `inset(0 ${nextInset}% 0 0)`, offset: index / count });
+        previousInset = nextInset;
+      }
+
+      const duration = Math.max(1150, count * 105);
+      introBlur.animate(frames, { duration, fill: "forwards" });
+      introClear.animate(frames, { duration, delay: 150, fill: "forwards" });
+      return duration + 150;
+    }
+
     let leaving = false;
     function finishIntro() {
       if (leaving) return;
@@ -116,8 +149,14 @@
       .then(() => {
         if (leaving || !introAllowed) return;
         window.requestAnimationFrame(() => {
+          if (leaving) return;
+          const revealTime = revealLetters();
           intro.classList.add("is-playing");
-          window.setTimeout(finishIntro, 1650);
+          window.setTimeout(() => {
+            if (leaving) return;
+            intro.classList.add("is-holding");
+            window.setTimeout(finishIntro, 520);
+          }, revealTime);
         });
       });
   }
