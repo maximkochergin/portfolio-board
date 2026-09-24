@@ -18,7 +18,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .intro { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; overflow: hidden; background: var(--page); transition: opacity var(--motion-reveal) var(--motion-ease); will-change: opacity; }
 .intro::before { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 44%, rgb(255 255 255 / 42%), transparent 52%); content: ""; pointer-events: none; }
 .intro-stage { position: relative; display: flex; max-width: calc(100vw - 2rem); flex-direction: column; align-items: center; gap: var(--space-4); }
-.intro-greeting { margin: 0; color: var(--ink); font: 100 clamp(2.25rem, 8vw, 6.4rem)/1.15 Pencerio, Telma, serif; text-align: center; white-space: nowrap; }
+.intro-greeting { margin: 0; color: var(--ink); font: 100 clamp(1.5rem, 8vw, 6.4rem)/1.15 Pencerio, Telma, serif; text-align: center; white-space: nowrap; }
 .intro-clear { display: block; padding: 0.12em 0.15em 0.15em; opacity: 0; transform: translateY(0.35rem); transition: opacity 900ms var(--motion-ease), transform 900ms var(--motion-ease); will-change: opacity, transform; }
 .intro.is-playing .intro-clear { opacity: 1; transform: translateY(0); }
 .intro-progress { width: 2rem; height: 1px; background: var(--line); opacity: 0; transform: scaleX(0); transition: opacity 320ms var(--motion-ease), transform 320ms var(--motion-ease); }
