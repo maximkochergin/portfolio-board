@@ -17,12 +17,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .intro[hidden], .ambient-clock[hidden] { display: none; }
 .intro { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; overflow: hidden; background: var(--page); transition: opacity var(--motion-reveal) var(--motion-ease); will-change: opacity; }
 .intro::before { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 44%, rgb(255 255 255 / 42%), transparent 52%); content: ""; pointer-events: none; }
-.intro-stage { position: relative; display: flex; max-width: calc(100vw - 2rem); flex-direction: column; align-items: center; gap: var(--space-4); }
+.intro-stage { position: relative; display: flex; max-width: calc(100vw - 2rem); flex-direction: column; align-items: center; }
 .intro-greeting { margin: 0; color: var(--ink); font: 100 clamp(1.5rem, 8vw, 6.4rem)/1.15 Pencerio, Telma, serif; text-align: center; white-space: nowrap; }
 .intro-clear { display: block; padding: 0.12em 0.15em 0.15em; opacity: 0; transform: translateY(0.35rem); transition: opacity 900ms var(--motion-ease), transform 900ms var(--motion-ease); will-change: opacity, transform; }
 .intro.is-playing .intro-clear { opacity: 1; transform: translateY(0); }
-.intro-progress { width: 2rem; height: 1px; background: var(--line); opacity: 0; transform: scaleX(0); transition: opacity 320ms var(--motion-ease), transform 320ms var(--motion-ease); }
-.intro.is-holding .intro-progress { opacity: 0.7; transform: scaleX(1); }
+.intro.is-writing .intro-clear { -webkit-mask-image: linear-gradient(to right, #000 calc(var(--intro-reveal) - 4px), transparent calc(var(--intro-reveal) + 4px)); mask-image: linear-gradient(to right, #000 calc(var(--intro-reveal) - 4px), transparent calc(var(--intro-reveal) + 4px)); transition: transform 900ms var(--motion-ease); }
 .intro.is-leaving { opacity: 0; pointer-events: none; }
 .intro-skip { position: absolute; right: clamp(1rem, 4vw, 3rem); bottom: clamp(1rem, 4vh, 2rem); min-height: 1.9rem; border: 0; padding: 0.35rem 0 0.15rem 0.7rem; background: none; color: var(--quiet); font: 0.72rem/1.3 Arial, sans-serif; cursor: pointer; transition: color 180ms ease; }
 .intro-skip:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.14em; }
@@ -113,4 +112,4 @@ textarea { min-height: 8rem; resize: vertical; }
 @media (max-height: 28rem) and (min-width: 30rem) { .board { height: calc(100svh - 2rem); } }
 @media (max-height: 28rem) { .ambient-clock { top: 1rem; bottom: auto; } }
 @media (max-height: 34rem) and (max-width: 35rem) { .page { min-height: auto; } .ambient-clock { position: relative; top: auto; right: auto; bottom: auto; align-items: center; margin: 0 auto var(--space-3); } }
-@media (prefers-reduced-motion: reduce) { .switcher button, .switcher button::after, .add, .intro, .intro-greeting, .intro-clear, .intro-progress, .intro-skip, .page, .ambient-clock, .clock-toggle, .post-title, .plain, .error-content a { transition: none; } .add:hover { transform: none; } .panel { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .switcher button, .switcher button::after, .add, .intro, .intro-greeting, .intro-clear, .intro-skip, .page, .ambient-clock, .clock-toggle, .post-title, .plain, .error-content a { transition: none; } .add:hover { transform: none; } .panel { animation: none; } }

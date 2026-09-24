@@ -87,6 +87,7 @@
     clock.inert = true;
     let phaseTimer = 0;
     let exitTimer = 0;
+    let revealFrame = 0;
     let leaving = false;
     let finished = false;
 
@@ -96,6 +97,7 @@
       leaving = true;
       window.clearTimeout(phaseTimer);
       window.clearTimeout(exitTimer);
+      window.cancelAnimationFrame(revealFrame);
       window.clearTimeout(safety);
       intro.hidden = true;
       page.inert = false;
@@ -114,6 +116,7 @@
       }
       leaving = true;
       window.clearTimeout(phaseTimer);
+      window.cancelAnimationFrame(revealFrame);
       if (immediate || reducedMotion.matches) {
         completeIntro();
         return;
@@ -135,6 +138,51 @@
       if (reducedMotion.matches) finishIntro(true);
     });
 
+    function revealGreeting() {
+      const text = introClear.firstChild;
+      const count = text?.length || 0;
+      const bounds = introClear.getBoundingClientRect();
+      const maskSupported = window.CSS?.supports?.("mask-image", "linear-gradient(to right, black, transparent)")
+        || window.CSS?.supports?.("-webkit-mask-image", "linear-gradient(to right, black, transparent)");
+      if (!maskSupported || !count || !bounds.width) {
+        intro.classList.add("is-playing");
+        phaseTimer = window.setTimeout(() => finishIntro(), 1800);
+        return;
+      }
+
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+      const edges = [range.getBoundingClientRect().left - bounds.left];
+      for (let index = 1; index <= count; index += 1) {
+        range.setEnd(text, index);
+        const right = range.getBoundingClientRect().right - bounds.left;
+        edges.push(Math.max(edges[index - 1], Math.min(bounds.width, right)));
+      }
+
+      introClear.style.setProperty("--intro-reveal", "-8px");
+      intro.classList.add("is-writing", "is-playing");
+      const letterMs = 185;
+      const duration = count * letterMs;
+      let startedAt = null;
+      function draw(now) {
+        if (leaving) return;
+        if (startedAt === null) startedAt = now;
+        const elapsed = Math.min(duration, now - startedAt);
+        const index = Math.min(count - 1, Math.floor(elapsed / letterMs));
+        const fraction = (elapsed - index * letterMs) / letterMs;
+        const eased = fraction * fraction * (3 - 2 * fraction);
+        const edge = edges[index] + (edges[index + 1] - edges[index]) * eased;
+        introClear.style.setProperty("--intro-reveal", `${edge}px`);
+        if (elapsed < duration) revealFrame = window.requestAnimationFrame(draw);
+        else {
+          introClear.style.setProperty("--intro-reveal", `${bounds.width + 8}px`);
+          phaseTimer = window.setTimeout(() => finishIntro(), 600);
+        }
+      }
+      revealFrame = window.requestAnimationFrame(draw);
+    }
+
     const fontReady = document.fonts?.load('100 48px "Pencerio"') || Promise.resolve();
     Promise.race([
       fontReady.then(() => true, () => false),
@@ -143,12 +191,7 @@
       if (leaving || !introAllowed) return;
       window.requestAnimationFrame(() => {
         if (leaving) return;
-        intro.classList.add("is-playing");
-        phaseTimer = window.setTimeout(() => {
-          if (leaving) return;
-          intro.classList.add("is-holding");
-          phaseTimer = window.setTimeout(() => finishIntro(), 500);
-        }, 1050);
+        revealGreeting();
       });
     });
   }
