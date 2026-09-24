@@ -4,6 +4,7 @@ const composer = document.querySelector("#composer");
 const form = document.querySelector("#post-form");
 const detail = document.querySelector("#post-detail");
 const newPostButton = document.querySelector("#new-post");
+const greetingNode = document.querySelector("#day-greeting");
 const ownerActions = document.querySelector("#owner-actions");
 const confirmDialog = document.querySelector("#confirm-dialog");
 const authDialog = document.querySelector("#auth-dialog");
@@ -564,6 +565,21 @@ function showAuthLinkError() {
 function isOwnerRoute() {
   return new URLSearchParams(window.location.search).get("manage") === "1";
 }
+
+function updateGreeting() {
+  const hour = new Date().getHours();
+  const greeting = hour >= 5 && hour < 12 ? "good morning."
+    : hour >= 12 && hour < 17 ? "good afternoon."
+      : hour >= 17 && hour < 22 ? "good evening."
+        : "good night.";
+  if (greetingNode.textContent !== greeting) greetingNode.textContent = greeting;
+}
+
+updateGreeting();
+window.setInterval(updateGreeting, 60_000);
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) updateGreeting();
+});
 
 async function start() {
   renderPosts();
