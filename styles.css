@@ -13,8 +13,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 
 .page { position: relative; z-index: 2; display: grid; min-height: 100svh; place-items: center; padding: 1rem; }
 .frame-notice { color: var(--quiet); font-size: 0.875rem; }
-.board { display: flex; width: min(21rem, calc(100vw - 2rem)); height: min(21rem, calc(100svh - 2rem)); flex-direction: column; border: 1px solid var(--line); background: rgb(248 247 242 / 94%); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset; padding: 1.28rem; transition: transform 170ms ease-out, box-shadow 170ms ease-out; }
-.board.is-touched { transform: translate(var(--paper-push-x, 0), var(--paper-push-y, 0)); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset, 0 5px 13px rgb(40 42 40 / 9%); }
+.board { display: flex; width: min(21rem, calc(100vw - 2rem)); height: min(21rem, calc(100svh - 2rem)); flex-direction: column; border: 1px solid var(--line); background: rgb(248 247 242 / 94%); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset; padding: 1.28rem; }
 .switcher { display: flex; justify-content: center; gap: 1.38rem; }
 .switcher button { position: relative; border: 0; padding: 0 0 0.22rem; background: transparent; color: var(--quiet); font-family: Telma, Arial, sans-serif; font-size: 0.81rem; font-weight: 520; line-height: 1; cursor: pointer; }
 .switcher button::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: currentColor; content: ""; transform: scaleX(0); transform-origin: center; transition: transform 120ms ease; }
@@ -72,37 +71,8 @@ textarea { min-height: 8rem; resize: vertical; }
 .actions { margin-top: 1.25rem; }
 .plain:disabled { cursor: default; opacity: 0.55; text-decoration: none; }
 
-.desk-token { --token-height: min(9.75rem, max(4rem, calc((100svh - 21rem) / 2 - 2rem))); position: fixed; z-index: 3; right: clamp(1.25rem, 6vw, 6rem); bottom: clamp(1.5rem, 7vh, 5rem); width: calc(var(--token-height) * 0.5233); height: var(--token-height); touch-action: none; user-select: none; -webkit-user-select: none; }
-.desk-token::after { position: absolute; z-index: -1; right: 10%; bottom: -0.34rem; left: 10%; height: 0.72rem; border-radius: 50%; background: rgb(30 27 24 / 18%); content: ""; filter: blur(0.5rem); pointer-events: none; transform: scale(1); transition: opacity 220ms ease, transform 220ms ease; }
-.token-card { display: block; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; }
-.token-card:active, .token-card.is-dragging { cursor: grabbing; }
-.token-object { --pack-depth: 0.9rem; --pack-half-depth: calc(var(--pack-depth) / 2); position: relative; display: block; width: 100%; height: 100%; transform: perspective(28rem) translateY(var(--lift, 0)) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, -14deg)) rotateZ(var(--tilt-z, -4deg)) scale(var(--scale, 1)); transform-style: preserve-3d; transition: transform 220ms cubic-bezier(0.2, 0.75, 0.25, 1); }
-.token-card.is-dragging .token-object { transition: none; will-change: transform; }
-.token-card.is-dragging { --lift: -0.22rem; --scale: 1.018; }
-.token-card.is-dragging.is-blocked { --lift: -0.12rem; --scale: 1.006; }
-.token-face, .token-back, .token-spine, .token-cap { position: absolute; display: block; backface-visibility: hidden; pointer-events: none; }
-/* The artwork has translucent pixels. An opaque face keeps hidden planes and
-   the page texture from showing through the printed front. */
-.token-face { inset: 0; overflow: hidden; background: #f5efd6; transform: translateZ(var(--pack-half-depth)); }
-.token-face img { position: absolute; top: -5%; left: -20.7%; display: block; width: 141.45%; max-width: none; height: auto; filter: saturate(0.9) contrast(0.97); pointer-events: none; }
-.token-back, .token-spine { background: linear-gradient(to bottom, #942630 0 48.4%, #322a23 48.4% 49.4%, #e6e1d0 49.4% 100%); }
-.token-back { inset: 0; transform: translateZ(calc(-1 * var(--pack-half-depth))) rotateY(180deg); }
-/* Each side starts at the visible front edge and extends toward the back. */
-.token-spine { top: 0; bottom: 0; width: var(--pack-depth); }
-.token-spine-right { left: 100%; transform-origin: left center; transform: translateZ(var(--pack-half-depth)) rotateY(90deg); }
-.token-spine-left { right: 100%; transform-origin: right center; transform: translateZ(var(--pack-half-depth)) rotateY(-90deg); background-image: linear-gradient(to right, transparent, rgb(255 255 255 / 30%)), linear-gradient(to bottom, #942630 0 48.4%, #322a23 48.4% 49.4%, #e6e1d0 49.4% 100%); }
-.token-cap { left: 0; width: 100%; height: var(--pack-depth); }
-.token-cap-top { bottom: 100%; background: #a72b35; transform-origin: center bottom; transform: translateZ(var(--pack-half-depth)) rotateX(90deg); }
-.token-cap-bottom { top: 100%; background: #d9d2bd; transform-origin: center top; transform: translateZ(var(--pack-half-depth)) rotateX(-90deg); }
-
 @keyframes panel-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
-.token-card:focus-visible { --lift: -0.1rem; --scale: 1.012; }
-@media (hover: hover) { .token-card:hover:not(.is-dragging) { --lift: -0.1rem; --scale: 1.012; } .desk-token:has(.token-card:hover)::after, .desk-token:has(.token-card:focus-visible)::after { opacity: 0.82; transform: scale(0.91); } }
-.desk-token:has(.token-card.is-dragging)::after { opacity: 0.55; transform: scale(0.78); }
-.desk-token:has(.token-card.is-blocked)::after { opacity: 0.68; transform: scale(0.98); }
-@media (max-width: 42rem) { .desk-token { display: none; } }
-@media (max-height: 36rem) { .desk-token { display: none; } }
 @media (max-width: 23rem) { .board { padding: 1.1rem; } .switcher { gap: 1.06rem; } }
 @media (max-width: 22rem) { .publish-actions { gap: 0.62rem; } .plain { font-size: 0.72rem; } }
 @media (max-height: 28rem) and (min-width: 30rem) { .board { height: calc(100svh - 2rem); } }
-@media (prefers-reduced-motion: reduce) { .board, .switcher button::after, .add, .token-object, .desk-token::after { transition: none; } .board.is-touched, .add:hover { transform: none; } .panel { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .switcher button::after, .add { transition: none; } .add:hover { transform: none; } .panel { animation: none; } }
