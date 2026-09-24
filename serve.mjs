@@ -1,9 +1,20 @@
-import { createReadStream, statSync } from "node:fs";
+import { createReadStream, realpathSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, isAbsolute, relative, resolve } from "node:path";
+import { extname, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = process.cwd();
+const root = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT || 4174);
+const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
+if (port === 80) {
+  allowedHosts.add("127.0.0.1");
+  allowedHosts.add("localhost");
+}
+const publicFiles = new Set(["index.html", "styles.css", "site.js", "config.js"]);
+function isPublicFile(path) {
+  return publicFiles.has(path) || (path.startsWith(`assets${sep}`)
+    && !path.split(sep).some((part) => part.startsWith(".")));
+}
 const types = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -23,6 +34,11 @@ const securityHeaders = {
 };
 
 createServer(function (request, response) {
+  const host = request.headers.host;
+  if (typeof host !== "string" || !allowedHosts.has(host.toLowerCase())) {
+    response.writeHead(403, securityHeaders).end();
+    return;
+  }
   if (!["GET", "HEAD"].includes(request.method || "")) {
     response.writeHead(405, { ...securityHeaders, allow: "GET, HEAD" }).end();
     return;
@@ -30,20 +46,23 @@ createServer(function (request, response) {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     const file = resolve(root, "." + (pathname === "/" ? "/index.html" : pathname));
-    const pathFromRoot = relative(root, file);
-    if (pathFromRoot.startsWith("..") || isAbsolute(pathFromRoot)) {
-      response.writeHead(403, securityHeaders).end();
+    if (!isPublicFile(relative(root, file))) {
+      response.writeHead(404, securityHeaders).end();
       return;
     }
-    if (!statSync(file).isFile()) throw new Error("not a file");
+    const realFile = realpathSync(file);
+    if (!isPublicFile(relative(root, realFile)) || !statSync(realFile).isFile()) {
+      response.writeHead(404, securityHeaders).end();
+      return;
+    }
     const headers = {
       ...securityHeaders,
-      "content-type": types[extname(file)] || "application/octet-stream",
+      "content-type": types[extname(realFile)] || "application/octet-stream",
       "cache-control": pathname === "/config.js" ? "no-store" : "no-cache"
     };
     response.writeHead(200, headers);
     if (request.method === "HEAD") response.end();
-    else createReadStream(file).pipe(response);
+    else createReadStream(realFile).on("error", function () { response.destroy(); }).pipe(response);
   } catch {
     response.writeHead(404, securityHeaders).end();
   }

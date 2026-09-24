@@ -12,7 +12,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .page { position: relative; z-index: 2; display: grid; min-height: 100svh; place-items: center; padding: 1rem; }
-.board { display: flex; width: min(21rem, calc(100vw - 2rem)); height: min(21rem, calc(100svh - 2rem)); flex-direction: column; border: 1px solid var(--line); background: rgb(248 247 242 / 94%); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset; padding: 1.28rem; }
+.frame-notice { color: var(--quiet); font-size: 0.875rem; }
+.board { display: flex; width: min(21rem, calc(100vw - 2rem)); height: min(21rem, calc(100svh - 2rem)); flex-direction: column; border: 1px solid var(--line); background: rgb(248 247 242 / 94%); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset; padding: 1.28rem; transition: transform 170ms ease-out, box-shadow 170ms ease-out; }
+.board.is-touched { transform: translate(var(--paper-push-x, 0), var(--paper-push-y, 0)); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset, 0 5px 13px rgb(40 42 40 / 9%); }
 .switcher { display: flex; justify-content: center; gap: 1.38rem; }
 .switcher button { position: relative; border: 0; padding: 0 0 0.22rem; background: transparent; color: var(--quiet); font-family: Telma, Arial, sans-serif; font-size: 0.81rem; font-weight: 520; line-height: 1; cursor: pointer; }
 .switcher button::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: currentColor; content: ""; transform: scaleX(0); transform-origin: center; transition: transform 120ms ease; }
@@ -70,7 +72,7 @@ textarea { min-height: 8rem; resize: vertical; }
 .actions { margin-top: 1.25rem; }
 .plain:disabled { cursor: default; opacity: 0.55; text-decoration: none; }
 
-.desk-token { --token-height: min(9.75rem, max(4rem, calc((100svh - 21rem) / 2 - 2rem))); position: fixed; z-index: 3; right: clamp(1.25rem, 6vw, 6rem); bottom: clamp(1.5rem, 7vh, 5rem); width: calc(var(--token-height) * 0.5192); height: var(--token-height); touch-action: none; user-select: none; -webkit-user-select: none; }
+.desk-token { --token-height: min(9.75rem, max(4rem, calc((100svh - 21rem) / 2 - 2rem))); position: fixed; z-index: 3; right: clamp(1.25rem, 6vw, 6rem); bottom: clamp(1.5rem, 7vh, 5rem); width: calc(var(--token-height) * 0.5233); height: var(--token-height); touch-action: none; user-select: none; -webkit-user-select: none; }
 .desk-token::after { position: absolute; z-index: -1; right: 10%; bottom: -0.34rem; left: 10%; height: 0.72rem; border-radius: 50%; background: rgb(30 27 24 / 18%); content: ""; filter: blur(0.5rem); pointer-events: none; transform: scale(1); transition: opacity 220ms ease, transform 220ms ease; }
 .token-card { display: block; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; }
 .token-card:active, .token-card.is-dragging { cursor: grabbing; }
@@ -96,4 +98,4 @@ textarea { min-height: 8rem; resize: vertical; }
 @media (max-width: 23rem) { .board { padding: 1.1rem; } .switcher { gap: 1.06rem; } }
 @media (max-width: 22rem) { .publish-actions { gap: 0.62rem; } .plain { font-size: 0.72rem; } }
 @media (max-height: 28rem) and (min-width: 30rem) { .board { height: calc(100svh - 2rem); } }
-@media (prefers-reduced-motion: reduce) { .switcher button::after, .add, .token-object, .desk-token::after { transition: none; } .panel { animation: none; } .add:hover { transform: none; } .token-object { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .board, .switcher button::after, .add, .token-object, .desk-token::after { transition: none; } .board.is-touched, .add:hover { transform: none; } .panel { animation: none; } }

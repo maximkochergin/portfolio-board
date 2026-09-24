@@ -33,6 +33,9 @@ let loading = true;
 let loadError = false;
 let nextMagicLinkAt = 0;
 let searchTerm = "";
+let postsRevision = 0;
+let ownerRevision = 0;
+let savingPost = false;
 
 function safeLink(raw) {
   try {
@@ -44,12 +47,13 @@ function safeLink(raw) {
 }
 
 function normalizeSearch(value) {
-  return value.toLocaleLowerCase().trim();
+  return value.toLocaleLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function matchesSearch(post) {
-  if (!searchTerm) return true;
-  return [post.title, post.subtitle, post.body].filter(Boolean).join(" ").toLocaleLowerCase().includes(searchTerm);
+  const term = normalizeSearch(searchTerm);
+  if (!term) return true;
+  return normalizeSearch([post.title, post.subtitle, post.body].filter(Boolean).join(" ")).includes(term);
 }
 
 function postsForCategory(category) {
@@ -58,19 +62,23 @@ function postsForCategory(category) {
   });
 }
 
-function emptyCopy(category) {
-  if (searchTerm) return "nothing matches that search.";
+function emptyCopy() {
+  if (normalizeSearch(searchTerm)) return "nothing matches that search.";
   if (loading) return "loading...";
   if (loadError) return "couldn't load this page.";
-  if (category === "about") return "a little more soon.";
   return "nothing published yet.";
 }
 
 function syncSearch() {
-  const showSearch = Boolean(posts.length || searchTerm);
+  const showSearch = Boolean(posts.length || normalizeSearch(searchTerm));
   searchRegion.hidden = !showSearch;
   clearSearchButton.hidden = !searchTerm;
   if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
+}
+
+function retryPosts() {
+  if (client) void refreshPosts();
+  else window.location.reload();
 }
 
 function showMessage(message, retry) {
@@ -87,7 +95,7 @@ function showMessage(message, retry) {
       button.type = "button";
       button.className = "plain";
       button.textContent = "try again";
-      button.addEventListener("click", refreshPosts);
+      button.addEventListener("click", retryPosts);
       state.append(button);
     }
     list.append(state);
@@ -99,6 +107,10 @@ function renderPosts() {
     showMessage("this place is being connected.");
     return;
   }
+  if (loadError) {
+    showMessage("couldn't load this page.", true);
+    return;
+  }
   syncSearch();
   document.querySelectorAll(".post-list").forEach(function (list) {
     list.replaceChildren();
@@ -107,16 +119,8 @@ function renderPosts() {
       const state = document.createElement("div");
       state.className = "empty-state";
       const copy = document.createElement("p");
-      copy.textContent = emptyCopy(list.dataset.category);
+      copy.textContent = emptyCopy();
       state.append(copy);
-      if (loadError) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "plain";
-        button.textContent = "try again";
-        button.addEventListener("click", refreshPosts);
-        state.append(button);
-      }
       list.append(state);
       return;
     }
@@ -130,7 +134,7 @@ function renderPosts() {
       title.textContent = post.title;
       title.addEventListener("click", function () {
         showPost(post.id);
-        setHash("post/" + post.id);
+        setHash("post/" + post.id, false, { fromList: post.category });
       });
       item.append(title);
       if (canPublish && post.status === "draft") {
@@ -144,10 +148,10 @@ function renderPosts() {
   });
 }
 
-function setHash(value, replace) {
+function setHash(value, replace, state = null) {
   const hash = "#" + value;
   if (window.location.hash === hash) return;
-  window.history[replace ? "replaceState" : "pushState"](null, "", hash);
+  window.history[replace ? "replaceState" : "pushState"](state, "", hash);
 }
 
 function showPost(id, resetScroll) {
@@ -224,34 +228,62 @@ function restoreLocation() {
 
 async function refreshPosts() {
   if (!client) return;
+  const revision = ++postsRevision;
   loading = true;
   loadError = false;
   renderPosts();
   let result;
   try {
-    result = await client.from("posts")
-      .select("id, category, title, body, subtitle, link, status, published_at")
-      .order("published_at", { ascending: false });
+    let query = client.from("posts")
+      .select("id, category, title, body, subtitle, link, status, published_at");
+    if (!canPublish) query = query.eq("status", "published");
+    result = await query.order("published_at", { ascending: false });
   } catch {
-    loading = false;
-    loadError = true;
-    renderPosts();
-    return;
+    result = { error: true };
   }
+  if (revision !== postsRevision) return;
   loading = false;
   if (result.error) {
+    posts = [];
     loadError = true;
+    if (openPostId) showList(false);
     renderPosts();
     return;
   }
-  posts = Array.isArray(result.data) ? result.data : [];
+  posts = Array.isArray(result.data)
+    ? result.data.filter(function (post) { return canPublish || post.status === "published"; })
+    : [];
   loadError = false;
   renderPosts();
   restoreLocation();
 }
 
+function clearPrivateView() {
+  ++postsRevision;
+  canPublish = false;
+  posts = [];
+  searchTerm = "";
+  loading = true;
+  loadError = false;
+  if (composer.open) composer.close();
+  if (confirmDialog.open) confirmDialog.close("cancel");
+  form.reset();
+  editingId = null;
+  const hadOpenPost = Boolean(openPostId);
+  showList(false);
+  if (hadOpenPost) setHash(activeCategory, true);
+  document.querySelector("#detail-title").textContent = "";
+  document.querySelector("#detail-body").textContent = "";
+  document.querySelector("#detail-subtitle").textContent = "";
+  const link = document.querySelector("#detail-link");
+  link.removeAttribute("href");
+  link.textContent = "";
+  renderPosts();
+}
+
 async function refreshOwnerState() {
   if (!client) return;
+  const revision = ++ownerRevision;
   let session = null;
   try {
     const sessionResult = await client.auth.getSession();
@@ -259,20 +291,24 @@ async function refreshOwnerState() {
   } catch {
     session = null;
   }
-  canPublish = false;
+  let nextCanPublish = false;
   if (session) {
     try {
       const result = await client.from("site_settings")
         .select("owner_id")
         .eq("singleton", true)
         .maybeSingle();
-      canPublish = Boolean(result.data && !result.error);
+      nextCanPublish = Boolean(result.data && !result.error);
     } catch {
-      canPublish = false;
+      nextCanPublish = false;
     }
   }
+  if (revision !== ownerRevision) return false;
+  if (canPublish && !nextCanPublish) clearPrivateView();
+  canPublish = nextCanPublish;
   newPostButton.hidden = !canPublish || Boolean(openPostId);
   ownerActions.hidden = !canPublish || !openPostId;
+  return true;
 }
 
 function updateAboutFields() {
@@ -348,7 +384,7 @@ tabs.forEach(function (tab, index) {
 });
 
 searchInput.addEventListener("input", function () {
-  searchTerm = normalizeSearch(searchInput.value);
+  searchTerm = searchInput.value;
   renderPosts();
   showList(false);
 });
@@ -360,19 +396,26 @@ clearSearchButton.addEventListener("click", function () {
 });
 window.addEventListener("hashchange", restoreLocation);
 document.querySelector("#back-to-list").addEventListener("click", function () {
+  const cameFromList = window.history.state?.fromList === activeCategory;
   showList(true);
-  setHash(activeCategory, true);
+  if (cameFromList) window.history.back();
+  else setHash(activeCategory, true);
 });
 newPostButton.addEventListener("click", function () { openComposer(null); });
 document.querySelector("#edit-post").addEventListener("click", function () {
   openComposer(posts.find(function (post) { return post.id === openPostId; }));
 });
-document.querySelector("#cancel-composer").addEventListener("click", function () { composer.close(); });
+document.querySelector("#cancel-composer").addEventListener("click", function () {
+  if (!savingPost) composer.close();
+});
+composer.addEventListener("cancel", function (event) {
+  if (savingPost) event.preventDefault();
+});
 form.elements.category.addEventListener("change", updateAboutFields);
 
 form.addEventListener("submit", async function (event) {
   event.preventDefault();
-  if (!canPublish || !client) return;
+  if (!canPublish || !client || savingPost) return;
   const intent = event.submitter && event.submitter.value === "draft" ? "draft" : "published";
   const payload = {
     category: form.elements.category.value,
@@ -391,7 +434,8 @@ form.addEventListener("submit", async function (event) {
     return;
   }
   if (intent === "published" && editingStatus === "draft") payload.published_at = new Date().toISOString();
-  const buttons = [document.querySelector("#save-draft"), document.querySelector("#submit-post")];
+  const buttons = [document.querySelector("#save-draft"), document.querySelector("#submit-post"), document.querySelector("#cancel-composer")];
+  savingPost = true;
   buttons.forEach(function (button) { button.disabled = true; });
   document.querySelector("#form-error").hidden = true;
   const query = editingId
@@ -403,7 +447,9 @@ form.addEventListener("submit", async function (event) {
   } catch {
     result = { error: true };
   }
+  savingPost = false;
   buttons.forEach(function (button) { button.disabled = false; });
+  if (!canPublish) return;
   if (result.error || !result.data) {
     showFormError("could not save this post. your text is still here.");
     return;
@@ -495,6 +541,7 @@ authForm.addEventListener("submit", async function (event) {
   }
   nextMagicLinkAt = Date.now() + magicLinkCooldownMs;
   emailInput.disabled = true;
+  button.disabled = true;
   button.textContent = "link sent";
   document.querySelector("#auth-copy").textContent = "check your inbox for the sign-in link.";
   window.setTimeout(function () {
@@ -525,7 +572,7 @@ function enableDeskToken() {
   const board = document.querySelector(".board");
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const edge = 12;
-  const boardGap = 12;
+  const boardGap = 4;
   let pointerId = null;
   let startX = 0;
   let startY = 0;
@@ -537,10 +584,25 @@ function enableDeskToken() {
   let dragged = false;
   let suppressTokenClick = false;
   let bounds = null;
+  let touchTimer = null;
+  function clearBoardTouch() {
+    window.clearTimeout(touchTimer);
+    touchTimer = null;
+    board?.classList.remove("is-touched");
+  }
+  function touchBoard(hit, dx, dy, brief) {
+    clearBoardTouch();
+    if (!board || !hit) return;
+    board.style.setProperty("--paper-push-x", (hit.axis === "x" ? Math.sign(dx) * 2 : 0) + "px");
+    board.style.setProperty("--paper-push-y", (hit.axis === "y" ? Math.sign(dy) * 2 : 0) + "px");
+    board.classList.add("is-touched");
+    if (brief) touchTimer = window.setTimeout(clearBoardTouch, 180);
+  }
   function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
   }
   function measure() {
+    clearBoardTouch();
     const tokenRect = deskToken.getBoundingClientRect();
     if (!tokenRect.width || !tokenRect.height) {
       bounds = null;
@@ -624,7 +686,7 @@ function enableDeskToken() {
     };
   }
   function moveBy(deltaX, deltaY) {
-    if (!bounds) return false;
+    if (!bounds) return null;
     const targetX = clamp(left + deltaX, edge, bounds.maxX);
     const targetY = clamp(top + deltaY, edge, bounds.maxY);
     const dx = targetX - left;
@@ -632,7 +694,7 @@ function enableDeskToken() {
     const hit = collision(dx, dy);
     if (!hit) {
       place({ x: targetX, y: targetY });
-      return false;
+      return null;
     }
     // Keep the contact edge fixed and spend the remaining motion along it.
     // Releasing or reversing the pointer responds immediately, with no snap.
@@ -642,10 +704,14 @@ function enableDeskToken() {
     } else {
       place({ x: targetX, y: dy > 0 ? wall.top : wall.bottom });
     }
-    return true;
+    return hit;
   }
   function tilt(x, y, z) {
-    if (reducedMotion.matches) return;
+    if (reducedMotion.matches) {
+      x = 0;
+      y = tokenCard.classList.contains("is-turned") ? 28 : -14;
+      z = tokenCard.classList.contains("is-turned") ? 3 : -4;
+    }
     tokenCard.style.setProperty("--tilt-x", x + "deg");
     tokenCard.style.setProperty("--tilt-y", y + "deg");
     tokenCard.style.setProperty("--tilt-z", z + "deg");
@@ -694,7 +760,9 @@ function enableDeskToken() {
     if (dragged) {
       const dx = event.clientX - (wasDragging ? lastPointerX : startX);
       const dy = event.clientY - (wasDragging ? lastPointerY : startY);
-      tokenCard.classList.toggle("is-blocked", moveBy(dx, dy));
+      const hit = moveBy(dx, dy);
+      tokenCard.classList.toggle("is-blocked", Boolean(hit));
+      touchBoard(hit, dx, dy, false);
       const base = tokenCard.classList.contains("is-turned") ? 28 : -14;
       tilt(clamp(-dy / 3, -11, 11), base + clamp(dx / 3, -12, 12), clamp(dx / 5, -7, 7));
     }
@@ -707,6 +775,9 @@ function enableDeskToken() {
     pointerId = null;
     if (tokenCard.hasPointerCapture(activePointerId)) tokenCard.releasePointerCapture(activePointerId);
     tokenCard.classList.remove("is-dragging", "is-blocked");
+    if (board?.classList.contains("is-touched")) {
+      touchTimer = window.setTimeout(clearBoardTouch, 120);
+    } else clearBoardTouch();
     rest();
     suppressTokenClick = dragged;
     if (suppressTokenClick) window.setTimeout(function () { suppressTokenClick = false; }, 0);
@@ -723,12 +794,14 @@ function enableDeskToken() {
   tokenCard.addEventListener("pointercancel", function () {
     pointerId = null;
     tokenCard.classList.remove("is-dragging", "is-blocked");
+    clearBoardTouch();
     rest();
   });
   tokenCard.addEventListener("lostpointercapture", function () {
     if (pointerId === null) return;
     pointerId = null;
     tokenCard.classList.remove("is-dragging", "is-blocked");
+    clearBoardTouch();
     rest();
   });
   tokenCard.addEventListener("pointerleave", function () {
@@ -740,26 +813,57 @@ function enableDeskToken() {
     if (!direction) return;
     event.preventDefault();
     const step = event.shiftKey ? 40 : 16;
-    moveBy(direction[0] * step, direction[1] * step);
+    const dx = direction[0] * step;
+    const dy = direction[1] * step;
+    const hit = moveBy(dx, dy);
+    touchBoard(hit, dx, dy, true);
   });
   window.addEventListener("resize", fitToViewport);
 }
 
 async function start() {
   renderPosts();
-  if (!hasConfig || !window.supabase) return;
-  client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  if (!hasConfig) return;
+  if (!window.supabase) {
+    loading = false;
+    loadError = true;
+    renderPosts();
+    return;
+  }
+  try {
+    client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  } catch {
+    loading = false;
+    loadError = true;
+    renderPosts();
+    return;
+  }
   client.auth.onAuthStateChange(function (event) {
-    void refreshOwnerState().then(async function () {
+    if (event === "INITIAL_SESSION") return;
+    ++ownerRevision;
+    if (event === "SIGNED_OUT") clearPrivateView();
+    window.setTimeout(async function () {
+      const current = await refreshOwnerState();
+      if (!current) return;
       await refreshPosts();
       if (event === "SIGNED_IN" && canPublish && authDialog.open) authDialog.close();
-    });
+    }, 0);
   });
   showAuthLinkError();
-  await refreshOwnerState();
-  await refreshPosts();
+  if (await refreshOwnerState()) await refreshPosts();
   if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
 }
 
-enableDeskToken();
-start();
+if (window.self !== window.top) {
+  // GitHub Pages cannot send frame-ancestors or X-Frame-Options for this site.
+  deskToken?.remove();
+  const page = document.querySelector(".page");
+  page.replaceChildren();
+  const notice = document.createElement("p");
+  notice.className = "frame-notice";
+  notice.textContent = "open this page directly.";
+  page.append(notice);
+} else {
+  enableDeskToken();
+  void start();
+}

@@ -8,7 +8,7 @@ This is deliberately a small static site. The public page reads from Supabase. P
 
 ## connect Supabase
 
-1. In Supabase, enable Email authentication and create a user by signing in once with the email you want to own the site.
+1. In Supabase, enable Email authentication and create the owner in Authentication → Users. The site's sign-in form deliberately cannot create new users.
 2. Open the SQL Editor and run [supabase/schema.sql](./supabase/schema.sql).
 3. In Authentication → Users, copy that user's UUID. Then run this once in the SQL Editor:
 
@@ -29,6 +29,7 @@ The project has no build step. Upload these files to any static host, then keep 
 
     npm run dev
     npm run check
+    npm test
 
 The public board has no sign-in button. To manage it locally, open `http://127.0.0.1:4174/?manage=1`, enter the owner's email, and use the sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears. The composer offers `save draft` and `publish`; drafts stay private even when somebody knows their direct URL. After deployment, replace this address with the final HTTPS site URL and add it to Supabase Redirect URLs.
 
@@ -43,10 +44,10 @@ For GitHub Pages, the included `deploy-pages.yml` workflow copies only the stati
     supabase/schema.sql     database and access rules for a new project
     supabase/migrations/    safe upgrades for a connected project
 
-No server, local database, or framework is required.
+No production server, local database, or framework is required.
 
 ## security
 
-The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates the client script before each push.
+The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates both scripts, and `npm test` checks that the local preview does not serve repository files. Both run before GitHub Pages deployment.
 
 The browser never contains a Supabase service-role key. Do not add one later. When choosing a host, configure its equivalent response headers and add its exact HTTPS URL to Supabase Authentication → URL Configuration.
