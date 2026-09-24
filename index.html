@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#e9e8e1" />
+    <meta name="theme-color" content="#ece8df" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-kToFv6//smy7H3KC/FsmKn6KpD7uwNUYAc92VJBPvY4='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
     <title>work and notes</title>
@@ -26,7 +26,7 @@
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=release-review-1" />
+    <link rel="stylesheet" href="./styles.css?v=paper-1" />
     <script src="./assets/ambient.js?v=release-review-1"></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"work and notes","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
@@ -39,7 +39,7 @@
       <button class="intro-skip" id="intro-skip" type="button">skip intro</button>
     </main>
     <main class="page">
-      <article class="board" aria-label="personal space">
+      <div class="paper-lift"><article class="board" aria-label="personal space">
         <header class="board-head">
           <h1 class="sr-only">work and notes</h1>
           <nav class="switcher" aria-label="sections" role="tablist">
@@ -71,7 +71,7 @@
         <div class="board-foot">
           <button class="add" id="new-post" type="button" aria-label="new post" title="new post" hidden>+</button>
         </div>
-      </article>
+      </article></div>
     </main>
     <aside class="ambient-clock" id="ambient-clock" aria-label="your local time">
       <span class="clock-label">your local time</span>

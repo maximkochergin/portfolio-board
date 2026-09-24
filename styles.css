@@ -1,13 +1,13 @@
 @font-face { font-family: "Telma"; src: url("./assets/fonts/Telma-Variable.woff2") format("woff2"); font-display: swap; font-style: normal; font-weight: 300 900; }
 @font-face { font-family: "Pencerio"; src: url("./assets/fonts/Pencerio-Hairline.woff2") format("woff2"); font-display: swap; font-style: normal; font-weight: 100; }
 
-:root { --page: #e9e8e1; --paper: #f8f7f2; --ink: #282a28; --quiet: #5b625b; --line: #aaa99f; --soft-line: #dcdcd4; --control-line: #8d8f86; --danger: #843f34; --space-1: 0.35rem; --space-2: 0.65rem; --space-3: 1rem; --space-4: 1.28rem; --space-5: 1.5rem; }
+:root { --page: #ece8df; --paper: #f3efe7; --ink: #282a28; --quiet: #5b625b; --line: #aaa99f; --soft-line: #dcdcd4; --control-line: #8d8f86; --danger: #843f34; --space-1: 0.35rem; --space-2: 0.65rem; --space-3: 1rem; --space-4: 1.28rem; --space-5: 1.5rem; }
 * { box-sizing: border-box; }
 html { background: var(--page); }
 body { position: relative; min-width: 320px; min-height: 100vh; margin: 0; overflow-x: hidden; background: var(--page); color: var(--ink); font-family: Arial, "Helvetica Neue", "Segoe UI", sans-serif; font-size: 16px; font-weight: 400; line-height: 1.4; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 body::before, body::after { position: fixed; z-index: 0; inset: 0; pointer-events: none; content: ""; }
-body::before { opacity: 0.48; background: radial-gradient(ellipse at 13% 18%, rgb(255 255 255 / 46%), transparent 26%), radial-gradient(ellipse at 81% 76%, rgb(154 157 149 / 10%), transparent 31%), linear-gradient(115deg, transparent 0 42%, rgb(70 74 70 / 2.8%) 49%, transparent 56%), linear-gradient(32deg, transparent 0 62%, rgb(255 255 255 / 30%) 69%, transparent 75%); }
-body::after { opacity: 0.5; background-image: repeating-linear-gradient(5deg, transparent 0 17px, rgb(40 42 40 / 1.7%) 18px, transparent 19px), repeating-linear-gradient(93deg, transparent 0 31px, rgb(255 255 255 / 18%) 32px, transparent 33px); mix-blend-mode: multiply; }
+body::before { background: radial-gradient(ellipse at 12% 16%, rgb(255 255 255 / 30%), transparent 42%), radial-gradient(ellipse at 82% 78%, rgb(154 140 119 / 8%), transparent 47%); }
+body::after { background: url("./assets/images/paper-ground.svg") center / cover no-repeat; opacity: 0.76; }
 button, input, textarea, select { font: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -35,7 +35,8 @@ html.intro-pending:not(.intro-revealing) .page, html.intro-pending:not(.intro-re
 .clock-toggle { min-height: 1.9rem; border: 0; padding: 0.35rem 0 0.15rem 0.7rem; background: transparent; color: var(--quiet); font: 0.72rem/1.3 Arial, sans-serif; cursor: pointer; transition: color 180ms ease; }
 .clock-toggle:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.14em; }
 .ambient-clock.is-hidden .clock-label, .ambient-clock.is-hidden .clock-time { display: none; }
-.board { display: flex; width: min(21rem, calc(100vw - 2rem)); height: min(21rem, calc(100svh - 2rem)); flex-direction: column; border: 1px solid var(--line); background: rgb(248 247 242 / 94%); box-shadow: 0 1px 0 rgb(255 255 255 / 58%) inset; padding: var(--space-4); }
+.paper-lift { filter: drop-shadow(1px 2px 1px rgb(105 91 72 / 17%)) drop-shadow(8px 14px 18px rgb(116 98 76 / 11%)); }
+.board { display: flex; width: min(21rem, calc(100vw - 2rem)); height: min(21rem, calc(100svh - 2rem)); flex-direction: column; padding: var(--space-4); background: url("./assets/images/paper-sheet.svg") center / cover no-repeat, var(--paper); box-shadow: inset 0 0 0 1px rgb(130 114 92 / 20%); clip-path: polygon(0.3% 0.2%, 14% 0.35%, 29% 0.12%, 44% 0.3%, 59% 0.08%, 74% 0.25%, 88% 0.06%, 99.6% 0.32%, 99.82% 13%, 99.65% 28%, 99.94% 44%, 99.7% 59%, 99.9% 75%, 99.62% 89%, 99.8% 99.65%, 85% 99.82%, 70% 99.64%, 56% 99.9%, 41% 99.7%, 27% 99.88%, 12% 99.65%, 0.22% 99.78%, 0.1% 86%, 0.34% 71%, 0.1% 56%, 0.36% 41%, 0.08% 26%, 0.3% 12%); }
 .switcher { display: flex; justify-content: center; gap: 1.38rem; }
 .switcher button { position: relative; display: grid; min-width: 2.7rem; min-height: 2rem; place-items: center; border: 0; padding: 0.2rem 0.18rem; background: transparent; color: var(--quiet); font-family: Telma, Arial, sans-serif; font-size: 0.81rem; font-weight: 520; line-height: 1.25; letter-spacing: 0.012em; cursor: pointer; transition: color 180ms ease; }
 .switcher button::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: currentColor; content: ""; transform: scaleX(0); transform-origin: center; transition: transform 120ms ease; }

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="soft-fold" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".006 .011" numOctaves="2" seed="7" result="grain"/>
+      <feDisplacementMap in="SourceGraphic" in2="grain" scale="34" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <g fill="none" filter="url(#soft-fold)" stroke-linecap="round">
+    <path d="M-150 895 C255 740 490 500 870 370 S1370 180 1770 -20" stroke="#fff" stroke-opacity=".46" stroke-width="42"/>
+    <path d="M-150 906 C255 751 490 511 870 381 S1370 191 1770 -9" stroke="#9c9180" stroke-opacity=".18" stroke-width="51"/>
+    <path d="M-120 115 C230 255 480 420 730 675 S1160 1000 1710 1170" stroke="#fff" stroke-opacity=".32" stroke-width="32"/>
+    <path d="M-120 125 C230 265 480 430 730 685 S1160 1010 1710 1180" stroke="#a59a89" stroke-opacity=".14" stroke-width="37"/>
+    <path d="M470 -90 C555 180 800 330 1110 490 S1440 825 1550 1190" stroke="#fff" stroke-opacity=".22" stroke-width="46"/>
+    <path d="M480 -80 C565 190 810 340 1120 500 S1450 835 1560 1200" stroke="#a59a89" stroke-opacity=".11" stroke-width="50"/>
+  </g>
+</svg>

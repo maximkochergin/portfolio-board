@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="soft-press" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency=".014 .021" numOctaves="2" seed="19" result="grain"/>
+      <feDisplacementMap in="SourceGraphic" in2="grain" scale="13" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <g fill="none" filter="url(#soft-press)" stroke-linecap="round">
+    <path d="M-35 315 C120 285 215 215 365 165 S450 140 540 95" stroke="#fff" stroke-opacity=".22" stroke-width="21"/>
+    <path d="M-35 321 C120 291 215 221 365 171 S450 146 540 101" stroke="#a49783" stroke-opacity=".07" stroke-width="25"/>
+    <path d="M-15 495 C90 460 150 430 245 445" stroke="#fff" stroke-opacity=".12" stroke-width="19"/>
+    <path d="M-9 501 C96 466 156 436 251 451" stroke="#a49783" stroke-opacity=".04" stroke-width="23"/>
+  </g>
+</svg>
