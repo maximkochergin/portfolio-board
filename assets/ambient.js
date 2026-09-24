@@ -2,11 +2,8 @@
   const root = document.documentElement;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const clockPreference = "portfolio-clock-hidden";
-  const introPreference = "portfolio-intro-seen";
   let preferenceStorage = null;
-  let sessionStorage = null;
   try { preferenceStorage = window.localStorage; } catch { /* Storage can be disabled. */ }
-  try { sessionStorage = window.sessionStorage; } catch { /* Storage can be disabled. */ }
 
   function storedFlag(storage, key) {
     try { return storage?.getItem(key) === "1"; } catch { return false; }
@@ -29,8 +26,7 @@
   let introAllowed = window.self === window.top
     && !reducedMotion.matches
     && new URLSearchParams(window.location.search).get("manage") !== "1"
-    && !window.location.hash.startsWith("#post/")
-    && !storedFlag(sessionStorage, introPreference);
+    && !window.location.hash.startsWith("#post/");
   if (introAllowed) root.classList.add("intro-pending");
 
   let finishImmediately = null;
@@ -89,7 +85,6 @@
     intro.hidden = false;
     page.inert = true;
     clock.inert = true;
-    saveFlag(sessionStorage, introPreference, true);
     let phaseTimer = 0;
     let exitTimer = 0;
     let leaving = false;
@@ -144,12 +139,8 @@
     Promise.race([
       fontReady.then(() => true, () => false),
       new Promise((resolve) => window.setTimeout(() => resolve(false), 1500))
-    ]).then((ready) => {
+    ]).then(() => {
       if (leaving || !introAllowed) return;
-      if (!ready) {
-        finishIntro(true);
-        return;
-      }
       window.requestAnimationFrame(() => {
         if (leaving) return;
         intro.classList.add("is-playing");
