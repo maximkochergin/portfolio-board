@@ -50,17 +50,21 @@
       return;
     }
 
-    const clockFormat = new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
-    });
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (zone) clock.title = `time on your device (${zone})`;
+    let displayedZone = "";
 
     function updateClock(force = false) {
       if (document.hidden && !force) return;
       const now = new Date();
-      clockTime.textContent = clockFormat.format(now);
+      const twoDigits = (value) => String(value).padStart(2, "0");
+      clockTime.textContent = [now.getHours(), now.getMinutes(), now.getSeconds()].map(twoDigits).join(":");
       clockTime.dateTime = now.toISOString();
+      if (force || now.getSeconds() === 0) {
+        const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        if (zone !== displayedZone) {
+          displayedZone = zone;
+          clock.title = zone ? `time on your device (${zone})` : "time on your device";
+        }
+      }
     }
 
     function setClockHidden(hidden) {
@@ -75,6 +79,8 @@
     updateClock(true);
     window.setInterval(updateClock, 1000);
     document.addEventListener("visibilitychange", () => updateClock(true));
+    window.addEventListener("pageshow", () => updateClock(true));
+    window.addEventListener("focus", () => updateClock(true));
 
     if (!introAllowed) {
       window.clearTimeout(safety);

@@ -62,7 +62,7 @@ test("local preview serves only the public site to local hosts", async () => {
     const localHost = `127.0.0.1:${port}`;
     const localPage = await get(port, "/?manage=1", localHost);
     assert.equal(localPage.status, 200);
-    assert.match(localPage.body, /<title>work and notes<\/title>/);
+    assert.match(localPage.body, /<title>archive<\/title>/);
     assert.equal((await get(port, "/index.html", `localhost:${port}`)).status, 200);
     assert.equal((await get(port, "/assets/icons/paper-mark.svg", localHost)).status, 200);
     assert.equal((await get(port, "/site.js", localHost, "HEAD")).status, 200);
@@ -78,6 +78,7 @@ test("local preview serves only the public site to local hosts", async () => {
     assert.equal((await get(port, `http://attacker.example:${port}/.gitignore`, `attacker.example:${port}`)).status, 403);
     const missing = await get(port, "/.gitignore", localHost);
     assert.equal(missing.status, 404);
+    assert.match(missing.body, /<title>page not found \| archive<\/title>/);
     assert.match(missing.body, /page not found\./);
     assert.equal((await get(port, "/.gitignore", localHost, "HEAD")).body, "");
     assert.equal((await get(port, "/%2egitignore", localHost)).status, 404);

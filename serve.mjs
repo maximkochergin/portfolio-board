@@ -27,7 +27,7 @@ const types = {
   ".txt": "text/plain; charset=utf-8"
 };
 const securityHeaders = {
-  "content-security-policy": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-kToFv6//smy7H3KC/FsmKn6KpD7uwNUYAc92VJBPvY4='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'",
+  "content-security-policy": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-fF03TuCN+Idsz2WfawnadztDwB3/ibP4mUu7v5kNHUk='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'",
   "cross-origin-resource-policy": "same-origin",
   "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
   "referrer-policy": "no-referrer",
