@@ -90,7 +90,7 @@ textarea { min-height: 8rem; resize: vertical; }
 /* Each side starts at the visible front edge and extends toward the back. */
 .token-spine { top: 0; bottom: 0; width: var(--pack-depth); }
 .token-spine-right { left: 100%; transform-origin: left center; transform: translateZ(var(--pack-half-depth)) rotateY(90deg); }
-.token-spine-left { right: 100%; transform-origin: right center; transform: translateZ(var(--pack-half-depth)) rotateY(-90deg); }
+.token-spine-left { right: 100%; transform-origin: right center; transform: translateZ(var(--pack-half-depth)) rotateY(-90deg); background-image: linear-gradient(to right, transparent, rgb(255 255 255 / 30%)), linear-gradient(to bottom, #942630 0 48.4%, #322a23 48.4% 49.4%, #e6e1d0 49.4% 100%); }
 .token-cap { left: 0; width: 100%; height: var(--pack-depth); }
 .token-cap-top { bottom: 100%; background: #a72b35; transform-origin: center bottom; transform: translateZ(var(--pack-half-depth)) rotateX(90deg); }
 .token-cap-bottom { top: 100%; background: #d9d2bd; transform-origin: center top; transform: translateZ(var(--pack-half-depth)) rotateX(-90deg); }
