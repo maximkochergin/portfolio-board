@@ -37,14 +37,13 @@
     if (intro) intro.hidden = true;
     if (page) page.inert = false;
     if (clock) clock.inert = false;
-  }, 5000);
+  }, 7000);
 
   function initialize() {
     const clock = document.querySelector("#ambient-clock");
     const clockTime = document.querySelector("#clock-time");
     const clockToggle = document.querySelector("#clock-toggle");
     const intro = document.querySelector("#intro");
-    const introBlur = document.querySelector("#intro-blur");
     const introClear = document.querySelector("#intro-clear");
     const page = document.querySelector(".page");
 
@@ -86,45 +85,66 @@
     }
 
     const greeting = greetingForHour(new Date().getHours());
-    introBlur.textContent = greeting;
     introClear.textContent = greeting;
     intro.hidden = false;
     page.inert = true;
     clock.inert = true;
+    let leaving = false;
+    let revealFrame = 0;
 
-    function revealLetters() {
+    function revealLetters(onComplete) {
       const bounds = introClear.getBoundingClientRect();
       const letters = introClear.firstChild;
-      if (!bounds.width || !letters || !introClear.animate) {
-        introBlur.style.clipPath = "none";
-        introClear.style.clipPath = "none";
-        return 900;
+      const maskSupported = window.CSS?.supports?.("mask-image", "linear-gradient(to right, black, transparent)")
+        || window.CSS?.supports?.("-webkit-mask-image", "linear-gradient(to right, black, transparent)");
+      if (!bounds.width || !letters || !maskSupported) {
+        introClear.style.maskImage = "none";
+        introClear.style.webkitMaskImage = "none";
+        window.setTimeout(onComplete, 1400);
+        return;
       }
 
       const count = letters.textContent.length;
       const range = document.createRange();
-      const frames = [{ clipPath: "inset(0 100% 0 0)", offset: 0 }];
-      let previousInset = 100;
+      const edges = [0];
       for (let index = 1; index <= count; index += 1) {
         range.setStart(letters, 0);
         range.setEnd(letters, index);
-        const visibleWidth = Math.max(0, range.getBoundingClientRect().right - bounds.left + 1);
-        const nextInset = index === count ? 0 : Math.min(previousInset, Math.max(0, 100 - visibleWidth / bounds.width * 100));
-        frames.push({ clipPath: `inset(0 ${previousInset}% 0 0)`, offset: (index - 0.68) / count });
-        frames.push({ clipPath: `inset(0 ${nextInset}% 0 0)`, offset: index / count });
-        previousInset = nextInset;
+        const right = Math.min(bounds.width, range.getBoundingClientRect().right - bounds.left);
+        edges.push(index === count ? bounds.width : Math.max(edges[index - 1], right));
       }
 
-      const duration = Math.max(1150, count * 105);
-      introBlur.animate(frames, { duration, fill: "forwards" });
-      introClear.animate(frames, { duration, delay: 150, fill: "forwards" });
-      return duration + 150;
+      const letterMs = 225;
+      const duration = count * letterMs;
+      let startedAt = null;
+      function draw(now) {
+        if (leaving) return;
+        if (startedAt === null) startedAt = now;
+        const elapsed = Math.min(duration, now - startedAt);
+        const index = Math.min(count - 1, Math.floor(elapsed / letterMs));
+        const fraction = Math.min(1, (elapsed / letterMs - index) / 0.9);
+        const eased = fraction * fraction * (3 - 2 * fraction);
+        const edge = edges[index] + (edges[index + 1] - edges[index]) * eased;
+        const solid = Math.max(0, edge - 24);
+        const feather = Math.max(solid + 1, edge + 12);
+        const mask = `linear-gradient(to right, #000 0px, #000 ${solid}px, transparent ${feather}px)`;
+        introClear.style.maskImage = mask;
+        introClear.style.webkitMaskImage = mask;
+        if (elapsed < duration) {
+          revealFrame = window.requestAnimationFrame(draw);
+        } else {
+          introClear.style.maskImage = "none";
+          introClear.style.webkitMaskImage = "none";
+          onComplete();
+        }
+      }
+      revealFrame = window.requestAnimationFrame(draw);
     }
 
-    let leaving = false;
     function finishIntro() {
       if (leaving) return;
       leaving = true;
+      window.cancelAnimationFrame(revealFrame);
       root.classList.add("intro-revealing");
       intro.classList.add("is-leaving");
       window.setTimeout(() => {
@@ -145,18 +165,17 @@
     });
 
     const fontReady = document.fonts?.load('100 48px "Pencerio"') || Promise.resolve();
-    Promise.race([fontReady.catch(() => {}), new Promise((resolve) => window.setTimeout(resolve, 550))])
+    Promise.race([fontReady.catch(() => {}), new Promise((resolve) => window.setTimeout(resolve, 1500))])
       .then(() => {
         if (leaving || !introAllowed) return;
         window.requestAnimationFrame(() => {
           if (leaving) return;
-          const revealTime = revealLetters();
           intro.classList.add("is-playing");
-          window.setTimeout(() => {
+          revealLetters(() => {
             if (leaving) return;
             intro.classList.add("is-holding");
-            window.setTimeout(finishIntro, 520);
-          }, revealTime);
+            window.setTimeout(finishIntro, 680);
+          });
         });
       });
   }
