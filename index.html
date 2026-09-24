@@ -4,31 +4,50 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
+    <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#e9e8e1" />
     <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-kToFv6//smy7H3KC/FsmKn6KpD7uwNUYAc92VJBPvY4='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
     <title>work and notes</title>
+    <link rel="canonical" href="https://maximkochergin.github.io/portfolio-board/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="work and notes" />
+    <meta property="og:description" content="A small place for work, notes, and the things in between." />
+    <meta property="og:url" content="https://maximkochergin.github.io/portfolio-board/" />
+    <meta property="og:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png" />
+    <meta property="og:image:alt" content="A minimalist cream portfolio board titled work and notes." />
+    <meta property="og:image:width" content="1672" />
+    <meta property="og:image:height" content="941" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="work and notes" />
+    <meta name="twitter:description" content="A small place for work, notes, and the things in between." />
+    <meta name="twitter:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png" />
+    <meta name="twitter:image:alt" content="A minimalist cream portfolio board titled work and notes." />
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=arrival-4" />
-    <script src="./assets/ambient.js?v=arrival-4"></script>
+    <link rel="stylesheet" href="./styles.css?v=release-review-1" />
+    <script src="./assets/ambient.js?v=release-review-1"></script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"work and notes","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
-    <div class="intro" id="intro" hidden>
+    <main class="intro" id="intro" hidden>
       <div class="intro-stage">
-        <p class="intro-greeting" id="intro-greeting"><span class="intro-clear" id="intro-clear"></span></p>
+        <h1 class="intro-greeting" id="intro-greeting"><span class="intro-clear" id="intro-clear"></span></h1>
         <span class="intro-progress" aria-hidden="true"></span>
       </div>
       <button class="intro-skip" id="intro-skip" type="button">skip intro</button>
-    </div>
+    </main>
     <main class="page">
       <article class="board" aria-label="personal space">
-        <nav class="switcher" aria-label="sections" role="tablist">
-          <button id="tab-work" type="button" role="tab" aria-selected="true" aria-controls="panel-work">work</button>
-          <button id="tab-notes" type="button" role="tab" aria-selected="false" aria-controls="panel-notes" tabindex="-1">notes</button>
-          <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1">about</button>
-        </nav>
+        <header class="board-head">
+          <h1 class="sr-only">work and notes</h1>
+          <nav class="switcher" aria-label="sections" role="tablist">
+            <button id="tab-work" type="button" role="tab" aria-selected="true" aria-controls="panel-work">work</button>
+            <button id="tab-notes" type="button" role="tab" aria-selected="false" aria-controls="panel-notes" tabindex="-1">notes</button>
+            <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1">about</button>
+          </nav>
+        </header>
         <div class="search-region" id="search-region" hidden>
           <label class="sr-only" for="search-input">search posts</label>
           <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="search" />
@@ -100,6 +119,6 @@
     </dialog>
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./site.js?v=arrival-4" defer></script>
+    <script src="./site.js?v=release-review-1" defer></script>
   </body>
 </html>

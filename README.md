@@ -38,6 +38,9 @@ For GitHub Pages, the included `deploy-pages.yml` workflow copies only the stati
 ## structure
 
     index.html              the page
+    404.html                fallback page for missing routes
+    robots.txt              crawler rules and sitemap link
+    sitemap.xml             canonical public URL
     styles.css              visual system
     site.js                 UI, auth, and Supabase calls
     assets/ambient.js       arrival animation and visitor-local clock
@@ -51,6 +54,6 @@ The arrival lettering uses Pencerio by Indian Type Foundry, supplied under the i
 
 ## security
 
-The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates the site scripts, and `npm test` checks that the local preview does not serve repository files. Both run before GitHub Pages deployment.
+The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates the site scripts, and `npm test` checks that the local preview does not serve repository files or break the metadata policy. Both run before GitHub Pages deployment.
 
-The browser never contains a Supabase service-role key. Do not add one later. When choosing a host, configure its equivalent response headers and add its exact HTTPS URL to Supabase Authentication → URL Configuration.
+The browser never contains a Supabase service-role key. Do not add one later. GitHub Pages forces HTTPS and the page includes a CSP meta tag, but Pages does not let this project set every response security header or custom cache policy. The `robots.txt` file is at the project subpath rather than the host root, so submit the sitemap URL directly to a search engine if indexing matters. A host with configurable response headers and a custom domain would close those hosting-level gaps; add its exact HTTPS URL to Supabase Authentication → URL Configuration.

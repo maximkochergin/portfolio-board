@@ -33,7 +33,7 @@ jobs:
       - name: prepare site
         run: |
           mkdir -p public
-          cp index.html styles.css site.js config.js public/
+          cp index.html 404.html robots.txt sitemap.xml styles.css site.js config.js public/
           cp -R assets public/assets
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0

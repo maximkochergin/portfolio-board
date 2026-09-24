@@ -119,6 +119,12 @@ function renderPosts() {
       const copy = document.createElement("p");
       copy.textContent = emptyCopy();
       state.append(copy);
+      if (!loading && !normalizeSearch(searchTerm)) {
+        const detail = document.createElement("p");
+        detail.className = "empty-detail";
+        detail.textContent = "this space is taking shape.";
+        state.append(detail);
+      }
       list.append(state);
       return;
     }

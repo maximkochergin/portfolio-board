@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://maximkochergin.github.io/portfolio-board/sitemap.xml

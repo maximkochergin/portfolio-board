@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
+import { readFile } from "node:fs/promises";
 import { request } from "node:http";
 import { createServer } from "node:net";
 import { test } from "node:test";
@@ -66,13 +68,18 @@ test("local preview serves only the public site to local hosts", async () => {
     assert.equal((await get(port, "/site.js", localHost, "HEAD")).status, 200);
     assert.equal((await get(port, "/assets/ambient.js", localHost)).status, 200);
     assert.equal((await get(port, "/assets/fonts/Pencerio-Hairline.woff2", localHost)).status, 200);
+    assert.equal((await get(port, "/portfolio-board/", localHost)).status, 200);
+    assert.match((await get(port, "/robots.txt", localHost)).body, /Sitemap: https:\/\/maximkochergin\.github\.io\/portfolio-board\/sitemap\.xml/);
+    assert.equal((await get(port, "/sitemap.xml", localHost)).headers["content-type"], "application/xml; charset=utf-8");
     assert.equal((await get(port, "/site.js", localHost, "POST")).status, 405);
 
     assert.equal((await get(port, "/index.html", `attacker.example:${port}`)).status, 403);
     assert.equal((await get(port, "/.gitignore", `attacker.example:${port}`)).status, 403);
     assert.equal((await get(port, `http://attacker.example:${port}/.gitignore`, `attacker.example:${port}`)).status, 403);
-    assert.equal((await get(port, "/.gitignore", localHost)).status, 404);
-    assert.equal((await get(port, "/.gitignore", localHost, "HEAD")).status, 404);
+    const missing = await get(port, "/.gitignore", localHost);
+    assert.equal(missing.status, 404);
+    assert.match(missing.body, /page not found\./);
+    assert.equal((await get(port, "/.gitignore", localHost, "HEAD")).body, "");
     assert.equal((await get(port, "/%2egitignore", localHost)).status, 404);
     assert.equal((await get(port, "/assets%2F..%2FREADME.md", localHost)).status, 404);
     assert.equal((await get(port, "/site.js", `localhost:${port}.example`)).status, 403);
@@ -83,4 +90,17 @@ test("local preview serves only the public site to local hosts", async () => {
       await stopped;
     }
   }
+});
+
+test("metadata JSON-LD hash is allowed by preview and page CSP", async () => {
+  const [html, server] = await Promise.all([
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+    readFile(new URL("../serve.mjs", import.meta.url), "utf8")
+  ]);
+  const json = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)?.[1];
+  assert.ok(json, "expected WebSite JSON-LD");
+  assert.equal(JSON.parse(json)["@type"], "WebSite");
+  const hash = "'sha256-" + createHash("sha256").update(json).digest("base64") + "'";
+  assert.ok(html.includes(hash), "metadata script must match page CSP");
+  assert.ok(server.includes(hash), "metadata script must match preview CSP");
 });
