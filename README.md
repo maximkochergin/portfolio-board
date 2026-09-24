@@ -40,14 +40,17 @@ For GitHub Pages, the included `deploy-pages.yml` workflow copies only the stati
     index.html              the page
     styles.css              visual system
     site.js                 UI, auth, and Supabase calls
+    assets/ambient.js       arrival animation and visitor-local clock
     config.js               project connection settings
     supabase/schema.sql     database and access rules for a new project
     supabase/migrations/    safe upgrades for a connected project
 
 No production server, local database, or framework is required.
 
+The arrival lettering uses Pencerio by Indian Type Foundry, supplied under the included [ITF Free Font License](./assets/fonts/FFL.txt). The clock uses a system sans-serif font. It reads the browser's local time zone without requesting location and saves only the hide/show preference in that browser.
+
 ## security
 
-The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates both scripts, and `npm test` checks that the local preview does not serve repository files. Both run before GitHub Pages deployment.
+The page uses a restrictive content security policy, a pinned and integrity-checked Supabase browser client, safe rendering for post text, and database-enforced owner access. `npm run check` validates the site scripts, and `npm test` checks that the local preview does not serve repository files. Both run before GitHub Pages deployment.
 
 The browser never contains a Supabase service-role key. Do not add one later. When choosing a host, configure its equivalent response headers and add its exact HTTPS URL to Supabase Authentication → URL Configuration.

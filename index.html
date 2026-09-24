@@ -10,9 +10,15 @@
     <title>work and notes</title>
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=greeting-1" />
+    <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="./styles.css?v=arrival-2" />
+    <script src="./assets/ambient.js?v=arrival-2"></script>
   </head>
   <body>
+    <div class="intro" id="intro" hidden>
+      <p class="intro-greeting" id="intro-greeting"></p>
+      <button class="intro-skip" id="intro-skip" type="button">skip intro</button>
+    </div>
     <main class="page">
       <article class="board" aria-label="personal space">
         <nav class="switcher" aria-label="sections" role="tablist">
@@ -42,10 +48,14 @@
         </div>
         <div class="board-foot">
           <button class="add" id="new-post" type="button" aria-label="new post" title="new post" hidden>+</button>
-          <span class="day-greeting" id="day-greeting"></span>
         </div>
       </article>
     </main>
+    <aside class="ambient-clock" id="ambient-clock" aria-label="your local time">
+      <span class="clock-label">your local time</span>
+      <time class="clock-time" id="clock-time"></time>
+      <button class="clock-toggle" id="clock-toggle" type="button" aria-controls="clock-time" aria-expanded="true">hide time</button>
+    </aside>
     <dialog id="composer" aria-labelledby="composer-title">
       <form id="post-form">
         <div class="dialog-header"><h2 id="composer-title">new post</h2></div>
@@ -87,6 +97,6 @@
     </dialog>
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./site.js?v=greeting-1" defer></script>
+    <script src="./site.js?v=arrival-2" defer></script>
   </body>
 </html>
