@@ -5,7 +5,7 @@
   "description": "a small personal archive for work, notes, and quiet progress.",
   "scripts": {
     "dev": "node serve.mjs",
-    "check": "node --check site.js && node --check assets/ambient.js && node --check serve.mjs",
+    "check": "node --check site.js && node --check assets/post-format.js && node --check assets/ambient.js && node --check serve.mjs",
     "test": "node --test"
   }
 }

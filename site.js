@@ -74,6 +74,57 @@ function safeLink(raw) {
   }
 }
 
+function appendFormattedText(element, value) {
+  if (!window.postFormat) {
+    element.textContent = value;
+    return;
+  }
+  window.postFormat.parseInline(value).forEach(function (token) {
+    if (token.type === "text") {
+      element.append(document.createTextNode(token.text));
+      return;
+    }
+    const tag = token.type === "strong" ? "strong" : token.type === "em" ? "em" : "code";
+    const child = document.createElement(tag);
+    child.textContent = token.text;
+    element.append(child);
+  });
+}
+
+function renderPostBody(value) {
+  const body = document.querySelector("#detail-body");
+  body.replaceChildren();
+  if (!window.postFormat) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = value;
+    body.append(paragraph);
+    return;
+  }
+  window.postFormat.parsePostText(value).forEach(function (block) {
+    if (block.type === "list") {
+      const list = document.createElement(block.kind === "ordered" ? "ol" : "ul");
+      block.items.forEach(function (item) {
+        const li = document.createElement("li");
+        appendFormattedText(li, item);
+        list.append(li);
+      });
+      body.append(list);
+      return;
+    }
+    if (block.type === "code") {
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      code.textContent = block.text;
+      pre.append(code);
+      body.append(pre);
+      return;
+    }
+    const element = document.createElement(block.type === "heading" ? `h${block.level}` : "p");
+    appendFormattedText(element, block.text);
+    body.append(element);
+  });
+}
+
 function safeContactLink(platform, raw) {
   const value = String(raw || "").trim();
   if (!value) return null;
@@ -273,7 +324,7 @@ function showPost(id, resetScroll = true, moveFocus = true) {
   shareAction.hidden = post.status !== "published";
   document.querySelector("#detail-error").hidden = true;
   document.querySelector("#detail-title").textContent = post.title;
-  document.querySelector("#detail-body").textContent = post.body;
+  renderPostBody(post.body);
   const meta = document.querySelector("#detail-meta");
   meta.hidden = !(canPublish && post.status === "draft");
   const subtitle = document.querySelector("#detail-subtitle");

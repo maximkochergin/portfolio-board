@@ -35,6 +35,10 @@ The public board has no sign-in button. To manage it locally, open `http://127.0
 
 The owner can also use `edit links` at the bottom of the board to change the public contact icons. Empty fields hide a profile; no edit requires a new deployment. For an existing Supabase project, apply [the external links migration](./supabase/migrations/20260925100043_add_external_links.sql) once before deploying this version. Visitors can read only filled-in links; only the owner can change them.
 
+Post bodies can use a small text-only formatting subset: `##` and `###` headings, `-` or numbered lists, `**bold**`, `*emphasis*`, backtick inline code, and triple-backtick code blocks. Raw HTML is always shown as text, not executed. Existing plain-text posts remain readable.
+
+Opening a published post updates the browser tab title. Its `copy link` action copies the canonical public URL without an owner-only `?manage=1` query string. Drafts do not show the share action because visitors cannot read them.
+
 For GitHub Pages, the included `deploy-pages.yml` workflow copies only the static site into the deployment artifact. On GitHub Free, the repository must be public. After enabling Pages with GitHub Actions as its source, the site will be available at `https://maximkochergin.github.io/portfolio-board/` and every push to `main` will publish an update.
 
 ## structure
@@ -46,6 +50,7 @@ For GitHub Pages, the included `deploy-pages.yml` workflow copies only the stati
     styles.css              visual system
     site.js                 UI, auth, and Supabase calls
     assets/ambient.js       arrival animation and visitor-local clock
+    assets/post-format.js   safe text-only post formatting
     config.js               project connection settings
     supabase/schema.sql     database and access rules for a new project
     supabase/migrations/    safe upgrades for a connected project

@@ -68,7 +68,19 @@ html.intro-pending:not(.intro-revealing) .page, html.intro-pending:not(.intro-re
 .detail-meta { margin: 0 0 0.42rem; }
 .detail h1 { margin: 0 0 0.62rem; font-size: 1.05rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
 .subtitle { margin: 0 0 0.8rem; color: var(--quiet); font-size: 0.82rem; }
-.body { margin: 0; font-size: 0.9375rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.body { margin: 0; font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
+.body p, .body h2, .body h3, .body ul, .body ol, .body pre { margin: 0 0 0.85rem; }
+.body > :last-child { margin-bottom: 0; }
+.body p, .body li { white-space: pre-line; }
+.body h2, .body h3 { color: var(--ink); font-weight: 600; line-height: 1.35; }
+.body h2 { font-size: 1rem; }
+.body h3 { font-size: 0.94rem; }
+.body ul, .body ol { padding-left: 1.3rem; }
+.body li + li { margin-top: 0.2rem; }
+.body code, .body pre { font: 0.83rem/1.5 ui-monospace, "SFMono-Regular", Consolas, monospace; }
+.body :not(pre) > code { padding: 0 0.12rem; background: rgb(40 42 40 / 5%); }
+.body pre { max-width: 100%; overflow-x: auto; border-left: 1px solid var(--line); padding: var(--space-2); background: rgb(40 42 40 / 4%); white-space: pre; }
+.body pre code { white-space: inherit; }
 .detail a { display: inline-block; max-width: 100%; margin-top: 1rem; color: var(--ink); font-size: 0.82rem; overflow-wrap: anywhere; text-decoration-thickness: 1px; text-underline-offset: var(--underline-offset); }
 .share-action { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
 .share-action[hidden] { display: none; }
@@ -103,6 +115,10 @@ dialog::backdrop { background: rgb(36 39 37 / 16%); }
 .dialog-copy { margin: 1rem 0 0; color: var(--quiet); font-size: 0.875rem; line-height: 1.5; }
 form label { display: block; margin: 1rem 0 0.4rem; font-size: 0.8125rem; }
 form label span { color: var(--quiet); }
+.format-help { margin-top: var(--space-2); color: var(--quiet); font-size: 0.74rem; line-height: 1.5; }
+.format-help summary { width: fit-content; cursor: pointer; }
+.format-help summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.format-help p { margin: var(--space-1) 0 0; }
 input, textarea, select { width: 100%; border: 1px solid var(--control-line); border-radius: 0; padding: var(--space-2); background: transparent; color: var(--ink); font-size: 16px; line-height: 1.45; }
 textarea { min-height: 8rem; resize: vertical; }
 .actions { margin-top: var(--space-4); }

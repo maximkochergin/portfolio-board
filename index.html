@@ -26,7 +26,7 @@
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=archive-links-1" />
+    <link rel="stylesheet" href="./styles.css?v=post-format-1" />
     <script src="./assets/ambient.js?v=clock-zone-1"></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
@@ -62,7 +62,7 @@
             <p class="detail-meta" id="detail-meta" hidden>draft</p>
             <h1 id="detail-title"></h1>
             <p class="subtitle" id="detail-subtitle" hidden></p>
-            <p class="body" id="detail-body"></p>
+            <div class="body" id="detail-body"></div>
             <a id="detail-link" target="_blank" rel="noopener noreferrer" hidden></a>
             <div class="share-action" id="share-action" hidden><button class="plain" id="copy-post-link" type="button">copy link</button><span class="copy-status" id="copy-link-status" role="status" aria-live="polite"></span></div>
             <p class="detail-error" id="detail-error" role="alert" hidden></p>
@@ -101,6 +101,7 @@
         </div>
         <label for="post-body">text</label>
         <textarea id="post-body" name="body" maxlength="20000" required placeholder="write something..."></textarea>
+        <details class="format-help"><summary>text formatting</summary><p>## heading · - list item · **important** · `inline code` · ``` fenced code block</p></details>
         <p class="error" id="form-error" role="alert" hidden></p>
         <div class="actions">
           <button type="button" class="plain" id="cancel-composer">discard</button>
@@ -151,6 +152,7 @@
     </svg>
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./site.js?v=archive-links-1" defer></script>
+    <script src="./assets/post-format.js?v=1" defer></script>
+    <script src="./site.js?v=post-format-1" defer></script>
   </body>
 </html>
