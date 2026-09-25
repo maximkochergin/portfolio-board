@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="title description">
+  <title id="title">from index to reading view</title>
+  <desc id="description">Two fine-lined paper sheets show an index of untitled entries leading to an open page, without inventing published work.</desc>
+  <defs>
+    <linearGradient id="ground" x2="1" y2="1">
+      <stop stop-color="#f1eee7"/>
+      <stop offset="1" stop-color="#eae5dc"/>
+    </linearGradient>
+    <linearGradient id="sheet" x2="0" y2="1">
+      <stop stop-color="#faf8f2"/>
+      <stop offset="1" stop-color="#f3efe7"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#ground)" d="M0 0h1200v330H0z"/>
+  <path d="M48 35h1104M48 295h1104" fill="none" stroke="#d2cec5" stroke-width="1"/>
+  <g fill="#5b625b" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="1.4">
+    <text x="80" y="62">01 / browse</text>
+    <text x="688" y="62">02 / read</text>
+  </g>
+  <path d="M80 77h450v197H80zM674 77h446v197H674z" fill="#9c907d" opacity=".12" transform="translate(5 6)"/>
+  <g fill="url(#sheet)" stroke="#aaa99f" stroke-width="1">
+    <path d="M80 77h450v197H80z"/>
+    <path d="M674 77h446v197H674z"/>
+  </g>
+  <g fill="#282a28" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic">
+    <text x="112" y="112">work</text>
+    <text x="179" y="112">notes</text>
+    <text x="251" y="112">about</text>
+    <text x="708" y="113">reading view</text>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M111 119h37M111 141h388M111 174h388M111 207h388M111 240h388" stroke="#c9c7bf" stroke-width="1"/>
+    <path d="M111 174h165M111 207h220M111 240h187" stroke="#555b54" stroke-width="1.7"/>
+    <path d="M561 177h127m-6-6 6 6-6 6" stroke="#777d74" stroke-width="1.4"/>
+    <path d="M707 141h379M707 167h345M707 182h374M707 197h327M707 212h352M707 227h285" stroke="#c8c6bd" stroke-width="1"/>
+    <path d="M707 250h379" stroke="#d6d3ca" stroke-width="1"/>
+    <path d="M1035 112h51m-51-4v8m51-8v8" stroke="#747a72" stroke-width="1"/>
+  </g>
+  <circle cx="479" cy="174" r="3" fill="#282a28"/>
+  <text x="708" y="264" fill="#5b625b" font-family="Arial, Helvetica, sans-serif" font-size="11">a link to this page</text>
+</svg>

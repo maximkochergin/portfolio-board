@@ -6,9 +6,15 @@
 
 `archive` is a personal portfolio and notebook. Work sits beside the notes behind it, with a little room for context in **about**. It is meant to grow over time while giving employers and collaborators a direct way to see what has been made.
 
+## inside the archive
+
+![Two quiet paper views: an index of titles leading to an open reading page.](./assets/images/readme-reading.svg)
+
 The board shows titles first. Open one to read the full piece or copy a link to that exact entry. Search helps find a piece later; the small line-drawn icons lead directly to external profiles. There is no separate contact page to navigate through.
 
 ## quiet by design
+
+![A close study of the archive's typography, fine linework, and open space.](./assets/images/readme-details.svg)
 
 The paper-like board, restrained typography, and custom monochrome icons form one visual system. The greeting and visitor-local clock live around the board. Keyboard navigation, clear focus, screen-reader feedback, and reduced-motion support are built into the same experience.
 
