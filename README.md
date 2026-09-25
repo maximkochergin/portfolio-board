@@ -33,6 +33,8 @@ The project has no build step. Upload these files to any static host, then keep 
 
 The public board has no sign-in button. To manage it locally, open `http://127.0.0.1:4174/?manage=1`, enter the owner's email, and use the sign-in link. Once the session belongs to the owner UUID stored in Supabase, the small plus appears. The composer offers `save draft` and `publish`; drafts stay private even when somebody knows their direct URL. After deployment, replace this address with the final HTTPS site URL and add it to Supabase Redirect URLs.
 
+The owner can also use `edit links` at the bottom of the board to change the public contact icons. Empty fields hide a profile; no edit requires a new deployment. For an existing Supabase project, apply [the external links migration](./supabase/migrations/20260925100043_add_external_links.sql) once before deploying this version. Visitors can read only filled-in links; only the owner can change them.
+
 For GitHub Pages, the included `deploy-pages.yml` workflow copies only the static site into the deployment artifact. On GitHub Free, the repository must be public. After enabling Pages with GitHub Actions as its source, the site will be available at `https://maximkochergin.github.io/portfolio-board/` and every push to `main` will publish an update.
 
 ## structure

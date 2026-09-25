@@ -19,6 +19,17 @@ create table if not exists public.site_settings (
   owner_id uuid not null references auth.users(id) on delete restrict
 );
 
+create table if not exists public.external_links (
+  platform text primary key check (platform in ('email', 'github', 'linkedin', 'telegram', 'discord', 'x', 'cv')),
+  url text check (
+    url is null or (
+      char_length(url) <= 500 and
+      ((platform = 'email' and url ~* '^mailto:[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$') or
+       (platform <> 'email' and url ~* '^https://[^[:space:]]+$'))
+    )
+  )
+);
+
 create index if not exists posts_public_feed_idx
 on public.posts (published_at desc)
 where status = 'published';
@@ -64,15 +75,20 @@ alter table public.posts enable row level security;
 alter table public.site_settings enable row level security;
 alter table public.posts force row level security;
 alter table public.site_settings force row level security;
+alter table public.external_links enable row level security;
+alter table public.external_links force row level security;
 
 revoke all on table public.posts from anon, authenticated;
 revoke all on table public.site_settings from anon, authenticated;
+revoke all on table public.external_links from anon, authenticated;
 revoke all on function public.touch_updated_at() from public, anon, authenticated, service_role;
 revoke all on function private.can_manage_posts() from public, anon, authenticated, service_role;
 
 grant select on table public.posts to anon, authenticated;
 grant insert, update, delete on table public.posts to authenticated;
 grant select on table public.site_settings to authenticated;
+grant select on table public.external_links to anon, authenticated;
+grant insert, update on table public.external_links to authenticated;
 grant execute on function private.can_manage_posts() to authenticated;
 
 drop policy if exists "public can read posts" on public.posts;
@@ -112,5 +128,33 @@ create policy "owner can delete posts"
 on public.posts for delete
 to authenticated
 using ((select private.can_manage_posts()));
+
+drop policy if exists "public can read active external links" on public.external_links;
+create policy "public can read active external links"
+on public.external_links for select to anon, authenticated
+using (url is not null);
+
+drop policy if exists "owner can read all external links" on public.external_links;
+create policy "owner can read all external links"
+on public.external_links for select to authenticated
+using ((select private.can_manage_posts()));
+
+drop policy if exists "owner can add external links" on public.external_links;
+create policy "owner can add external links"
+on public.external_links for insert to authenticated
+with check ((select private.can_manage_posts()));
+
+drop policy if exists "owner can update external links" on public.external_links;
+create policy "owner can update external links"
+on public.external_links for update to authenticated
+using ((select private.can_manage_posts()))
+with check ((select private.can_manage_posts()));
+
+insert into public.external_links (platform, url) values
+  ('github', 'https://github.com/maximkochergin'),
+  ('linkedin', 'https://www.linkedin.com/in/maksym-kocherhin-312557402/'),
+  ('telegram', 'https://t.me/frosteddoor'),
+  ('x', 'https://x.com/jphghd')
+on conflict (platform) do nothing;
 
 commit;

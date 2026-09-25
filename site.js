@@ -13,6 +13,11 @@ const searchInput = document.querySelector("#search-input");
 const clearSearchButton = document.querySelector("#clear-search");
 const boardStatus = document.querySelector("#board-status");
 const content = document.querySelector(".content");
+const contacts = document.querySelector("#contacts");
+const contactIcons = document.querySelector("#contact-icons");
+const boardControls = document.querySelector("#board-controls");
+const linksDialog = document.querySelector("#links-dialog");
+const linksForm = document.querySelector("#links-form");
 
 const config = window.portfolioConfig || {};
 const hasConfig = typeof config.supabaseUrl === "string"
@@ -21,6 +26,7 @@ const hasConfig = typeof config.supabaseUrl === "string"
   && config.supabaseAnonKey.length > 20;
 const categories = ["work", "notes", "about"];
 const magicLinkCooldownMs = 60 * 1000;
+const contactPlatforms = ["email", "github", "linkedin", "telegram", "discord", "x", "cv"];
 
 let client = null;
 let posts = [];
@@ -40,6 +46,9 @@ let deletingPost = false;
 let initialFormState = "";
 let searchIndex = new Map();
 let locationRestored = false;
+let contactLinks = new Map();
+let linksRevision = 0;
+let savingLinks = false;
 
 function safeLink(raw) {
   try {
@@ -48,6 +57,70 @@ function safeLink(raw) {
   } catch {
     return null;
   }
+}
+
+function safeContactLink(platform, raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  if (platform === "email") {
+    const address = value.startsWith("mailto:") ? value.slice(7) : value;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address) ? `mailto:${address}` : null;
+  }
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    const hosts = {
+      github: ["github.com"], linkedin: ["linkedin.com", "www.linkedin.com"],
+      telegram: ["t.me"], discord: ["discord.com", "discord.gg"],
+      x: ["x.com", "twitter.com", "www.x.com", "www.twitter.com"]
+    };
+    if (hosts[platform] && !hosts[platform].includes(url.hostname.toLowerCase())) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+function renderContactLinks() {
+  contactIcons.replaceChildren();
+  contactPlatforms.forEach(function (platform) {
+    const href = safeContactLink(platform, contactLinks.get(platform));
+    if (!href) return;
+    const anchor = document.createElement("a");
+    anchor.className = "contact-link";
+    anchor.href = href;
+    anchor.setAttribute("aria-label", platform === "email" ? "send email" : `open ${platform} profile in a new tab`);
+    anchor.title = platform;
+    if (platform !== "email") {
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+    }
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    icon.setAttribute("focusable", "false");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", `#contact-${platform}`);
+    icon.append(use);
+    anchor.append(icon);
+    contactIcons.append(anchor);
+  });
+  contacts.hidden = !contactIcons.childElementCount;
+}
+
+async function refreshContactLinks() {
+  if (!client) return false;
+  const revision = ++linksRevision;
+  let result;
+  try {
+    result = await client.from("external_links").select("platform, url");
+  } catch {
+    result = { error: true };
+  }
+  if (revision !== linksRevision || result.error || !Array.isArray(result.data)) return false;
+  contactLinks = new Map(result.data.map(function (entry) { return [entry.platform, entry.url]; }));
+  renderContactLinks();
+  return true;
 }
 
 function normalizeSearch(value) {
@@ -319,12 +392,14 @@ async function refreshPosts() {
 function clearPrivateView() {
   ++postsRevision;
   canPublish = false;
+  boardControls.hidden = true;
   posts = [];
   searchIndex.clear();
   searchTerm = "";
   loading = true;
   loadError = false;
   if (composer.open) composer.close();
+  if (linksDialog.open) linksDialog.close();
   if (confirmDialog.open) confirmDialog.close("cancel");
   form.reset();
   editingId = null;
@@ -366,6 +441,7 @@ async function refreshOwnerState() {
   if (canPublish && !nextCanPublish) clearPrivateView();
   canPublish = nextCanPublish;
   newPostButton.hidden = !canPublish || Boolean(openPostId);
+  boardControls.hidden = !canPublish;
   ownerActions.hidden = !canPublish || !openPostId;
   return true;
 }
@@ -492,6 +568,62 @@ document.querySelector("#edit-post").addEventListener("click", function () {
   openComposer(posts.find(function (post) { return post.id === openPostId; }));
 });
 document.querySelector("#cancel-composer").addEventListener("click", () => { void closeComposer(); });
+document.querySelector("#edit-links").addEventListener("click", async function () {
+  if (!canPublish || savingLinks) return;
+  if (!await refreshContactLinks()) {
+    announce("couldn't load external links. please try again.");
+    return;
+  }
+  contactPlatforms.forEach(function (platform) {
+    const url = contactLinks.get(platform) || "";
+    linksForm.elements[platform].value = platform === "email" ? url.replace(/^mailto:/, "") : url;
+  });
+  document.querySelector("#links-error").hidden = true;
+  linksDialog.showModal();
+  linksForm.elements.email.focus();
+});
+document.querySelector("#close-links").addEventListener("click", function () { linksDialog.close(); });
+linksForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  if (!canPublish || !client || savingLinks) return;
+  const entries = [];
+  const error = document.querySelector("#links-error");
+  error.hidden = true;
+  for (const platform of contactPlatforms) {
+    const raw = linksForm.elements[platform].value.trim();
+    const url = safeContactLink(platform, raw);
+    if (raw && !url) {
+      error.textContent = platform === "email" ? "enter a valid email address." : `enter a valid ${platform} https link.`;
+      error.hidden = false;
+      linksForm.elements[platform].focus();
+      return;
+    }
+    entries.push({ platform, url });
+  }
+  savingLinks = true;
+  linksForm.setAttribute("aria-busy", "true");
+  const controls = Array.from(linksForm.querySelectorAll("button, input"));
+  controls.forEach(function (control) { control.disabled = true; });
+  let result;
+  try {
+    result = await client.from("external_links").upsert(entries, { onConflict: "platform" });
+  } catch {
+    result = { error: true };
+  }
+  savingLinks = false;
+  linksForm.removeAttribute("aria-busy");
+  controls.forEach(function (control) { control.disabled = false; });
+  if (!canPublish) return;
+  if (result.error) {
+    error.textContent = "couldn't save the links. nothing in this form was cleared.";
+    error.hidden = false;
+    return;
+  }
+  contactLinks = new Map(entries.map(function (entry) { return [entry.platform, entry.url]; }));
+  renderContactLinks();
+  linksDialog.close();
+  announce("external links saved.");
+});
 composer.addEventListener("cancel", function (event) {
   event.preventDefault();
   void closeComposer();
@@ -707,12 +839,12 @@ async function start() {
     window.setTimeout(async function () {
       const current = await refreshOwnerState();
       if (!current) return;
-      await refreshPosts();
+      await Promise.all([refreshPosts(), refreshContactLinks()]);
       if (event === "SIGNED_IN" && canPublish && authDialog.open) authDialog.close();
     }, 0);
   });
   showAuthLinkError();
-  if (await refreshOwnerState()) await refreshPosts();
+  if (await refreshOwnerState()) await Promise.all([refreshPosts(), refreshContactLinks()]);
   if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
 }
 
