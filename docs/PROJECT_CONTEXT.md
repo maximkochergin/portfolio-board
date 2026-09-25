@@ -23,7 +23,7 @@ A minimalist, English-language personal portfolio and notes board. Visitors can 
 
 ## Current state
 
-The site is published at `https://maximkochergin.github.io/portfolio-board/`. The owner-only editor, published posts, drafts, search, external contact links, text-only post formatting, local clock, greeting, and 404 page are implemented. `REVIEW.md` records the 2026-09-25 audit; its historical findings should be checked against current code before treating them as open bugs.
+The site is published at `https://maximkochergin.github.io/portfolio-board/`. The owner-only editor, published posts, drafts, search, external contact links, text-only post formatting, local clock, greeting, and 404 page are implemented. `history/REVIEW.md` records the 2026-09-25 audit; its historical findings should be checked against current code before treating them as open bugs.
 
 For a new session, the user only needs to describe the task. `AGENTS.md` carries the repository workflow automatically; Codex Memory may retain user preferences, but Git and the working tree remain authoritative for code and in-progress changes. When resuming a particular unfinished task in a new thread, state its intended outcome briefly; do not paste the project history.
 
