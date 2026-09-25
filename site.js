@@ -36,7 +36,9 @@ let activeCategory = "work";
 let openPostId = null;
 let editingId = null;
 let editingStatus = "published";
+let editingVersion = null;
 let canPublish = false;
+let ownerCheckUncertain = false;
 let loading = true;
 let loadError = false;
 let nextMagicLinkAt = 0;
@@ -44,6 +46,7 @@ let searchTerm = "";
 let postsRevision = 0;
 let ownerRevision = 0;
 let savingPost = false;
+let checkingPostAccess = false;
 let deletingPost = false;
 let initialFormState = "";
 let searchIndex = new Map();
@@ -51,7 +54,11 @@ let locationRestored = false;
 let contactLinks = new Map();
 let linksRevision = 0;
 let savingLinks = false;
+let checkingLinksAccess = false;
+let loadingLinksEditor = false;
+let linksSnapshot = new Map();
 let copyStatusTimer = null;
+let lastVisibleRefresh = Date.now();
 
 function resetCopyStatus() {
   window.clearTimeout(copyStatusTimer);
@@ -155,7 +162,8 @@ function renderContactLinks() {
     const anchor = document.createElement("a");
     anchor.className = "contact-link";
     anchor.href = href;
-    anchor.setAttribute("aria-label", platform === "email" ? "send email" : `open ${platform} profile in a new tab`);
+    anchor.setAttribute("aria-label", platform === "email" ? "send email"
+      : platform === "cv" ? "open cv document in a new tab" : `open ${platform} profile in a new tab`);
     anchor.title = platform;
     if (platform !== "email") {
       anchor.target = "_blank";
@@ -175,7 +183,7 @@ function renderContactLinks() {
 }
 
 async function refreshContactLinks() {
-  if (!client) return false;
+  if (!client) return "error";
   const revision = ++linksRevision;
   let result;
   try {
@@ -183,10 +191,15 @@ async function refreshContactLinks() {
   } catch {
     result = { error: true };
   }
-  if (revision !== linksRevision || result.error || !Array.isArray(result.data)) return false;
+  if (revision !== linksRevision) return "stale";
+  if (result.error || !Array.isArray(result.data)) {
+    document.querySelector("#contacts-error").hidden = false;
+    return "error";
+  }
   contactLinks = new Map(result.data.map(function (entry) { return [entry.platform, entry.url]; }));
   renderContactLinks();
-  return true;
+  document.querySelector("#contacts-error").hidden = true;
+  return "ok";
 }
 
 function normalizeSearch(value) {
@@ -213,13 +226,19 @@ function emptyCopy(category) {
 }
 
 function syncSearch() {
-  searchRegion.hidden = false;
+  searchRegion.hidden = !detail.hidden;
   clearSearchButton.hidden = !searchTerm;
   if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
 }
 
 function announce(message) {
   if (boardStatus.textContent !== message) boardStatus.textContent = message;
+}
+
+async function ownerReadyForWrite() {
+  if (!canPublish) return false;
+  if (!ownerCheckUncertain) return true;
+  return Boolean(await refreshOwnerState()) && canPublish;
 }
 
 function retryPosts() {
@@ -346,7 +365,7 @@ function showPost(id, resetScroll = true, moveFocus = true) {
   panels.forEach(function (panel) { panel.hidden = true; });
   detail.hidden = false;
   if (resetScroll) detail.scrollTop = 0;
-  if (moveFocus) detail.focus();
+  if (moveFocus) document.querySelector("#detail-title").focus();
   announce(`opened ${post.title}.`);
 }
 
@@ -372,7 +391,7 @@ function showMissingPost(moveFocus = true) {
   panels.forEach(function (panel) { panel.hidden = true; });
   detail.hidden = false;
   detail.scrollTop = 0;
-  if (moveFocus && !alreadyShown) detail.focus();
+  if (moveFocus && !alreadyShown) document.querySelector("#detail-title").focus();
   announce("this post isn't available.");
 }
 
@@ -429,7 +448,7 @@ function restoreLocation(moveFocus = true) {
 }
 
 async function refreshPosts() {
-  if (!client) return;
+  if (!client) return false;
   const revision = ++postsRevision;
   loading = true;
   loadError = false;
@@ -437,24 +456,21 @@ async function refreshPosts() {
   let result;
   try {
     let query = client.from("posts")
-      .select("id, category, title, body, subtitle, link, status, published_at");
+      .select("id, category, title, body, subtitle, link, status, published_at, updated_at");
     if (!canPublish) query = query.eq("status", "published");
     result = await query.order("published_at", { ascending: false });
   } catch {
     result = { error: true };
   }
-  if (revision !== postsRevision) return;
+  if (revision !== postsRevision) return false;
   loading = false;
-  if (result.error) {
-    posts = [];
-    loadError = true;
-    if (openPostId) showList(false);
+  if (result.error || !Array.isArray(result.data)) {
+    loadError = posts.length === 0;
     renderPosts();
-    return;
+    announce("couldn't refresh posts. showing the last loaded version.");
+    return false;
   }
-  posts = Array.isArray(result.data)
-    ? result.data.filter(function (post) { return canPublish || post.status === "published"; })
-    : [];
+  posts = result.data.filter(function (post) { return canPublish || post.status === "published"; });
   searchIndex = new Map(posts.map(function (post) {
     return [post.id, normalizeSearch([post.title, post.subtitle, post.body].filter(Boolean).join(" "))];
   }));
@@ -462,10 +478,12 @@ async function refreshPosts() {
   renderPosts();
   restoreLocation(!locationRestored);
   locationRestored = true;
+  return true;
 }
 
 function clearPrivateView() {
   ++postsRevision;
+  ++linksRevision;
   canPublish = false;
   boardControls.hidden = true;
   posts = [];
@@ -478,6 +496,8 @@ function clearPrivateView() {
   if (confirmDialog.open) confirmDialog.close("cancel");
   form.reset();
   editingId = null;
+  editingVersion = null;
+  ownerCheckUncertain = false;
   const hadOpenPost = Boolean(openPostId);
   showList(false);
   if (hadOpenPost) setHash(activeCategory, true);
@@ -491,28 +511,42 @@ function clearPrivateView() {
 }
 
 async function refreshOwnerState() {
-  if (!client) return;
+  if (!client) return false;
   const revision = ++ownerRevision;
-  let session = null;
+  let sessionResult;
   try {
-    const sessionResult = await client.auth.getSession();
-    session = sessionResult.data && sessionResult.data.session;
+    sessionResult = await client.auth.getSession();
   } catch {
-    session = null;
+    sessionResult = { error: true };
   }
+  if (revision !== ownerRevision) return false;
+  if (sessionResult.error || !sessionResult.data) {
+    ownerCheckUncertain = true;
+    if (canPublish) announce("couldn't verify access. your unsaved text is safe; try again shortly.");
+    return false;
+  }
+  const session = sessionResult.data.session;
   let nextCanPublish = false;
   if (session) {
+    let result;
     try {
-      const result = await client.from("site_settings")
+      result = await client.from("site_settings")
         .select("owner_id")
         .eq("singleton", true)
         .maybeSingle();
-      nextCanPublish = Boolean(result.data && !result.error);
     } catch {
-      nextCanPublish = false;
+      result = { error: true };
     }
+    if (revision !== ownerRevision) return false;
+    if (result.error) {
+      ownerCheckUncertain = true;
+      if (canPublish) announce("couldn't verify access. your unsaved text is safe; try again shortly.");
+      return false;
+    }
+    nextCanPublish = Boolean(result.data);
   }
   if (revision !== ownerRevision) return false;
+  ownerCheckUncertain = false;
   if (canPublish && !nextCanPublish) clearPrivateView();
   canPublish = nextCanPublish;
   newPostButton.hidden = !canPublish || Boolean(openPostId);
@@ -555,6 +589,7 @@ function openComposer(post) {
   form.reset();
   editingId = post ? post.id : null;
   editingStatus = post ? post.status : "published";
+  editingVersion = post ? post.updated_at : null;
   form.elements.category.value = post ? post.category : activeCategory;
   form.elements.title.value = post ? post.title : "";
   form.elements.body.value = post ? post.body : "";
@@ -591,7 +626,7 @@ function askConfirmation(title, copy, action, cancelText = "keep post") {
 }
 
 async function closeComposer() {
-  if (savingPost || confirmDialog.open) return;
+  if (savingPost || checkingPostAccess || confirmDialog.open) return;
   if (formSnapshot() !== initialFormState) {
     const discard = await askConfirmation(
       "discard your changes?",
@@ -645,7 +680,6 @@ document.querySelector("#copy-post-link").addEventListener("click", async functi
     await navigator.clipboard.writeText(postUrl(id));
     if (openPostId !== id) return;
     copyStatus.textContent = "link copied.";
-    announce("post link copied.");
   } catch {
     if (openPostId !== id) return;
     copyStatus.textContent = "couldn't copy the link here.";
@@ -659,11 +693,20 @@ document.querySelector("#edit-post").addEventListener("click", function () {
 });
 document.querySelector("#cancel-composer").addEventListener("click", () => { void closeComposer(); });
 document.querySelector("#edit-links").addEventListener("click", async function () {
-  if (!canPublish || savingLinks) return;
-  if (!await refreshContactLinks()) {
+  if (!canPublish || savingLinks || loadingLinksEditor) return;
+  loadingLinksEditor = true;
+  const editLinksButton = document.querySelector("#edit-links");
+  editLinksButton.disabled = true;
+  const loaded = await refreshContactLinks();
+  loadingLinksEditor = false;
+  editLinksButton.disabled = false;
+  if (loaded !== "ok") {
+    if (loaded === "stale") return;
     announce("couldn't load external links. please try again.");
     return;
   }
+  if (!canPublish || linksDialog.open) return;
+  linksSnapshot = new Map(contactLinks);
   contactPlatforms.forEach(function (platform) {
     const url = contactLinks.get(platform) || "";
     linksForm.elements[platform].value = platform === "email" ? url.replace(/^mailto:/, "") : url;
@@ -672,10 +715,27 @@ document.querySelector("#edit-links").addEventListener("click", async function (
   linksDialog.showModal();
   linksForm.elements.email.focus();
 });
-document.querySelector("#close-links").addEventListener("click", function () { linksDialog.close(); });
+document.querySelector("#retry-contacts").addEventListener("click", function () {
+  void refreshContactLinks();
+});
+document.querySelector("#close-links").addEventListener("click", function () {
+  if (!savingLinks && !checkingLinksAccess) linksDialog.close();
+});
+linksDialog.addEventListener("cancel", function (event) {
+  if (savingLinks || checkingLinksAccess) event.preventDefault();
+});
 linksForm.addEventListener("submit", async function (event) {
   event.preventDefault();
-  if (!canPublish || !client || savingLinks) return;
+  if (!canPublish || !client || savingLinks || checkingLinksAccess) return;
+  checkingLinksAccess = true;
+  const ownerReady = await ownerReadyForWrite();
+  checkingLinksAccess = false;
+  if (!ownerReady) {
+    const error = document.querySelector("#links-error");
+    error.textContent = "couldn't verify access. your links are still here; try again.";
+    error.hidden = false;
+    return;
+  }
   const entries = [];
   const error = document.querySelector("#links-error");
   error.hidden = true;
@@ -688,7 +748,11 @@ linksForm.addEventListener("submit", async function (event) {
       linksForm.elements[platform].focus();
       return;
     }
-    entries.push({ platform, url });
+    if (url !== (linksSnapshot.get(platform) || null)) entries.push({ platform, url });
+  }
+  if (!entries.length) {
+    linksDialog.close();
+    return;
   }
   savingLinks = true;
   linksForm.setAttribute("aria-busy", "true");
@@ -709,8 +773,10 @@ linksForm.addEventListener("submit", async function (event) {
     error.hidden = false;
     return;
   }
-  contactLinks = new Map(entries.map(function (entry) { return [entry.platform, entry.url]; }));
+  ++linksRevision;
+  entries.forEach(function (entry) { contactLinks.set(entry.platform, entry.url); });
   renderContactLinks();
+  document.querySelector("#contacts-error").hidden = true;
   linksDialog.close();
   announce("external links saved.");
 });
@@ -722,7 +788,14 @@ form.elements.category.addEventListener("change", updateAboutFields);
 
 form.addEventListener("submit", async function (event) {
   event.preventDefault();
-  if (!canPublish || !client || savingPost) return;
+  if (!canPublish || !client || savingPost || checkingPostAccess) return;
+  checkingPostAccess = true;
+  const ownerReady = await ownerReadyForWrite();
+  checkingPostAccess = false;
+  if (!ownerReady) {
+    showFormError("couldn't verify access. your text is still here; try again.");
+    return;
+  }
   const intent = event.submitter && event.submitter.value === "draft" ? "draft" : "published";
   const payload = {
     category: form.elements.category.value,
@@ -749,12 +822,12 @@ form.addEventListener("submit", async function (event) {
   form.setAttribute("aria-busy", "true");
   announce("saving post.");
   document.querySelector("#form-error").hidden = true;
-  const query = editingId
-    ? client.from("posts").update(payload).eq("id", editingId).select().single()
-    : client.from("posts").insert(payload).select().single();
   let result;
   try {
-    result = await query;
+    result = editingId
+      ? await client.from("posts").update(payload).eq("id", editingId)
+        .eq("updated_at", editingVersion).select().maybeSingle()
+      : await client.from("posts").insert(payload).select().single();
   } catch {
     result = { error: true };
   }
@@ -764,14 +837,21 @@ form.addEventListener("submit", async function (event) {
   updateAboutFields();
   form.removeAttribute("aria-busy");
   if (!canPublish) return;
+  if (!result.error && editingId && !result.data) {
+    showFormError("this post changed in another tab or was removed. your text is still here; copy it before reloading.");
+    return;
+  }
   if (result.error || !result.data) {
     showFormError("could not save this post. your text is still here.");
     return;
   }
   composer.close();
-  announce(intent === "draft" ? "draft saved." : "post saved.");
+  const savedMessage = intent === "draft" ? "draft saved." : "post saved.";
+  announce(savedMessage);
   editingStatus = result.data.status;
-  await refreshPosts();
+  posts = [result.data, ...posts.filter(function (post) { return post.id !== result.data.id; })];
+  searchIndex.set(result.data.id, normalizeSearch([result.data.title, result.data.subtitle, result.data.body].filter(Boolean).join(" ")));
+  const refreshed = await refreshPosts();
   selectTab(document.querySelector("#tab-" + result.data.category));
   if (editingId) {
     showPost(result.data.id);
@@ -779,13 +859,20 @@ form.addEventListener("submit", async function (event) {
   } else {
     setHash(result.data.category, true);
   }
+  announce(refreshed ? savedMessage : `${savedMessage} couldn't refresh the list; showing the saved version.`);
 });
 
 document.querySelector("#delete-post").addEventListener("click", async function () {
-  if (!canPublish || !client || !openPostId || deletingPost) return;
+  if (!canPublish || !client || !openPostId || deletingPost || confirmDialog.open) return;
   const postId = openPostId;
   const confirmed = await askConfirmation("delete this post?", "this can't be undone.", "delete");
   if (!confirmed || !canPublish) return;
+  if (!await ownerReadyForWrite()) {
+    const error = document.querySelector("#detail-error");
+    error.textContent = "couldn't verify access. try again.";
+    error.hidden = false;
+    return;
+  }
   deletingPost = true;
   const actionButtons = Array.from(ownerActions.querySelectorAll("button"));
   actionButtons.forEach(function (button) { button.disabled = true; });
@@ -793,7 +880,7 @@ document.querySelector("#delete-post").addEventListener("click", async function 
   announce("deleting post.");
   let result;
   try {
-    result = await client.from("posts").delete().eq("id", postId);
+    result = await client.from("posts").delete().eq("id", postId).select("id").maybeSingle();
   } catch {
     result = { error: true };
   }
@@ -801,16 +888,18 @@ document.querySelector("#delete-post").addEventListener("click", async function 
   actionButtons.forEach(function (button) { button.disabled = false; });
   ownerActions.removeAttribute("aria-busy");
   if (!canPublish) return;
-  if (result.error) {
+  if (result.error || !result.data) {
     const error = document.querySelector("#detail-error");
-    error.textContent = "couldn't delete this post.";
+    error.textContent = result.error ? "couldn't delete this post." : "this post was already removed elsewhere. reload the page.";
     error.hidden = false;
     return;
   }
   announce("post deleted.");
+  posts = posts.filter(function (post) { return post.id !== postId; });
+  searchIndex.delete(postId);
   showList(false);
   setHash(activeCategory, true);
-  await refreshPosts();
+  if (!await refreshPosts()) announce("post deleted. couldn't refresh the list; showing the last loaded version.");
 });
 
 function openAuthDialog() {
@@ -934,9 +1023,27 @@ async function start() {
     }, 0);
   });
   showAuthLinkError();
-  if (await refreshOwnerState()) await Promise.all([refreshPosts(), refreshContactLinks()]);
+  const publicReads = Promise.all([refreshPosts(), refreshContactLinks()]);
+  const ownerReady = await refreshOwnerState();
+  if (ownerReady && canPublish) await refreshPosts();
+  await publicReads;
   if (isOwnerRoute() && !canPublish && !authDialog.open) openAuthDialog();
 }
+
+async function refreshVisibleData() {
+  if (!client || document.hidden || composer.open || linksDialog.open || savingPost || savingLinks) return;
+  if (Date.now() - lastVisibleRefresh < 30000) return;
+  lastVisibleRefresh = Date.now();
+  await refreshOwnerState();
+  await Promise.all([refreshPosts(), refreshContactLinks()]);
+}
+
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) void refreshVisibleData();
+});
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted) void refreshVisibleData();
+});
 
 if (window.self !== window.top) {
   // GitHub Pages cannot send frame-ancestors or X-Frame-Options for this site.

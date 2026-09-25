@@ -26,8 +26,8 @@
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=post-format-1" />
-    <script src="./assets/ambient.js?v=clock-zone-1"></script>
+    <link rel="stylesheet" href="./styles.css?v=stability-1" />
+    <script src="./assets/ambient.js?v=stability-1"></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
@@ -57,10 +57,10 @@
           <section class="panel" id="panel-work" role="tabpanel" aria-labelledby="tab-work" tabindex="0"><div class="post-list" data-category="work"><div class="empty-state"><p>loading...</p></div></div></section>
           <section class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden><div class="post-list" data-category="notes"></div></section>
           <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden><div class="post-list" data-category="about"></div></section>
-          <section class="panel detail" id="post-detail" aria-label="post" tabindex="-1" hidden>
+          <section class="panel detail" id="post-detail" aria-label="post" hidden>
             <button class="plain back" type="button" id="back-to-list">back</button>
             <p class="detail-meta" id="detail-meta" hidden>draft</p>
-            <h1 id="detail-title"></h1>
+            <h1 id="detail-title" tabindex="-1"></h1>
             <p class="subtitle" id="detail-subtitle" hidden></p>
             <div class="body" id="detail-body"></div>
             <a id="detail-link" target="_blank" rel="noopener noreferrer" hidden></a>
@@ -78,6 +78,7 @@
             <span class="contacts-label" aria-hidden="true">elsewhere</span>
             <div class="contact-icons" id="contact-icons"></div>
           </nav>
+          <p class="contacts-error" id="contacts-error" role="status" hidden>contacts unavailable. <button class="plain" id="retry-contacts" type="button">try again</button></p>
         </footer>
       </article></div>
     </main>
@@ -152,7 +153,7 @@
     </svg>
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./assets/post-format.js?v=1" defer></script>
-    <script src="./site.js?v=post-format-1" defer></script>
+    <script src="./assets/post-format.js?v=stability-1" defer></script>
+    <script src="./site.js?v=stability-1" defer></script>
   </body>
 </html>

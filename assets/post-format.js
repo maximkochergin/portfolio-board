@@ -9,6 +9,17 @@
       if (plain) tokens.push({ type: "text", text: plain });
       plain = "";
     }
+    function closingMarker(marker, from) {
+      for (let at = from; at < source.length;) {
+        if (source[at] === "\\" && /[\\*`]/.test(source[at + 1] || "")) {
+          at += 2;
+          continue;
+        }
+        if (source.startsWith(marker, at)) return at;
+        at += 1;
+      }
+      return -1;
+    }
     for (let index = 0; index < source.length;) {
       const character = source[index];
       if (character === "\\" && /[\\*`]/.test(source[index + 1] || "")) {
@@ -18,10 +29,12 @@
       }
       const marker = source.startsWith("**", index) ? "**" : character === "*" || character === "`" ? character : null;
       if (marker) {
-        const close = source.indexOf(marker, index + marker.length);
+        const close = closingMarker(marker, index + marker.length);
         if (close > index + marker.length) {
           flush();
-          tokens.push({ type: marker === "**" ? "strong" : marker === "*" ? "em" : "code", text: source.slice(index + marker.length, close) });
+          const type = marker === "**" ? "strong" : marker === "*" ? "em" : "code";
+          const content = source.slice(index + marker.length, close);
+          tokens.push({ type, text: type === "code" ? content : content.replace(/\\([\\*`])/g, "$1") });
           index = close + marker.length;
           continue;
         }

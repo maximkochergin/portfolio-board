@@ -1,10 +1,10 @@
-# portfolio board
+# archive
 
-![a small outlined square on warm paper](./assets/images/portfolio-cover.png)
+[visit the live site](https://maximkochergin.github.io/portfolio-board/)
 
-> a small personal archive for work, notes, and quiet progress.
+A small personal archive for work, notes, and quiet progress. The page is intentionally minimal: visitors can browse published posts, search, open direct links, and use external contact links. The owner can write posts, keep private drafts, and edit contacts through a protected interface.
 
-This is deliberately a small static site. The public page reads from Supabase. Publishing, editing, and deleting are limited to one authenticated owner by row-level security. The owner can save private drafts; visitors only receive published posts.
+The frontend is plain HTML, CSS, and JavaScript on GitHub Pages. Supabase stores content and enforces owner access through row-level security. There is no production server or build step.
 
 ## connect Supabase
 
@@ -16,7 +16,7 @@ This is deliberately a small static site. The public page reads from Supabase. P
        values (true, 'paste-the-auth-user-uuid-here')
        on conflict (singleton) do update set owner_id = excluded.owner_id;
 
-4. Fill in config.js with the project URL and the public publishable key. The publishable key is safe to use in a browser because the database policies above enforce access.
+4. Fill in config.js with the project URL and the public publishable key. The publishable key is safe to use in a browser because the database policies above enforce access. If you use a different Supabase project, also update the exact `connect-src` origin in `index.html` and `serve.mjs`; otherwise CSP will block the connection. The current client accepts `https://*.supabase.co` project URLs, not custom domains.
 5. In Authentication → URL Configuration, add the final site URL to Redirect URLs. For local testing, add http://localhost:4174 and http://127.0.0.1:4174.
 
 If the project was connected before the draft feature, run [supabase/migrations/20260923143253_add_post_status_and_search.sql](./supabase/migrations/20260923143253_add_post_status_and_search.sql) once in the SQL Editor instead. It preserves existing posts, marks them as published, and restricts public reads to published posts.
@@ -58,6 +58,8 @@ The `keep-supabase-awake.yml` workflow makes three small, anonymous, read-only d
     supabase/migrations/    safe upgrades for a connected project
 
 No production server, local database, or framework is required.
+
+The dated [technical review](./REVIEW.md) and [UI/UX review](./UI_UX_AUDIT.md) are historical snapshots, not a list of currently open issues.
 
 The arrival lettering uses Pencerio by Indian Type Foundry, supplied under the included [ITF Free Font License](./assets/fonts/FFL.txt). The clock uses a system sans-serif font. It reads the browser's local time zone without requesting location and saves only the hide/show preference in that browser.
 

@@ -32,5 +32,11 @@ test("code fences and raw HTML stay inert text", () => {
 
 test("escaped markers remain literal and an open code fence remains readable", () => {
   assert.deepEqual(parseInline("\\*literal\\*"), [{ type: "text", text: "*literal*" }]);
+  assert.deepEqual(parseInline("*word \\* still italic*"), [
+    { type: "em", text: "word * still italic" }
+  ]);
+  assert.deepEqual(parseInline("**word \\* still bold**"), [
+    { type: "strong", text: "word * still bold" }
+  ]);
   assert.deepEqual(parsePostText("```\nconst a = 1;"), [{ type: "code", text: "const a = 1;" }]);
 });

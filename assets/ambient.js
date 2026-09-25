@@ -189,15 +189,21 @@
       revealFrame = window.requestAnimationFrame(draw);
     }
 
-    const fontReady = document.fonts?.load('100 48px "Pencerio"') || Promise.resolve();
+    const fontReady = document.fonts?.load('100 48px "Pencerio"') || Promise.resolve([]);
     Promise.race([
-      fontReady.then(() => true, () => false),
+      fontReady.then((faces) => Boolean(faces.length && document.fonts?.check?.('100 48px "Pencerio"')), () => false),
       new Promise((resolve) => window.setTimeout(() => resolve(false), 1500))
-    ]).then(() => {
+    ]).then((fontLoaded) => {
       if (leaving || !introAllowed) return;
       window.requestAnimationFrame(() => {
         if (leaving) return;
-        revealGreeting();
+        if (fontLoaded) revealGreeting();
+        else {
+          // Keep one stable fallback face instead of measuring letters before a late font swap.
+          introClear.style.fontFamily = "Telma, serif";
+          intro.classList.add("is-playing");
+          phaseTimer = window.setTimeout(() => finishIntro(), 1800);
+        }
       });
     });
   }

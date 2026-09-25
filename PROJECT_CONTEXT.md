@@ -23,7 +23,7 @@ A minimalist, English-language personal portfolio and notes board. Visitors can 
 
 ## Current state
 
-At last verification (2026-09-24), `main` is deployed to `https://maximkochergin.github.io/portfolio-board/`. The owner-only editor, published posts, drafts, search, local clock, greeting, and 404 page are implemented. No active feature sprint or authoritative roadmap is recorded in the repository.
+The site is published at `https://maximkochergin.github.io/portfolio-board/`. The owner-only editor, published posts, drafts, search, external contact links, text-only post formatting, local clock, greeting, and 404 page are implemented. `REVIEW.md` records the 2026-09-25 audit; its historical findings should be checked against current code before treating them as open bugs.
 
 For a new session, the user only needs to describe the task. `AGENTS.md` carries the repository workflow automatically; Codex Memory may retain user preferences, but Git and the working tree remain authoritative for code and in-progress changes. When resuming a particular unfinished task in a new thread, state its intended outcome briefly; do not paste the project history.
 
@@ -31,3 +31,4 @@ For a new session, the user only needs to describe the task. `AGENTS.md` carries
 
 - GitHub Pages cannot set all response-level security headers or a custom static cache policy; consider a host change only if those controls are needed.
 - `robots.txt` lives at the GitHub Pages project subpath, not the host root.
+- The editor compares post `updated_at` values before updating. Contact saves send only changed platforms, so unrelated fields are not overwritten across tabs; concurrent changes to the same platform remain last-write-wins until a database-backed version check is warranted.
