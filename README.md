@@ -39,7 +39,9 @@ Post bodies can use a small text-only formatting subset: `##` and `###` headings
 
 Opening a published post updates the browser tab title. Its `copy link` action copies the canonical public URL without an owner-only `?manage=1` query string. Drafts do not show the share action because visitors cannot read them.
 
-For GitHub Pages, the included `deploy-pages.yml` workflow copies only the static site into the deployment artifact. On GitHub Free, the repository must be public. After enabling Pages with GitHub Actions as its source, the site will be available at `https://maximkochergin.github.io/portfolio-board/` and every push to `main` will publish an update.
+For GitHub Pages, the included `deploy-pages.yml` workflow copies only the static site into the deployment artifact. On GitHub Free, the repository must be public. After enabling Pages with GitHub Actions as its source, the site will be available at `https://maximkochergin.github.io/portfolio-board/` and normal pushes to `main` will publish updates.
+
+The `keep-supabase-awake.yml` workflow makes three small, anonymous, read-only database requests per day, using the same public URL and publishable key as `config.js`. It does not use Auth, send email, or modify database rows. GitHub can delay or drop scheduled runs, and Supabase does not guarantee that any fixed amount of activity prevents Free Plan pausing. Since GitHub disables schedules in inactive public repositories after 60 days, the workflow also creates one empty commit on `main` each month. This does not change the site or trigger the Pages workflow. Failed runs are visible in the repository's Actions tab; `workflow_dispatch` allows a one-off manual test.
 
 ## structure
 
