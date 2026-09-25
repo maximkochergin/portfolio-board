@@ -13,6 +13,8 @@ const searchInput = document.querySelector("#search-input");
 const clearSearchButton = document.querySelector("#clear-search");
 const boardStatus = document.querySelector("#board-status");
 const content = document.querySelector(".content");
+const shareAction = document.querySelector("#share-action");
+const copyStatus = document.querySelector("#copy-link-status");
 const contacts = document.querySelector("#contacts");
 const contactIcons = document.querySelector("#contact-icons");
 const boardControls = document.querySelector("#board-controls");
@@ -49,6 +51,19 @@ let locationRestored = false;
 let contactLinks = new Map();
 let linksRevision = 0;
 let savingLinks = false;
+let copyStatusTimer = null;
+
+function resetCopyStatus() {
+  window.clearTimeout(copyStatusTimer);
+  copyStatus.textContent = "";
+}
+
+function postUrl(id) {
+  const canonical = document.querySelector('link[rel="canonical"]');
+  const url = new URL(canonical?.href || window.location.pathname, window.location.origin);
+  url.hash = "post/" + id;
+  return url.href;
+}
 
 function safeLink(raw) {
   try {
@@ -252,7 +267,10 @@ function setHash(value, replace, state = null) {
 function showPost(id, resetScroll = true, moveFocus = true) {
   const post = posts.find(function (item) { return item.id === id; });
   if (!post) return;
+  resetCopyStatus();
   openPostId = id;
+  document.title = `${post.title.replace(/\s+/g, " ").trim()} · archive`;
+  shareAction.hidden = post.status !== "published";
   document.querySelector("#detail-error").hidden = true;
   document.querySelector("#detail-title").textContent = post.title;
   document.querySelector("#detail-body").textContent = post.body;
@@ -282,6 +300,9 @@ function showPost(id, resetScroll = true, moveFocus = true) {
 }
 
 function showMissingPost(moveFocus = true) {
+  resetCopyStatus();
+  document.title = "post unavailable · archive";
+  shareAction.hidden = true;
   const alreadyShown = !detail.hidden && document.querySelector("#detail-title").textContent === "this post isn't available.";
   openPostId = null;
   document.querySelector("#detail-meta").hidden = true;
@@ -305,6 +326,9 @@ function showMissingPost(moveFocus = true) {
 }
 
 function showList(restoreFocus) {
+  resetCopyStatus();
+  document.title = "archive";
+  shareAction.hidden = true;
   const previous = openPostId;
   openPostId = null;
   detail.hidden = true;
@@ -562,6 +586,21 @@ document.querySelector("#back-to-list").addEventListener("click", function () {
   showList(true);
   if (cameFromList) window.history.back();
   else setHash(activeCategory, true);
+});
+document.querySelector("#copy-post-link").addEventListener("click", async function () {
+  if (!openPostId) return;
+  const id = openPostId;
+  try {
+    await navigator.clipboard.writeText(postUrl(id));
+    if (openPostId !== id) return;
+    copyStatus.textContent = "link copied.";
+    announce("post link copied.");
+  } catch {
+    if (openPostId !== id) return;
+    copyStatus.textContent = "couldn't copy the link here.";
+  }
+  window.clearTimeout(copyStatusTimer);
+  copyStatusTimer = window.setTimeout(function () { copyStatus.textContent = ""; }, 4000);
 });
 newPostButton.addEventListener("click", function () { openComposer(null); });
 document.querySelector("#edit-post").addEventListener("click", function () {

@@ -70,6 +70,9 @@ html.intro-pending:not(.intro-revealing) .page, html.intro-pending:not(.intro-re
 .subtitle { margin: 0 0 0.8rem; color: var(--quiet); font-size: 0.82rem; }
 .body { margin: 0; font-size: 0.9375rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .detail a { display: inline-block; max-width: 100%; margin-top: 1rem; color: var(--ink); font-size: 0.82rem; overflow-wrap: anywhere; text-decoration-thickness: 1px; text-underline-offset: var(--underline-offset); }
+.share-action { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
+.share-action[hidden] { display: none; }
+.copy-status { color: var(--quiet); font-size: 0.72rem; }
 .detail a[hidden], .owner-actions[hidden], .clear-search[hidden] { pointer-events: none; }
 .detail a[hidden], .owner-actions[hidden] { display: none; }
 .board-foot { display: flex; flex-direction: column; gap: 0.2rem; }
