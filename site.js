@@ -27,6 +27,11 @@ const hasConfig = typeof config.supabaseUrl === "string"
   && typeof config.supabaseAnonKey === "string"
   && config.supabaseAnonKey.length > 20;
 const categories = ["work", "notes", "about"];
+const sectionCopy = {
+  work: { title: "Selected work", description: "Projects, experiments, and things I've made.", empty: "Projects and experiments will find their home here." },
+  notes: { title: "Notes along the way", description: "Ideas, observations, and things worth keeping.", empty: "A space for ideas, discoveries, and unfinished thoughts." },
+  about: { title: "A little more context", description: "The person and the thinking behind the work.", empty: "A little about the person behind this archive." }
+};
 const magicLinkCooldownMs = 60 * 1000;
 const contactPlatforms = ["email", "github", "linkedin", "telegram", "discord", "x", "cv"];
 
@@ -169,14 +174,8 @@ function renderContactLinks() {
       anchor.target = "_blank";
       anchor.rel = "noopener noreferrer";
     }
-    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    icon.setAttribute("viewBox", "0 0 24 24");
-    icon.setAttribute("aria-hidden", "true");
-    icon.setAttribute("focusable", "false");
-    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-    use.setAttribute("href", `#contact-${platform}`);
-    icon.append(use);
-    anchor.append(icon);
+    const labels = { email: "Email", github: "GitHub", linkedin: "LinkedIn", telegram: "Telegram", discord: "Discord", x: "X", cv: "CV" };
+    anchor.textContent = labels[platform];
     contactIcons.append(anchor);
   });
   contacts.hidden = !contactIcons.childElementCount;
@@ -218,14 +217,53 @@ function postsForCategory(category, term) {
 }
 
 function emptyCopy(category) {
-  if (loading) return "loading...";
-  if (loadError) return "couldn't load this page.";
-  if (normalizeSearch(searchTerm)) return "nothing matches that search.";
-  if (posts.length) return `nothing in ${category} yet.`;
-  return "nothing published yet.";
+  if (loading) return "Opening the archive…";
+  if (loadError) return "The archive couldn't be loaded.";
+  if (normalizeSearch(searchTerm)) return "No entries match that search.";
+  return category === "about" ? "A little more, soon." : `No ${category} published yet.`;
+}
+
+function postSummary(post) {
+  const plain = String(post.subtitle || post.body || "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ").trim();
+  if (plain.length <= 180) return plain;
+  const shortened = plain.slice(0, 180);
+  const lastSpace = shortened.lastIndexOf(" ");
+  return shortened.slice(0, lastSpace > 130 ? lastSpace : 180) + "…";
+}
+
+function postMetadata(post) {
+  const date = new Date(post.published_at);
+  const words = String(post.body || "").trim().split(/\s+/).filter(Boolean).length;
+  const parts = [];
+  if (!Number.isNaN(date.getTime())) parts.push(new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(date));
+  parts.push(Math.max(1, Math.ceil(words / 220)) + " min read");
+  if (canPublish && post.status === "draft") parts.unshift("Draft");
+  return parts.join(" · ");
+}
+
+function syncSection() {
+  const reading = !detail.hidden;
+  document.querySelector("#archive-intro").hidden = reading;
+  document.querySelector("#section-header").hidden = reading;
+  const copy = sectionCopy[activeCategory];
+  document.querySelector("#section-title").textContent = copy.title;
+  document.querySelector("#section-description").textContent = copy.description;
+  const count = postsForCategory(activeCategory, normalizeSearch(searchTerm)).length;
+  document.querySelector("#section-count").textContent = loading ? "The collection"
+    : count + (count === 1 ? " entry" : " entries") + (searchTerm ? " found" : " in the collection");
+  searchInput.placeholder = "Search " + activeCategory + "…";
+  categories.forEach(function (category) {
+    document.querySelector("#count-" + category).textContent = loading ? "…" : String(postsForCategory(category, "").length);
+  });
+  document.querySelector("#owner-access").textContent = canPublish ? "Owner workspace" : "Owner sign in";
 }
 
 function syncSearch() {
+  syncSection();
   searchRegion.hidden = !detail.hidden;
   clearSearchButton.hidden = !searchTerm;
   if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
@@ -270,6 +308,7 @@ function showMessage(message, retry) {
 }
 
 function renderPosts(onlyCategory = null) {
+  syncSection();
   if (!hasConfig) {
     showMessage("this place is being connected.");
     return;
@@ -295,34 +334,48 @@ function renderPosts(onlyCategory = null) {
       const copy = document.createElement("p");
       copy.textContent = emptyCopy(list.dataset.category);
       state.append(copy);
-      if (!loading && !normalizeSearch(searchTerm)) {
+      if (!loading) {
         const detail = document.createElement("p");
         detail.className = "empty-detail";
-        detail.textContent = "this space is taking shape.";
+        detail.textContent = normalizeSearch(searchTerm) ? "Try a shorter phrase, or explore another section."
+          : canPublish ? "Use New entry to add something, or publish a saved draft."
+          : sectionCopy[list.dataset.category].empty;
         state.append(detail);
       }
       list.append(state);
       return;
     }
     items.forEach(function (post) {
-      const item = document.createElement("div");
+      const item = document.createElement("article");
       item.className = "post-item";
-      const title = document.createElement("button");
+      const meta = document.createElement("p");
+      meta.className = "post-meta";
+      meta.textContent = postMetadata(post);
+      item.append(meta);
+      const heading = document.createElement("h3");
+      heading.className = "post-heading";
+      const title = document.createElement("a");
       title.className = "post-title";
-      title.type = "button";
+      title.href = "#post/" + encodeURIComponent(post.id);
       title.dataset.postId = post.id;
       title.textContent = post.title;
-      title.addEventListener("click", function () {
+      const arrow = document.createElement("span");
+      arrow.className = "post-arrow";
+      arrow.textContent = "→";
+      arrow.setAttribute("aria-hidden", "true");
+      title.append(arrow);
+      title.addEventListener("click", function (event) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
         showPost(post.id);
         setHash("post/" + post.id, false, { fromList: post.category });
       });
-      item.append(title);
-      if (canPublish && post.status === "draft") {
-        const state = document.createElement("span");
-        state.className = "post-state";
-        state.textContent = "draft";
-        item.append(state);
-      }
+      heading.append(title);
+      item.append(heading);
+      const preview = document.createElement("p");
+      preview.className = "post-preview";
+      preview.textContent = postSummary(post);
+      item.append(preview);
       list.append(item);
     });
   });
@@ -345,7 +398,8 @@ function showPost(id, resetScroll = true, moveFocus = true) {
   document.querySelector("#detail-title").textContent = post.title;
   renderPostBody(post.body);
   const meta = document.querySelector("#detail-meta");
-  meta.hidden = !(canPublish && post.status === "draft");
+  meta.textContent = postMetadata(post);
+  meta.hidden = !meta.textContent;
   const subtitle = document.querySelector("#detail-subtitle");
   subtitle.textContent = post.subtitle || "";
   subtitle.hidden = !post.subtitle;
@@ -364,7 +418,11 @@ function showPost(id, resetScroll = true, moveFocus = true) {
   searchRegion.hidden = true;
   panels.forEach(function (panel) { panel.hidden = true; });
   detail.hidden = false;
-  if (resetScroll) detail.scrollTop = 0;
+  syncSection();
+  if (resetScroll) {
+    detail.scrollTop = 0;
+    detail.scrollIntoView?.({ block: "start" });
+  }
   if (moveFocus) document.querySelector("#detail-title").focus();
   announce(`opened ${post.title}.`);
 }
@@ -390,6 +448,7 @@ function showMissingPost(moveFocus = true) {
   searchRegion.hidden = true;
   panels.forEach(function (panel) { panel.hidden = true; });
   detail.hidden = false;
+  syncSection();
   detail.scrollTop = 0;
   if (moveFocus && !alreadyShown) document.querySelector("#detail-title").focus();
   announce("this post isn't available.");
@@ -427,6 +486,10 @@ function selectTab(tab) {
 
 function restoreLocation(moveFocus = true) {
   const hash = window.location.hash.slice(1);
+  if (hash === "contacts" || hash === "main-content") {
+    selectTab(document.querySelector("#tab-" + activeCategory));
+    return;
+  }
   if (hash.indexOf("post/") === 0) {
     const id = hash.slice(5);
     const post = posts.find(function (item) { return item.id === id; });
@@ -552,6 +615,7 @@ async function refreshOwnerState() {
   newPostButton.hidden = !canPublish || Boolean(openPostId);
   boardControls.hidden = !canPublish;
   ownerActions.hidden = !canPublish || !openPostId;
+  syncSection();
   return true;
 }
 
@@ -566,12 +630,12 @@ function updateComposerActions() {
   const saveDraft = document.querySelector("#save-draft");
   const publish = document.querySelector("#submit-post");
   if (!editingId) {
-    saveDraft.textContent = "save draft";
-    publish.textContent = "publish";
+    saveDraft.textContent = "Save draft";
+    publish.textContent = "Publish";
     return;
   }
-  saveDraft.textContent = editingStatus === "draft" ? "save draft" : "move to drafts";
-  publish.textContent = editingStatus === "draft" ? "publish" : "save";
+  saveDraft.textContent = editingStatus === "draft" ? "Save draft" : "Move to drafts";
+  publish.textContent = editingStatus === "draft" ? "Publish" : "Save";
 }
 
 function formSnapshot() {
@@ -595,7 +659,7 @@ function openComposer(post) {
   form.elements.body.value = post ? post.body : "";
   form.elements.subtitle.value = post ? post.subtitle || "" : "";
   form.elements.link.value = post ? post.link || "" : "";
-  document.querySelector("#composer-title").textContent = post ? "edit post" : "new post";
+  document.querySelector("#composer-title").textContent = post ? "Edit entry" : "New entry";
   document.querySelector("#form-error").hidden = true;
   updateAboutFields();
   updateComposerActions();
@@ -645,10 +709,10 @@ tabs.forEach(function (tab, index) {
     setHash(activeCategory);
   });
   tab.addEventListener("keydown", function (event) {
-    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1
-      : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      : (index + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1) + tabs.length) % tabs.length;
     tabs[next].focus();
     selectTab(tabs[next]);
     setHash(activeCategory);
@@ -904,7 +968,7 @@ document.querySelector("#delete-post").addEventListener("click", async function 
 
 function openAuthDialog() {
   document.querySelector("#auth-error").hidden = true;
-  document.querySelector("#auth-copy").textContent = "enter your email to receive a sign-in link.";
+  document.querySelector("#auth-copy").textContent = "Enter your registered email to receive a sign-in link.";
   const emailInput = document.querySelector("#auth-email");
   emailInput.removeAttribute("aria-invalid");
   emailInput.removeAttribute("aria-describedby");
@@ -912,11 +976,48 @@ function openAuthDialog() {
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
   emailInput.disabled = secondsRemaining > 0;
   button.disabled = secondsRemaining > 0;
-  button.textContent = secondsRemaining > 0 ? "link sent" : "send link";
+  button.textContent = secondsRemaining > 0 ? "Link sent" : "Send sign-in link";
   if (secondsRemaining <= 0) emailInput.value = "";
   authDialog.showModal();
   if (secondsRemaining <= 0) emailInput.focus();
 }
+
+document.querySelector("#owner-access").addEventListener("click", function () {
+  if (canPublish) {
+    showList(false);
+    setHash(activeCategory);
+    boardControls.scrollIntoView?.({ block: "center" });
+    newPostButton.focus();
+    return;
+  }
+  openAuthDialog();
+  if (!client) {
+    const error = document.querySelector("#auth-error");
+    error.textContent = "Sign in is temporarily unavailable. Reload the page and try again.";
+    error.hidden = false;
+    document.querySelector("#send-sign-in").disabled = true;
+  }
+});
+
+document.querySelector("#sign-out").addEventListener("click", async function () {
+  if (!client || !canPublish) return;
+  const button = document.querySelector("#sign-out");
+  const notice = document.querySelector("#owner-notice");
+  notice.hidden = true;
+  button.disabled = true;
+  let result;
+  try { result = await client.auth.signOut({ scope: "local" }); }
+  catch { result = { error: true }; }
+  button.disabled = false;
+  if (result.error) {
+    notice.textContent = "Couldn't sign out. Please try again.";
+    notice.hidden = false;
+    return;
+  }
+  clearPrivateView();
+  await Promise.all([refreshPosts(), refreshContactLinks()]);
+  announce("Signed out of this browser.");
+});
 
 document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
 authForm.addEventListener("submit", async function (event) {
@@ -943,7 +1044,7 @@ authForm.addEventListener("submit", async function (event) {
   emailInput.removeAttribute("aria-describedby");
   const button = document.querySelector("#send-sign-in");
   button.disabled = true;
-  button.textContent = "sending...";
+  button.textContent = "Sending…";
   let result;
   try {
     result = await client.auth.signInWithOtp({
@@ -957,7 +1058,7 @@ authForm.addEventListener("submit", async function (event) {
     result = { error: true };
   }
   button.disabled = false;
-  button.textContent = "send link";
+  button.textContent = "Send sign-in link";
   if (result.error) {
     error.textContent = "couldn't send the sign-in link. please try again.";
     error.hidden = false;
@@ -967,14 +1068,14 @@ authForm.addEventListener("submit", async function (event) {
   nextMagicLinkAt = Date.now() + magicLinkCooldownMs;
   emailInput.disabled = true;
   button.disabled = true;
-  button.textContent = "link sent";
-  document.querySelector("#auth-copy").textContent = "check your inbox for the sign-in link.";
+  button.textContent = "Link sent";
+  document.querySelector("#auth-copy").textContent = "Check your inbox and open the sign-in link to return to your workspace.";
   announce("sign-in link sent.");
   window.setTimeout(function () {
     if (Date.now() < nextMagicLinkAt) return;
     emailInput.disabled = false;
     button.disabled = false;
-    button.textContent = "send link";
+    button.textContent = "Send sign-in link";
   }, magicLinkCooldownMs);
 });
 

@@ -1,23 +1,25 @@
 # archive
 
-![A paper-like board with quiet typography and a row of line-drawn contact icons.](./assets/images/readme-board.svg)
+![Archive. Work, notes, and the things in between.](./assets/images/portfolio-cover.png)
 
-[visit the archive](https://maximkochergin.github.io/portfolio-board/)
+[Visit the archive](https://maximkochergin.github.io/portfolio-board/)
 
-`archive` is a personal portfolio and notebook. Work sits beside the notes behind it, with a little room for context in **about**. It is meant to grow over time while giving employers and collaborators a direct way to see what has been made.
+A personal portfolio and open notebook. Projects sit beside the notes behind them, with a little more context in **About**.
 
-## inside the archive
+The site uses a warm cream palette, serif headings, rust accents, and simple text links. Its October 2026 rebuild takes direction from [git-scm.com](https://git-scm.com/) while keeping an original identity. Space and typography organize the page; there are no decorative dividers, paper frames, or blocking intro screens.
 
-![Two quiet paper views: an index of titles leading to an open reading page.](./assets/images/readme-reading.svg)
+## In the collection
 
-The board shows titles first. Open one to read the full piece or copy a link to that exact entry. Search helps find a piece later; the small line-drawn icons lead directly to external profiles. There is no separate contact page to navigate through.
+- **Work, Notes, About:** independent sections with entry counts and search.
+- **Reading:** dates, short previews, reading time, text formatting, and direct links to individual entries.
+- **Owner workspace:** publish, save drafts, edit entries, and manage external links.
+- **Owner sign in:** visible in the footer, with the direct [manage route](https://maximkochergin.github.io/portfolio-board/?manage=1) still available. Sign in uses an email link; sign out affects the current session.
+- **Accessibility:** keyboard tabs, focus states, labelled forms, live feedback, reduced motion, and a responsive layout.
 
-## quiet by design
+## Underneath
 
-![A close study of the archive's typography, fine linework, and open space.](./assets/images/readme-details.svg)
+Static HTML, CSS, and vanilla JavaScript, backed by Supabase Auth and PostgreSQL. RLS protects private drafts and owner actions. Saved HTML stays inert text. GitHub Actions checks the site and deploys an explicit list of public files to GitHub Pages.
 
-The paper-like board, restrained typography, and custom monochrome icons form one visual system. The greeting and visitor-local clock live around the board. Keyboard navigation, clear focus, screen-reader feedback, and reduced-motion support are built into the same experience.
+Run `npm run dev` for a local preview, `npm run check` for syntax checks, and `npm test` for behavior and server checks. See [setup and operation](./docs/SETUP.md) and [project context](./docs/PROJECT_CONTEXT.md).
 
-Underneath is a small static frontend with Supabase-backed publishing. Posts have lightweight text formatting without rendering saved HTML as executable markup, and access to private writing is enforced by the database rather than by the appearance of the interface. Automated checks and a lightweight scheduled read support a site hosted on free services, without pretending that free-tier availability is guaranteed.
-
-The greeting uses [Pencerio by Indian Type Foundry](./assets/fonts/FFL.txt). The illustration above follows the actual, currently sparse board rather than inventing finished portfolio pieces.
+The scheduled Supabase keepalive uses read-only requests. GitHub scheduling and free-tier services do not guarantee continuous availability.

@@ -251,3 +251,71 @@ test("public reads begin without waiting for an owner session check", async () =
   releaseSession({ data: { session: null }, error: null });
   await startedSite;
 });
+
+test("entry previews keep untrusted titles as text and preserve real deep links", () => {
+  const site = makeSite();
+  site.context.entry = {
+    id: "entry-1", category: "work", title: "<img src=x onerror=alert(1)>",
+    body: "## A useful heading\n\nSome **important** text.", status: "published",
+    published_at: "2026-10-09T09:00:00Z"
+  };
+  site.run("posts = [entry]; loading = false; renderPosts()");
+  const item = site.get("#panel-work .post-list").children[0];
+  assert.equal(item.name, "article");
+  assert.match(item.children[0].textContent, /9 Oct 2026.*1 min read/);
+  const title = item.children[1].children[0];
+  assert.equal(title.name, "a");
+  assert.equal(title.href, "#post/entry-1");
+  assert.equal(title.textContent, site.context.entry.title);
+  assert.equal(item.children[2].textContent, "A useful heading Some important text.");
+  assert.equal(site.get("#count-work").textContent, "1");
+  site.run("searchTerm = 'unmatched'; renderPosts()");
+  assert.equal(site.get("#section-count").textContent, "0 entries found");
+  assert.equal(site.get("#panel-work .post-list").children[0].name, "div");
+});
+
+test("footer sign in opens without a special URL and never creates a new account", async () => {
+  const site = makeSite();
+  let request;
+  site.context.mockClient = {
+    auth: { async signInWithOtp(input) { request = input; return { error: null }; } }
+  };
+  site.run("client = mockClient");
+  await site.get("#owner-access").fire("click");
+  assert.equal(site.get("#auth-dialog").open, true);
+  const email = site.get("#auth-email");
+  email.value = "owner@example.test";
+  email.checkValidity = () => true;
+  await site.get("#auth-form").fire("submit", { preventDefault() {} });
+  assert.equal(request.email, "owner@example.test");
+  assert.equal(request.options.shouldCreateUser, false);
+  assert.equal(request.options.emailRedirectTo, "https://example.test/portfolio-board/?manage=1");
+});
+
+test("failed sign out keeps owner state; successful local sign out clears private content", async () => {
+  const site = makeSite();
+  let fail = true;
+  let scope;
+  site.context.mockClient = {
+    auth: { async signOut(options) { scope = options.scope; return { error: fail ? true : null }; } },
+    from(table) {
+      if (table === "posts") return {
+        select() { return this; }, eq() { return this; },
+        async order() { return { data: [], error: null }; }
+      };
+      return { async select() { return { data: [], error: null }; } };
+    }
+  };
+  site.run("client = mockClient; canPublish = true; posts = [{id:'private',category:'notes',status:'draft',body:'private words'}]");
+  await site.get("#sign-out").fire("click");
+  assert.equal(site.run("canPublish"), true);
+  assert.equal(site.run("posts.length"), 1);
+  assert.equal(site.get("#owner-notice").hidden, false);
+  fail = false;
+  await site.get("#sign-out").fire("click");
+  assert.equal(scope, "local");
+  assert.equal(site.run("canPublish"), false);
+  assert.equal(site.run("posts.length"), 0);
+  assert.equal(site.get("#board-controls").hidden, true);
+  assert.equal(site.get("#owner-access").textContent, "Owner sign in");
+});

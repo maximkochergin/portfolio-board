@@ -28,9 +28,9 @@ The preview server listens on `http://127.0.0.1:4174/` and serves only the publi
 5. If the Supabase project URL changes, update the exact `connect-src` origin in both [`index.html`](../index.html) and [`serve.mjs`](../serve.mjs). The browser client currently accepts `https://*.supabase.co` project URLs, not a custom domain.
 6. Add the final HTTPS site URL to **Authentication → URL Configuration → Redirect URLs**. For local owner sign-in, add `http://localhost:4174` and `http://127.0.0.1:4174` too.
 
-The public board has no sign-in button. Open `http://127.0.0.1:4174/?manage=1` to request an owner sign-in link; on the deployed site use its HTTPS URL with the same `?manage=1` query. The small plus appears only after the session is recognized as the owner. Drafts remain private even when someone knows their direct URL.
+Use **Owner sign in** in the site footer to request a link for the existing owner account. The direct `http://127.0.0.1:4174/?manage=1` route also works; on the deployed site use its HTTPS URL with the same query. **New entry**, **Edit links**, and **Sign out** appear after the session is recognized as the owner. Sign out ends only the current browser session. Drafts remain private even when someone knows their direct URL.
 
-The owner can publish or save a draft, edit existing posts, and change the external links through **edit links** at the bottom of the board. Leaving a contact field empty hides its icon. Posts can use `##`/`###` headings, lists, `**strong**`, `*emphasis*`, inline backticks, and fenced code blocks. Raw HTML is displayed as text.
+The owner can publish or save a draft, edit existing posts, and change the external links through **Edit links** in the owner workspace. Leaving a contact field empty hides its text link. Posts can use `##`/`###` headings, lists, `**strong**`, `*emphasis*`, inline backticks, and fenced code blocks. Raw HTML is displayed as text.
 
 ## publish and operate
 

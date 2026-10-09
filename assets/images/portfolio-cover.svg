@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
+  <rect width="1672" height="941" fill="#f0efe7"/>
+  <rect x="112" y="108" width="82" height="88" rx="14" fill="#c3472e"/>
+  <text x="152" y="175" text-anchor="middle" fill="#faf9f4" font-family="Georgia,serif" font-size="78" font-weight="700">a</text>
+  <text x="220" y="184" fill="#36372f" font-family="Georgia,serif" font-size="102" font-weight="700" letter-spacing="-6">archive</text>
+  <text x="112" y="336" fill="#68695e" font-family="Arial,sans-serif" font-size="20" letter-spacing="3">A PERSONAL ARCHIVE</text>
+  <text x="108" y="495" fill="#36372f" font-family="Georgia,serif" font-size="106" letter-spacing="-4">Work, notes &amp;</text>
+  <text x="108" y="624" fill="#36372f" font-family="Georgia,serif" font-size="106" letter-spacing="-4">the things <tspan fill="#c3472e" font-style="italic">in between.</tspan></text>
+  <text x="112" y="805" fill="#68695e" font-family="Arial,sans-serif" font-size="24">An open notebook. One entry at a time.</text>
+</svg>

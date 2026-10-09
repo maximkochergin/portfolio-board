@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#ece8df" />
+    <meta name="theme-color" content="#f0efe7" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-fF03TuCN+Idsz2WfawnadztDwB3/ibP4mUu7v5kNHUk='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
     <title>archive</title>
@@ -15,145 +15,183 @@
     <meta property="og:description" content="A small place for work, notes, and the things in between." />
     <meta property="og:url" content="https://maximkochergin.github.io/portfolio-board/" />
     <meta property="og:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png" />
-    <meta property="og:image:alt" content="Cream paper texture with a fine outlined square." />
+    <meta property="og:image:alt" content="Archive. Work, notes, and the things in between, on a warm cream background." />
     <meta property="og:image:width" content="1672" />
     <meta property="og:image:height" content="941" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="archive" />
     <meta name="twitter:description" content="A small place for work, notes, and the things in between." />
     <meta name="twitter:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png" />
-    <meta name="twitter:image:alt" content="Cream paper texture with a fine outlined square." />
+    <meta name="twitter:image:alt" content="Archive. Work, notes, and the things in between, on a warm cream background." />
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
-    <link rel="preload" href="./assets/fonts/Telma-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="./assets/fonts/Pencerio-Hairline.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=stability-1" />
-    <script src="./assets/ambient.js?v=stability-1"></script>
+    <link rel="stylesheet" href="./styles.css?v=archive-2" />
+    <script src="./assets/ambient.js?v=archive-2" defer></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
-    <main class="intro" id="intro" hidden>
-      <div class="intro-stage">
-        <h1 class="intro-greeting" id="intro-greeting"><span class="intro-clear" id="intro-clear"></span></h1>
-      </div>
-      <button class="intro-skip" id="intro-skip" type="button">skip intro</button>
-    </main>
-    <main class="page">
-      <p class="sr-only" id="board-status" role="status" aria-live="polite">loading posts.</p>
-      <div class="paper-lift"><article class="board" aria-label="personal space">
-        <header class="board-head">
-          <h1 class="sr-only">archive</h1>
-          <nav class="switcher" aria-label="sections" role="tablist">
-            <button id="tab-work" type="button" role="tab" aria-selected="true" aria-controls="panel-work">work</button>
-            <button id="tab-notes" type="button" role="tab" aria-selected="false" aria-controls="panel-notes" tabindex="-1">notes</button>
-            <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1">about</button>
+    <a class="skip-link" href="#main-content">Skip to the archive</a>
+    <div class="page site-shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="archive home"><span class="brand-mark" aria-hidden="true">a</span><span class="brand-name">archive</span></a>
+        <p class="header-note">a collection in progress</p>
+        <a class="header-contact" href="#contacts">Find me elsewhere <span aria-hidden="true">↗</span></a>
+      </header>
+
+      <section class="hero" id="archive-intro" aria-labelledby="intro-heading">
+        <div>
+          <p class="eyebrow" id="local-greeting">Hello. Welcome to the archive.</p>
+          <h1 id="intro-heading">Work, notes &amp;<br />the things <em>in between.</em></h1>
+        </div>
+        <div class="hero-copy">
+          <p>A place to keep what I build,<br class="desktop-break" /> what I learn, and a little context.</p>
+          <p class="hero-small">Projects sit beside the notes behind them.<br class="desktop-break" /> A small collection, growing over time.</p>
+          <a class="text-link" href="#main-content">Explore the archive <span aria-hidden="true">↓</span></a>
+        </div>
+      </section>
+
+      <main class="archive-layout" id="main-content">
+        <aside class="archive-navigation">
+          <p class="eyebrow navigation-label">The collection</p>
+          <nav class="switcher" aria-label="sections" role="tablist" aria-orientation="vertical">
+            <button id="tab-work" type="button" role="tab" aria-selected="true" aria-controls="panel-work">
+              <span class="tab-top"><span>Work</span><span class="tab-count" id="count-work"></span></span>
+              <span class="tab-description">Projects &amp; experiments</span>
+            </button>
+            <button id="tab-notes" type="button" role="tab" aria-selected="false" aria-controls="panel-notes" tabindex="-1">
+              <span class="tab-top"><span>Notes</span><span class="tab-count" id="count-notes"></span></span>
+              <span class="tab-description">Things along the way</span>
+            </button>
+            <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1">
+              <span class="tab-top"><span>About</span><span class="tab-count" id="count-about"></span></span>
+              <span class="tab-description">A little more context</span>
+            </button>
           </nav>
-        </header>
-        <div class="search-region" id="search-region" hidden>
-          <label class="sr-only" for="search-input">search posts</label>
-          <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="search" />
-          <button class="plain clear-search" id="clear-search" type="button" hidden>clear</button>
-        </div>
-        <div class="content">
-          <section class="panel" id="panel-work" role="tabpanel" aria-labelledby="tab-work" tabindex="0"><div class="post-list" data-category="work"><div class="empty-state"><p>loading...</p></div></div></section>
-          <section class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden><div class="post-list" data-category="notes"></div></section>
-          <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden><div class="post-list" data-category="about"></div></section>
-          <section class="panel detail" id="post-detail" aria-label="post" hidden>
-            <button class="plain back" type="button" id="back-to-list">back</button>
-            <p class="detail-meta" id="detail-meta" hidden>draft</p>
-            <h1 id="detail-title" tabindex="-1"></h1>
-            <p class="subtitle" id="detail-subtitle" hidden></p>
-            <div class="body" id="detail-body"></div>
-            <a id="detail-link" target="_blank" rel="noopener noreferrer" hidden></a>
-            <div class="share-action" id="share-action" hidden><button class="plain" id="copy-post-link" type="button">copy link</button><span class="copy-status" id="copy-link-status" role="status" aria-live="polite"></span></div>
-            <p class="detail-error" id="detail-error" role="alert" hidden></p>
-            <div class="owner-actions" id="owner-actions" hidden><button class="plain" type="button" id="edit-post">edit</button><button class="plain" type="button" id="delete-post">delete</button></div>
-          </section>
-        </div>
-        <footer class="board-foot">
-          <div class="board-controls" id="board-controls" hidden>
-            <button class="add" id="new-post" type="button" aria-label="new post" title="new post" hidden>+</button>
-            <button class="plain" id="edit-links" type="button">edit links</button>
+          <p class="navigation-note">An open notebook.<br />One entry at a time.</p>
+        </aside>
+
+        <div class="archive-content">
+          <div class="section-header" id="section-header">
+            <div class="section-heading">
+              <p class="eyebrow" id="section-count">The archive</p>
+              <h2 id="section-title">Selected work</h2>
+              <p id="section-description">Projects, experiments, and things I've made.</p>
+            </div>
+            <div class="search-region" id="search-region" hidden>
+              <label class="sr-only" for="search-input">search posts</label>
+              <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search work…" />
+              <button class="plain clear-search" id="clear-search" type="button" hidden aria-label="Clear search">Clear</button>
+            </div>
           </div>
-          <nav class="contacts" id="contacts" aria-label="external profiles" hidden>
-            <span class="contacts-label" aria-hidden="true">elsewhere</span>
+
+          <div class="board-controls" id="board-controls" hidden>
+            <span class="owner-label">Owner workspace</span>
+            <div class="workspace-actions">
+              <button class="primary" id="new-post" type="button" aria-label="new post" hidden>New entry <span aria-hidden="true">+</span></button>
+              <button class="plain" id="edit-links" type="button">Edit links</button>
+              <button class="plain" id="sign-out" type="button">Sign out</button>
+            </div>
+            <p class="owner-notice" id="owner-notice" role="status" hidden></p>
+          </div>
+
+          <div class="content">
+            <p class="sr-only" id="board-status" role="status" aria-live="polite">loading posts.</p>
+            <section class="panel" id="panel-work" role="tabpanel" aria-labelledby="tab-work" tabindex="0"><div class="post-list" data-category="work"><div class="empty-state"><p>Opening the archive…</p></div></div></section>
+            <section class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden><div class="post-list" data-category="notes"></div></section>
+            <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden><div class="post-list" data-category="about"></div></section>
+            <article class="panel detail" id="post-detail" aria-label="post" hidden>
+              <button class="plain back" type="button" id="back-to-list"><span aria-hidden="true">←</span> Back to the collection</button>
+              <p class="detail-meta" id="detail-meta"></p>
+              <h1 id="detail-title" tabindex="-1"></h1>
+              <p class="subtitle" id="detail-subtitle" hidden></p>
+              <div class="body" id="detail-body"></div>
+              <a class="text-link detail-link" id="detail-link" target="_blank" rel="noopener noreferrer" hidden></a>
+              <div class="share-action" id="share-action" hidden><button class="plain" id="copy-post-link" type="button">Copy entry link <span aria-hidden="true">↗</span></button><span class="copy-status" id="copy-link-status" role="status" aria-live="polite"></span></div>
+              <p class="detail-error" id="detail-error" role="alert" hidden></p>
+              <div class="owner-actions" id="owner-actions" hidden><button class="secondary" type="button" id="edit-post">Edit entry</button><button class="plain danger" type="button" id="delete-post">Delete entry</button></div>
+            </article>
+          </div>
+        </div>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-main">
+          <p class="footer-note">An archive, always in progress.</p>
+          <nav class="contacts" id="contacts" aria-label="external profiles" tabindex="-1" hidden>
+            <span class="contacts-label">Elsewhere</span>
             <div class="contact-icons" id="contact-icons"></div>
           </nav>
-          <p class="contacts-error" id="contacts-error" role="status" hidden>contacts unavailable. <button class="plain" id="retry-contacts" type="button">try again</button></p>
-        </footer>
-      </article></div>
-    </main>
-    <aside class="ambient-clock" id="ambient-clock" aria-label="your local time">
-      <span class="clock-label">your local time</span>
-      <time class="clock-time" id="clock-time"></time>
-      <button class="clock-toggle" id="clock-toggle" type="button" aria-controls="clock-time" aria-expanded="true">hide time</button>
-    </aside>
+          <p class="contacts-error" id="contacts-error" role="status" hidden>Links are unavailable. <button class="plain" id="retry-contacts" type="button">Try again</button></p>
+        </div>
+        <div class="footer-meta">
+          <aside class="ambient-clock" id="ambient-clock" aria-label="your local time">
+            <span class="clock-label">Your local time</span>
+            <time class="clock-time" id="clock-time"></time>
+            <button class="clock-toggle" id="clock-toggle" type="button" aria-controls="clock-time" aria-expanded="true">Hide time</button>
+          </aside>
+          <button class="plain owner-access" id="owner-access" type="button">Owner sign in</button>
+        </div>
+      </footer>
+    </div>
+
     <dialog id="composer" aria-labelledby="composer-title">
       <form id="post-form">
-        <div class="dialog-header"><h2 id="composer-title">new post</h2></div>
-        <label for="category">publish in</label>
-        <select id="category" name="category"><option value="work">work</option><option value="notes">notes</option><option value="about">about</option></select>
-        <label for="post-title">title</label>
-        <input id="post-title" name="title" maxlength="120" required autocomplete="off" placeholder="a small beginning" />
+        <div class="dialog-header"><p class="eyebrow">Owner workspace</p><h2 id="composer-title">New entry</h2></div>
+        <label for="category">Section</label>
+        <select id="category" name="category"><option value="work">Work</option><option value="notes">Notes</option><option value="about">About</option></select>
+        <label for="post-title">Title</label>
+        <input id="post-title" name="title" maxlength="120" required autocomplete="off" placeholder="Give this entry a title" />
         <div class="about-fields" id="about-fields" hidden>
-          <label for="post-subtitle">short introduction <span>(optional)</span></label>
-          <input id="post-subtitle" name="subtitle" maxlength="160" autocomplete="off" placeholder="a little more about me" />
-          <label for="post-link">related link <span>(optional)</span></label>
+          <label for="post-subtitle">Short introduction <span>(optional)</span></label>
+          <input id="post-subtitle" name="subtitle" maxlength="160" autocomplete="off" placeholder="A little more context" />
+          <label for="post-link">Related link <span>(optional)</span></label>
           <input id="post-link" name="link" type="url" maxlength="500" inputmode="url" placeholder="https://example.com" />
         </div>
-        <label for="post-body">text</label>
-        <textarea id="post-body" name="body" maxlength="20000" required placeholder="write something..."></textarea>
-        <details class="format-help"><summary>text formatting</summary><p>## heading · - list item · **important** · `inline code` · ``` fenced code block</p></details>
+        <label for="post-body">Your entry</label>
+        <textarea id="post-body" name="body" maxlength="20000" required placeholder="Start with a thought…"></textarea>
+        <details class="format-help"><summary>Formatting help</summary><p>Use ## headings, - list items, **bold**, *emphasis*, &#96;inline code&#96;, and triple backticks for code blocks. HTML is shown as text.</p></details>
         <p class="error" id="form-error" role="alert" hidden></p>
-        <div class="actions">
-          <button type="button" class="plain" id="cancel-composer">discard</button>
-          <div class="publish-actions"><button type="submit" class="plain" id="save-draft" name="intent" value="draft">save draft</button><button type="submit" class="plain" id="submit-post" name="intent" value="published">publish</button></div>
-        </div>
+        <div class="actions"><button type="button" class="plain" id="cancel-composer">Discard</button><div class="publish-actions"><button type="submit" class="secondary" id="save-draft" name="intent" value="draft">Save draft</button><button type="submit" class="primary" id="submit-post" name="intent" value="published">Publish</button></div></div>
       </form>
     </dialog>
+
     <dialog id="links-dialog" aria-labelledby="links-title">
       <form id="links-form" novalidate>
-        <div class="dialog-header"><h2 id="links-title">external links</h2></div>
-        <p class="dialog-copy">leave a field empty to hide its icon. changes appear for everyone.</p>
-        <label for="link-email">email</label><input id="link-email" name="email" type="email" maxlength="254" autocomplete="off" placeholder="you@example.com" />
-        <label for="link-github">github</label><input id="link-github" name="github" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://github.com/…" />
-        <label for="link-linkedin">linkedin</label><input id="link-linkedin" name="linkedin" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://linkedin.com/in/…" />
-        <label for="link-telegram">telegram</label><input id="link-telegram" name="telegram" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://t.me/…" />
-        <label for="link-discord">discord</label><input id="link-discord" name="discord" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://discord.gg/…" />
-        <label for="link-x">x</label><input id="link-x" name="x" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://x.com/…" />
-        <label for="link-cv">cv</label><input id="link-cv" name="cv" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://…" />
+        <div class="dialog-header"><p class="eyebrow">Owner workspace</p><h2 id="links-title">Find me elsewhere</h2></div>
+        <p class="dialog-copy">Add the places people can find you. Leave a field empty to hide that link.</p>
+        <label for="link-email">Email</label><input id="link-email" name="email" type="email" maxlength="254" autocomplete="off" placeholder="you@example.com" />
+        <label for="link-github">GitHub</label><input id="link-github" name="github" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://github.com/…" />
+        <label for="link-linkedin">LinkedIn</label><input id="link-linkedin" name="linkedin" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://linkedin.com/in/…" />
+        <label for="link-telegram">Telegram</label><input id="link-telegram" name="telegram" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://t.me/…" />
+        <label for="link-discord">Discord</label><input id="link-discord" name="discord" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://discord.gg/…" />
+        <label for="link-x">X</label><input id="link-x" name="x" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://x.com/…" />
+        <label for="link-cv">CV</label><input id="link-cv" name="cv" type="url" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://…" />
         <p class="error" id="links-error" role="alert" hidden></p>
-        <div class="actions"><button type="button" class="plain" id="close-links">back</button><button type="submit" class="plain" id="save-links">save links</button></div>
+        <div class="actions"><button type="button" class="plain" id="close-links">Cancel</button><button type="submit" class="primary" id="save-links">Save links</button></div>
       </form>
     </dialog>
+
     <dialog id="auth-dialog" aria-labelledby="auth-title">
       <form id="auth-form" novalidate>
-        <div class="dialog-header"><h2 id="auth-title">owner access</h2></div>
-        <p class="dialog-copy" id="auth-copy">enter your email to receive a sign-in link.</p>
-        <label for="auth-email">email</label>
-        <input id="auth-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required />
+        <div class="dialog-header"><p class="eyebrow">Welcome back</p><h2 id="auth-title">Owner sign in</h2></div>
+        <p class="dialog-copy" id="auth-copy">Enter your email to receive a sign-in link.</p>
+        <label for="auth-email">Email</label>
+        <input id="auth-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="Your registered email" />
         <p class="error" id="auth-error" role="alert" hidden></p>
-        <div class="actions"><button type="button" class="plain" id="cancel-auth">cancel</button><button type="submit" class="plain" id="send-sign-in">send link</button></div>
+        <div class="actions"><button type="button" class="plain" id="cancel-auth">Cancel</button><button type="submit" class="primary" id="send-sign-in">Send sign-in link</button></div>
       </form>
     </dialog>
+
     <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-copy">
       <form method="dialog">
         <div class="dialog-header"><h2 id="confirm-title"></h2></div>
         <p class="dialog-copy" id="confirm-copy"></p>
-        <div class="actions"><button class="plain" value="cancel">keep post</button><button class="plain" value="confirm" id="confirm-action"></button></div>
+        <div class="actions"><button class="secondary" value="cancel">Keep entry</button><button class="primary danger" value="confirm" id="confirm-action"></button></div>
       </form>
     </dialog>
-    <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <symbol id="contact-email" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="1.5"/><path d="m4 7 8 6 8-6"/></symbol>
-      <symbol id="contact-github" viewBox="0 0 24 24"><path d="M7 8 6.5 4.5 9.5 6a9 9 0 0 1 5 0l3-1.5L17 8a7 7 0 0 1 2 5c0 3.8-2.9 6.5-7 6.5S5 16.8 5 13a7 7 0 0 1 2-5Z"/><path d="M8.5 16.5c.8 1 2 1.5 3.5 1.5s2.7-.5 3.5-1.5M5.5 15.5c-1.3.2-2.2-.2-2.7-1.2"/><path d="M9.5 12.4h.01M14.5 12.4h.01" stroke-linecap="round" stroke-width="2.4"/></symbol>
-      <symbol id="contact-linkedin" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M8 10v7m0-9.5v.1M12 17v-7m0 2.8c0-1.8 1.2-2.8 2.7-2.8 1.7 0 2.6 1.1 2.6 3V17"/></symbol>
-      <symbol id="contact-telegram" viewBox="0 0 24 24"><path d="M20.5 4.5 3.8 11.2c-.7.3-.6 1.3.1 1.5l4.2 1.2 1.5 4.7c.2.7 1.1.8 1.5.2L20.5 4.5Z"/><path d="m8.1 13.9 8.8-6.2-6.1 8.4"/></symbol>
-      <symbol id="contact-discord" viewBox="0 0 24 24"><path d="M6 7.5a16 16 0 0 1 4-1l.5 1a11 11 0 0 1 3 0l.5-1a16 16 0 0 1 4 1c1.2 2.1 2 4.5 2.2 7.4a15 15 0 0 1-4.6 2.6l-.8-1.3M6 7.5c-1.2 2.1-2 4.5-2.2 7.4a15 15 0 0 0 4.6 2.6l.8-1.3M9 16c2 1 4 1 6 0"/><path d="M8.9 12.5h.1m6 0h.1" stroke-width="2.3" stroke-linecap="round"/></symbol>
-      <symbol id="contact-x" viewBox="0 0 24 24"><path d="M4.5 4.5h3.2l11.8 15h-3.2zM19.5 4.5l-6.1 7.1M4.5 19.5l6.2-7.2"/></symbol>
-      <symbol id="contact-cv" viewBox="0 0 24 24"><path d="M6 3.5h8l4 4V20H6zM14 3.5v4h4M9 11h6M9 14h6M9 17h4"/></symbol>
-    </svg>
+
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./assets/post-format.js?v=stability-1" defer></script>
-    <script src="./site.js?v=stability-1" defer></script>
+    <script src="./assets/post-format.js?v=archive-2" defer></script>
+    <script src="./site.js?v=archive-2" defer></script>
   </body>
 </html>
