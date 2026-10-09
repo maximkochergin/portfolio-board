@@ -302,7 +302,7 @@ test("entry previews keep untrusted titles as text and preserve real deep links"
   assert.equal(site.get("#panel-work .post-list").children[0].children[1].textContent, "Show all projects");
 });
 
-test("owner sign in is hidden from visitors, opens on the owner route, and never creates an account", async () => {
+test("owner sign in is available to visitors and never creates an account", async () => {
   const site = makeSite();
   let request;
   site.context.mockClient = {
@@ -310,10 +310,8 @@ test("owner sign in is hidden from visitors, opens on the owner route, and never
   };
   site.run("client = mockClient");
   site.run("syncSection()");
-  assert.equal(site.get("#owner-access").hidden, true);
-  site.run("window.location.search = '?manage=1'; syncSection()");
   assert.equal(site.get("#owner-access").hidden, false);
-  await site.get("#owner-access").fire("click");
+  await site.get("#owner-access").fire("click", { preventDefault() {} });
   assert.equal(site.get("#auth-dialog").open, true);
   const email = site.get("#auth-email");
   email.value = "owner@example.test";
