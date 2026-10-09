@@ -25,7 +25,7 @@
     <meta name="twitter:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png?v=git-dark-1" />
     <meta name="twitter:image:alt" content="Archive. A personal portfolio of work and notes on a dark background." />
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=fixes-1" />
+    <link rel="stylesheet" href="./styles.css?v=simple-2" />
     <script src="./assets/navigation.js?v=git-dark-1" defer></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
@@ -34,35 +34,25 @@
     <div class="page site-shell">
       <header class="site-header">
         <a class="brand" href="./" aria-label="archive home">archive</a>
-        <p class="header-note">--work-and-notes</p>
-        <div class="search-region" id="search-region" hidden>
-          <label class="sr-only" for="search-input">search posts</label>
-          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg>
-          <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search work…" />
-          <button class="plain clear-search" id="clear-search" type="button" hidden aria-label="Clear search">Clear</button>
-        </div>
       </header>
 
       <section class="hero" id="archive-intro" aria-label="About the archive">
-        <p><strong>Archive</strong> is my personal portfolio: a place for <a href="#work">projects</a>, <a href="#notes">notes</a>, and the things I learn along the way.</p>
-        <p>Browse the work, read the notes, or find <a href="#about">a little about me</a>.</p>
+        <p id="profile-introduction">Projects and notes.</p>
+        <nav class="contacts" id="contacts" aria-label="Contact and profiles" tabindex="-1" hidden><div class="contact-icons" id="contact-icons"></div></nav>
+        <p class="contacts-error" id="contacts-error" role="status" hidden>Links are unavailable. <button class="plain" id="retry-contacts" type="button">Try again</button></p>
       </section>
 
       <main class="archive-layout" id="main-content" tabindex="-1">
         <aside class="archive-navigation">
-          <p class="navigation-label">Browse</p>
           <nav class="switcher" aria-label="sections" role="tablist" aria-orientation="vertical">
             <button id="tab-work" type="button" role="tab" aria-selected="true" aria-controls="panel-work">
-              <span class="tab-top"><span>Work</span><span class="tab-count" id="count-work"></span></span>
-              <span class="tab-description">Projects &amp; experiments</span>
+              <span class="tab-top"><span>Projects</span></span>
             </button>
             <button id="tab-notes" type="button" role="tab" aria-selected="false" aria-controls="panel-notes" tabindex="-1">
-              <span class="tab-top"><span>Notes</span><span class="tab-count" id="count-notes"></span></span>
-              <span class="tab-description">Things along the way</span>
+              <span class="tab-top"><span>Notes</span></span>
             </button>
             <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" tabindex="-1">
-              <span class="tab-top"><span>About</span><span class="tab-count" id="count-about"></span></span>
-              <span class="tab-description">A little more context</span>
+              <span class="tab-top"><span>About</span></span>
             </button>
           </nav>
         </aside>
@@ -70,9 +60,12 @@
         <div class="archive-content">
           <div class="section-header" id="section-header">
             <div class="section-heading">
-              <p class="eyebrow" id="section-count">The archive</p>
-              <h2 id="section-title">Work</h2>
-              <p id="section-description">Projects, experiments, and things I've made.</p>
+              <h2 id="section-title" class="sr-only">Projects</h2>
+            </div>
+            <button class="plain" id="toggle-filter" type="button" aria-expanded="false" aria-controls="search-region" hidden>Filter projects</button>
+            <div class="search-region" id="search-region" hidden>
+              <label for="search-input" id="search-label">Filter projects by title or keyword</label>
+              <div class="search-field"><input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Title or keyword" /><button class="plain clear-search" id="clear-search" type="button" hidden aria-label="Clear filter">Clear</button></div>
             </div>
           </div>
 
@@ -81,6 +74,7 @@
             <div class="workspace-actions">
               <button class="primary" id="new-post" type="button" aria-label="new post" hidden>New entry <span aria-hidden="true">+</span></button>
               <button class="plain" id="edit-links" type="button">Edit links</button>
+              <button class="plain" id="edit-profile" type="button">Edit intro</button>
               <button class="plain" id="sign-out" type="button">Sign out</button>
             </div>
             <p class="owner-notice" id="owner-notice" role="status" hidden></p>
@@ -92,7 +86,7 @@
             <section class="panel" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden><div class="post-list" data-category="notes"></div></section>
             <section class="panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden><div class="post-list" data-category="about"></div></section>
             <article class="panel detail" id="post-detail" aria-label="post" hidden>
-              <button class="plain back" type="button" id="back-to-list"><span aria-hidden="true">←</span> Back to the collection</button>
+              <button class="plain back" type="button" id="back-to-list"><span aria-hidden="true">←</span> Back to projects</button>
               <p class="detail-meta" id="detail-meta"></p>
               <h1 id="detail-title" tabindex="-1"></h1>
               <p class="subtitle" id="detail-subtitle" hidden></p>
@@ -108,15 +102,10 @@
 
       <footer class="site-footer">
         <div class="footer-main">
-          <p class="footer-note">A personal archive of work and notes.</p>
-          <nav class="contacts" id="contacts" aria-label="external profiles" tabindex="-1" hidden>
-            <span class="contacts-label">Elsewhere</span>
-            <div class="contact-icons" id="contact-icons"></div>
-          </nav>
-          <p class="contacts-error" id="contacts-error" role="status" hidden>Links are unavailable. <button class="plain" id="retry-contacts" type="button">Try again</button></p>
+          <p class="footer-note">Inspired by <a href="https://git-scm.com/" target="_blank" rel="noopener noreferrer">Git</a>.</p>
         </div>
         <div class="footer-meta">
-          <button class="plain owner-access" id="owner-access" type="button">Owner sign in</button>
+          <button class="plain owner-access" id="owner-access" type="button" hidden>Owner sign in</button>
         </div>
       </footer>
     </div>
@@ -125,7 +114,7 @@
       <form id="post-form">
         <div class="dialog-header"><p class="eyebrow">Owner workspace</p><h2 id="composer-title">New entry</h2></div>
         <label for="category">Section</label>
-        <select id="category" name="category"><option value="work">Work</option><option value="notes">Notes</option><option value="about">About</option></select>
+        <select id="category" name="category"><option value="work">Projects</option><option value="notes">Notes</option><option value="about">About</option></select>
         <label for="post-title">Title</label>
         <input id="post-title" name="title" maxlength="120" required autocomplete="off" placeholder="Give this entry a title" />
         <div class="about-fields" id="about-fields" hidden>
@@ -158,6 +147,16 @@
       </form>
     </dialog>
 
+    <dialog id="profile-dialog" aria-labelledby="profile-title">
+      <form id="profile-form">
+        <div class="dialog-header"><h2 id="profile-title">Your introduction</h2></div>
+        <label for="profile-name">Site title</label><input id="profile-name" name="title" maxlength="80" required autocomplete="off" />
+        <label for="profile-copy">Introduction <span>(optional)</span></label><textarea id="profile-copy" name="introduction" maxlength="240"></textarea>
+        <p class="error" id="profile-error" role="alert" hidden></p>
+        <div class="actions"><button type="button" class="plain" id="close-profile">Cancel</button><button type="submit" class="primary" id="save-profile">Save intro</button></div>
+      </form>
+    </dialog>
+
     <dialog id="auth-dialog" aria-labelledby="auth-title">
       <form id="auth-form" novalidate>
         <div class="dialog-header"><p class="eyebrow">Welcome back</p><h2 id="auth-title">Owner sign in</h2></div>
@@ -178,8 +177,8 @@
     </dialog>
 
     <script src="./config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
+    <script id="supabase-sdk" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" async></script>
     <script src="./assets/post-format.js?v=git-dark-1" defer></script>
-    <script src="./site.js?v=fixes-1" defer></script>
+    <script src="./site.js?v=simple-2" defer></script>
   </body>
 </html>

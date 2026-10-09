@@ -7,7 +7,9 @@ const postFormat = require("../assets/post-format.js");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "site.js"), "utf8");
 
-function makeSite() {
+function makeSite(storage = new Map()) {
+  let clockNow = Date.now();
+  class Clock extends Date { constructor(...args) { super(...(args.length ? args : [clockNow])); } static now() { return clockNow; } }
   const elements = new Map();
   let document;
   class Element {
@@ -76,6 +78,7 @@ function makeSite() {
   form.elements = Object.fromEntries(["category", "title", "body", "subtitle", "link"].map((name) => [name, get(`form-${name}`)]));
   const linksForm = get("#links-form");
   linksForm.elements = Object.fromEntries(["email", "github", "linkedin", "telegram", "discord", "x", "cv"].map((name) => [name, get(`links-${name}`)]));
+  get("#profile-form").elements = Object.fromEntries(["title", "introduction"].map(name => [name, get(`profile-${name}`)]));
   const windowEvents = new Element("window");
   const timers = [];
   const historyCalls = [];
@@ -100,6 +103,7 @@ function makeSite() {
   const window = {
     self: {}, top: {},
     postFormat,
+    localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     portfolioConfig: { supabaseUrl: "https://example.supabase.co", supabaseAnonKey: "x".repeat(24) },
     location: { hash: "#work", pathname: "/portfolio-board/", origin: "https://example.test", search: "" },
     history: {
@@ -115,9 +119,13 @@ function makeSite() {
   };
   get("#post-detail").hidden = true;
   get("link[rel=\"canonical\"]").href = "https://example.test/portfolio-board/";
-  const context = vm.createContext({ document, window, URL, URLSearchParams, navigator: {}, console });
+  const context = vm.createContext({ document, window, URL, URLSearchParams, Date: Clock, AbortController, Response, crypto: require("node:crypto").webcrypto, navigator: {}, console });
   vm.runInContext(source, context, { filename: "site.js" });
   return { context, get, form, linksForm, windowEvents, historyCalls,
+    advanceTime(ms) { clockNow += ms; },
+    async expireSdk() { for (const timer of timers.filter(item => item.active && item.delay === 8000)) { timer.active = false; timer.callback(); } await Promise.resolve(); },
+    async expireFetch() { for (const timer of timers.filter(item => item.active && item.delay === 12000)) { timer.active = false; timer.callback(); } await Promise.resolve(); },
+    async expireRequests() { for (const timer of timers.filter(item => item.active && item.delay === 15000)) { timer.active = false; timer.callback(); } await Promise.resolve(); },
     async flushTimers() { for (const timer of timers.filter((item) => item.active && item.delay === 0)) { timer.active = false; await timer.callback(); } },
     run: (code) => vm.runInContext(code, context) };
 }
@@ -267,7 +275,7 @@ test("public reads begin without waiting for an owner session check", async () =
   site.context.mockClient = client;
   site.context.window.supabase = { createClient: () => client };
   const startedSite = site.run("start()");
-  assert.deepEqual(started, ["posts", "external_links", "owner"]);
+  assert.deepEqual(started, ["posts", "external_links", "site_profile", "owner"]);
   releaseSession({ data: { session: null }, error: null });
   await startedSite;
 });
@@ -282,25 +290,29 @@ test("entry previews keep untrusted titles as text and preserve real deep links"
   site.run("posts = [entry]; loading = false; renderPosts()");
   const item = site.get("#panel-work .post-list").children[0];
   assert.equal(item.name, "article");
-  assert.equal(item.children[0].textContent, "9 Oct 2026");
+  assert.equal(item.children[0].hidden, true);
   const title = item.children[1].children[0];
   assert.equal(title.name, "a");
   assert.equal(title.href, "#post/entry-1");
   assert.equal(title.textContent, site.context.entry.title);
   assert.equal(item.children[2].textContent, "A useful heading Some important text.");
-  assert.equal(site.get("#count-work").textContent, "1");
+  assert.equal(site.get("#toggle-filter").hidden, true);
   site.run("searchTerm = 'unmatched'; renderPosts()");
-  assert.equal(site.get("#section-count").textContent, "0 entries found");
   assert.equal(site.get("#panel-work .post-list").children[0].name, "div");
+  assert.equal(site.get("#panel-work .post-list").children[0].children[1].textContent, "Show all projects");
 });
 
-test("footer sign in opens without a special URL and never creates a new account", async () => {
+test("owner sign in is hidden from visitors, opens on the owner route, and never creates an account", async () => {
   const site = makeSite();
   let request;
   site.context.mockClient = {
     auth: { async signInWithOtp(input) { request = input; return { error: null }; } }
   };
   site.run("client = mockClient");
+  site.run("syncSection()");
+  assert.equal(site.get("#owner-access").hidden, true);
+  site.run("window.location.search = '?manage=1'; syncSection()");
+  assert.equal(site.get("#owner-access").hidden, false);
   await site.get("#owner-access").fire("click");
   assert.equal(site.get("#auth-dialog").open, true);
   const email = site.get("#auth-email");
@@ -533,4 +545,183 @@ test("contact changes also protect against reload and sign out removes that prot
   site.run("clearPrivateView()");
   assert.equal(site.windowEvents.listeners.get("beforeunload").length, 0);
   assert.equal(site.get("#links-dialog").open, false);
+});
+
+test('filter is optional, accepts separate keywords, and resets between sections', async () => {
+  const site = makeSite();
+  site.run("posts = Array.from({length:6},(_,i)=>({id:String(i),category:'work',title:'Web archive '+i,body:'Figma prototype',status:'published'})); posts.push({id:'note',category:'notes',title:'A note',body:'Words',status:'published'}); searchIndex = new Map(posts.map(p=>[p.id,normalizeSearch(p.title+' '+p.body)])); loading = false; renderPosts()");
+  assert.equal(site.get('#toggle-filter').hidden, false);
+  assert.equal(site.get('#search-region').hidden, true);
+  await site.get('#toggle-filter').fire('click');
+  site.get('#search-input').value = 'figma archive';
+  await site.get('#search-input').fire('input');
+  assert.equal(site.get('#panel-work .post-list').children.length, 6);
+  await site.get('#tab-notes').fire('click');
+  assert.equal(site.run('searchTerm'), '');
+  assert.equal(site.get('#search-region').hidden, true);
+  assert.equal(site.get('#panel-notes .post-list').children[0].name, 'article');
+});
+
+for (const outcome of ['returned error', 'thrown error', 'email quota']) {
+  test('sign-in cooldown persists after '+outcome+' and across page instances', async () => {
+    const storage = new Map();
+    let calls = 0;
+    const client = {auth:{async signInWithOtp() { calls++; if(outcome==='thrown error') throw new Error('offline'); return {error:{code:outcome==='email quota'?'over_email_send_rate_limit':'rate_limit',status:429}}; }}};
+    const first = makeSite(storage);
+    first.context.mockClient = client;
+    first.run('client = mockClient; openAuthDialog()');
+    first.get('#auth-email').value = 'owner@example.test';
+    first.get('#auth-email').checkValidity = () => true;
+    await first.get('#auth-form').fire('submit',{preventDefault(){}});
+    await first.get('#auth-form').fire('submit',{preventDefault(){}});
+    const second = makeSite(storage);
+    second.context.mockClient = client;
+    second.run('client = mockClient; openAuthDialog()');
+    assert.equal(second.get('#send-sign-in').disabled, true);
+    await second.get('#auth-form').fire('submit',{preventDefault(){}});
+    assert.equal(calls, 1);
+    assert.equal(first.run('sendingMagicLink'), false);
+    assert.equal(first.get('#auth-form').getAttribute('aria-busy'), null);
+    assert.equal(first.run('nextMagicLinkAt - Date.now()'), outcome==='email quota'?3600000:300000);
+    first.advanceTime(outcome==='email quota'?3600001:300001);
+    first.run('syncAuthForm()');
+    assert.equal(first.get('#send-sign-in').disabled, false);
+    assert.equal(first.get('#auth-email').disabled, false);
+  });
+}
+
+test('a sign-in timeout recovers controls and ignores late completion', async () => {
+  const site = makeSite();
+  let resolve;
+  let calls = 0;
+  site.context.mockClient = {auth:{signInWithOtp(){ calls++; return new Promise(done=>{resolve=done;}); }}};
+  site.run('client = mockClient; openAuthDialog()');
+  site.get('#auth-email').value = 'owner@example.test';
+  site.get('#auth-email').checkValidity = () => true;
+  const pending = site.get('#auth-form').fire('submit',{preventDefault(){}});
+  await site.expireRequests();
+  await pending;
+  assert.equal(site.run('sendingMagicLink'), false);
+  assert.equal(site.get('#auth-form').getAttribute('aria-busy'), null);
+  assert.equal(site.get('#auth-error').hidden, false);
+  const copy = site.get('#auth-copy').textContent;
+  resolve({error:null});
+  await Promise.resolve();
+  assert.equal(site.get('#auth-copy').textContent, copy);
+  await site.get('#auth-form').fire('submit',{preventDefault(){}});
+  assert.equal(calls, 1);
+});
+
+test('invalid or oversized emails never send and unavailable storage does not break login', async () => {
+  const site = makeSite();
+  let calls = 0;
+  site.context.mockClient = {auth:{async signInWithOtp(){ calls++; return {error:null}; }}};
+  site.run('client = mockClient; window.localStorage = {getItem(){throw Error()},setItem(){throw Error()}}; openAuthDialog()');
+  const email = site.get('#auth-email');
+  email.checkValidity = () => true;
+  for(const value of ['not-an-email', 'x'.repeat(250)+'@example.test']) {
+    email.value = value;
+    await site.get('#auth-form').fire('submit',{preventDefault(){}});
+  }
+  assert.equal(calls, 0);
+  email.value = 'owner@example.test';
+  await site.get('#auth-form').fire('submit',{preventDefault(){}});
+  assert.equal(calls, 1);
+});
+
+test('query timeout aborts transport and releases the loading state', async () => {
+  const site = makeSite();
+  let signal;
+  const query = {select(){return this;},eq(){return this;},order(){return this;},abortSignal(value){signal=value;return this;},then(){}};
+  site.context.mockClient = {from:()=>query};
+  site.run('client = mockClient');
+  const pending = site.run('refreshPosts()');
+  await site.expireRequests();
+  assert.equal(await pending, false);
+  assert.equal(signal.aborted, true);
+  assert.equal(site.run('loading'), false);
+  assert.equal(site.get('.content').getAttribute('aria-busy'), 'false');
+});
+
+test('fetch timeout covers a stalled response body, not just headers', async () => {
+  const site = makeSite();
+  let signal;
+  site.context.fetch = async (_,options) => {
+    signal = options.signal;
+    return {status:200,headers:{},text:()=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('aborted'))))};
+  };
+  const pending = site.run("boundedFetch('https://example.test')");
+  await new Promise(setImmediate);
+  const rejected = assert.rejects(pending,/aborted/);
+  await site.expireFetch();
+  await rejected;
+  assert.equal(signal.aborted, true);
+});
+
+test('a timed out new post retry reuses its UUID instead of creating duplicates', async () => {
+  const site = makeSite();
+  const ids = [];
+  site.context.mockClient = {from:()=>({insert(payload){ids.push(payload.id);return {select(){return this;},single(){return ids.length===1?new Promise(()=>{}):Promise.resolve({error:{code:'23505'}});}};}})};
+  site.run('client = mockClient; canPublish = true; openComposer(null)');
+  site.form.elements.title.value = 'A project';
+  site.form.elements.body.value = 'Description';
+  const pending = site.form.fire('submit',{preventDefault(){},submitter:{value:'draft'}});
+  await new Promise(setImmediate);
+  await site.expireRequests();
+  await pending;
+  assert.equal(site.run('savingPost'), false);
+  assert.equal(site.get('#composer').open, true);
+  assert.equal(site.form.elements.body.value, 'Description');
+  assert.match(site.get('#form-error').textContent,/confirm the save/);
+  await site.form.fire('submit',{preventDefault(){},submitter:{value:'draft'}});
+  assert.equal(ids.length, 2);
+  assert.match(ids[0], /^[0-9a-f-]{36}$/);
+  assert.equal(ids[1], ids[0]);
+});
+
+test('intro editing is owner-only, preserves stale text, and renders titles as text', async () => {
+  const site = makeSite();
+  const record = {title:'<img src=x>',introduction:'My projects',updated_at:'version-1'};
+  const filters = [];
+  let updating = false;
+  const query = {select(){return this;},update(){updating=true;return this;},eq(key,value){if(updating) filters.push([key,value]);return this;},async maybeSingle(){return {data:updating?null:record,error:null};}};
+  site.context.mockClient = {from:()=>query};
+  site.run('client = mockClient');
+  await site.get('#edit-profile').fire('click');
+  assert.equal(site.get('#profile-dialog').open, false);
+  site.run('canPublish = true');
+  await site.get('#edit-profile').fire('click');
+  assert.equal(site.get('.brand').textContent, record.title);
+  site.get('#profile-form').elements.introduction.value = 'New text';
+  await site.get('#profile-form').fire('input');
+  assert.equal(site.windowEvents.listeners.get('beforeunload').length, 1);
+  await site.get('#profile-form').fire('submit',{preventDefault(){}});
+  assert.deepEqual(filters,[['singleton',true],['updated_at','version-1']]);
+  assert.equal(site.get('#profile-dialog').open, true);
+  assert.equal(site.get('#profile-form').elements.introduction.value,'New text');
+  assert.match(site.get('#profile-error').textContent,/changed in another tab/);
+  site.run('clearPrivateView()');
+  assert.equal(site.get('#profile-dialog').open, false);
+  assert.equal(site.windowEvents.listeners.get('beforeunload').length, 0);
+});
+
+test('a stalled SDK produces a recoverable error instead of an endless loading screen', async () => {
+  const site = makeSite();
+  const pending = site.run('start()');
+  await site.expireSdk();
+  await pending;
+  assert.equal(site.run('loading'), false);
+  assert.equal(site.run('loadError'), true);
+  assert.equal(site.get('.content').getAttribute('aria-busy'), 'false');
+  assert.equal(site.get('#panel-work .post-list').children[0].children[1].textContent, 'try again');
+});
+
+test('an SDK load event resumes initialization and removes its listeners', async () => {
+  const site = makeSite();
+  const pending = site.run('waitForSdk()');
+  site.context.window.supabase = {createClient(){}};
+  await site.get('#supabase-sdk').fire('load');
+  assert.equal(await pending, true);
+  assert.equal(site.get('#supabase-sdk').listeners.get('load').length, 0);
+  assert.equal(site.get('#supabase-sdk').listeners.get('error').length, 0);
 });

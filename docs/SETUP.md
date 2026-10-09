@@ -28,9 +28,24 @@ The preview server listens on `http://127.0.0.1:4174/` and serves only the publi
 5. If the Supabase project URL changes, update the exact `connect-src` origin in both [`index.html`](../index.html) and [`serve.mjs`](../serve.mjs). The browser client currently accepts `https://*.supabase.co` project URLs, not a custom domain.
 6. Add the final HTTPS site URL to **Authentication → URL Configuration → Redirect URLs**. For local owner sign-in, add `http://localhost:4174` and `http://127.0.0.1:4174` too.
 
-Use **Owner sign in** in the site footer to request a link for the existing owner account. The direct `http://127.0.0.1:4174/?manage=1` route also works; on the deployed site use its HTTPS URL with the same query. **New entry**, **Edit links**, and **Sign out** appear after the session is recognized as the owner. Sign out ends only the current browser session. Drafts remain private even when someone knows their direct URL.
+Open `http://127.0.0.1:4174/?manage=1` to request a link for the existing owner account; on the deployed site use its HTTPS URL with the same query. **New entry**, **Edit links**, **Edit intro**, and **Sign out** appear after the session is recognized as the owner. Visitor pages hide sign-in controls. Sign out ends only the current browser session. Drafts remain private even when someone knows their direct URL.
 
 The owner can publish or save a draft, edit existing posts, and change the external links through **Edit links** in the owner workspace. Leaving a contact field empty hides its text link. Posts can use `##`/`###` headings, lists, `**strong**`, `*emphasis*`, inline backticks, and fenced code blocks. Raw HTML is displayed as text.
+
+**Edit intro** changes the public site title and introduction; no name or professional role is inserted automatically. The introduction may be empty. Existing databases need `20261009103741_editable_site_profile.sql`; it adds a public profile with owner-only updates, without changing posts, contacts, or ownership. Profile edits compare `updated_at` to avoid overwriting another tab.
+
+## authentication limits and recovery
+
+Production settings recorded on 2026-10-09:
+
+- New signups, anonymous sign-ins, manual account linking, and IP forwarding are disabled.
+- The default email provider is active. Supabase's [built-in email quota](https://supabase.com/docs/guides/auth/rate-limits) is 2 emails/hour for the project. Moving to custom SMTP or a Send Email hook requires checking this boundary again.
+- Sign-up/sign-in IP refill is 2 requests/5 minutes; token verification refill is 5 requests/5 minutes. These are token bucket refill settings, not strict request ceilings; Supabase documents an initial burst capacity of 30 for these endpoints. Token refresh remains 150/5 minutes to preserve sessions.
+- Email OTP/link expiry is 900 seconds. The page records a five-minute retry guard before every send attempt, including errors, and retains it across reloads/tabs. A project email-quota response extends that guard to one hour. Browser guards are convenience controls; direct Auth callers bypass them, and the server quotas enforce the sending boundary. An attacker can still consume a small quota and delay legitimate login; CAPTCHA would require configured provider keys and corresponding frontend/CSP integration.
+
+SDK loading stops waiting after 8 seconds. API transport aborts after 12 seconds, including response-body reads; an outer 15-second deadline also releases UI states when SDK/session work stalls. No writes are automatically retried. A failed write may have reached the database: keep/copy the editor text and reload before retrying. New entries reuse one UUID throughout an editor session to prevent duplicate inserts after uncertain responses. Existing entry/profile edits and deletion compare the version the owner reviewed.
+
+Regression tests simulate network failures, stalled requests, late responses, quota errors, reloads, and stale edits without sending emails. Live anonymous/non-owner read checks confirm draft isolation; browser owner writes use a local memory fixture.
 
 ## publish and operate
 

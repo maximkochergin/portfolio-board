@@ -10,10 +10,10 @@ The site follows the dark version of [git-scm.com](https://git-scm.com/): a char
 
 ## In the collection
 
-- **Work, Notes, About:** independent sections with entry counts and search.
-- **Reading:** dates, short previews, text formatting, and direct links to individual entries.
-- **Owner workspace:** publish, save drafts, edit entries, and manage external links.
-- **Owner sign in:** visible in the footer, with the direct [manage route](https://maximkochergin.github.io/portfolio-board/?manage=1) still available. Sign in uses an email link; sign out affects the current session.
+- **Projects, Notes, About:** browse entries directly; an optional title/keyword filter appears for sections with six or more entries.
+- **Reading:** short previews, text formatting, and direct links. Dates appear on notes.
+- **Owner workspace:** publish, save drafts, edit entries, manage contacts, and customize the site title and introduction.
+- **Owner sign in:** available on the [manage route](https://maximkochergin.github.io/portfolio-board/?manage=1). Sign in uses an email link; sign out affects the current session. Visitor pages hide management controls.
 - **Accessibility:** keyboard tabs, focus states, labelled forms, live feedback, reduced motion, and a responsive layout.
 
 ## Underneath

@@ -20,6 +20,9 @@ const contactIcons = document.querySelector("#contact-icons");
 const boardControls = document.querySelector("#board-controls");
 const linksDialog = document.querySelector("#links-dialog");
 const linksForm = document.querySelector("#links-form");
+const filterButton = document.querySelector("#toggle-filter");
+const profileDialog = document.querySelector("#profile-dialog");
+const profileForm = document.querySelector("#profile-form");
 
 const config = window.portfolioConfig || {};
 const hasConfig = typeof config.supabaseUrl === "string"
@@ -28,12 +31,14 @@ const hasConfig = typeof config.supabaseUrl === "string"
   && config.supabaseAnonKey.length > 20;
 const categories = ["work", "notes", "about"];
 const sectionCopy = {
-  work: { title: "Work", description: "Projects, experiments, and things I've made.", empty: "Projects and experiments will find their home here." },
-  notes: { title: "Notes", description: "Ideas, observations, and things worth keeping.", empty: "A space for ideas, discoveries, and unfinished thoughts." },
-  about: { title: "About", description: "The person and the thinking behind the work.", empty: "A little about the person behind this archive." }
+  work: { title: "Projects", empty: "No projects published yet." },
+  notes: { title: "Notes", empty: "No notes published yet." },
+  about: { title: "About", empty: "More about me, soon." }
 };
-const magicLinkCooldownMs = 60 * 1000;
-const contactPlatforms = ["email", "github", "linkedin", "telegram", "discord", "x", "cv"];
+const magicLinkCooldownMs = 5 * 60 * 1000;
+const authCooldownKey = "portfolio-owner-retry-at";
+const requestTimeoutMs = 15000;
+const contactPlatforms = ["email", "cv", "linkedin", "github", "telegram", "discord", "x"];
 const dateFormatter = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const listSignatures = new Map();
 const summaryCache = new WeakMap();
@@ -72,6 +77,75 @@ let authRefreshTimer = null;
 let signingOut = false;
 let copyStatusTimer = null;
 let lastVisibleRefresh = Date.now();
+let filterOpen = false;
+let authCooldownTimer = null;
+let profile = { title: "archive", introduction: "Projects and notes.", updated_at: null };
+let profileRevision = 0;
+let savingProfile = false;
+let loadingProfileEditor = false;
+let profileVersion = null;
+let initialProfileFormState = "";
+let newPostId = null;
+
+// The outer deadline also covers SDK session locks. PostgREST requests are aborted.
+async function request(query) {
+  const controller = new AbortController();
+  if (typeof query.abortSignal === "function") query = query.abortSignal(controller.signal);
+  let timer;
+  try {
+    return await Promise.race([Promise.resolve(query), new Promise(function (_, reject) {
+      timer = window.setTimeout(function () {
+        controller.abort();
+        reject(Object.assign(new Error("Request timed out"), { code: "request_timeout" }));
+      }, requestTimeoutMs);
+    })]);
+  } catch (error) {
+    return { error: { code: error.code || "request_failed" } };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+// Keep the abort deadline until the response body is read, including Auth requests.
+async function boundedFetch(input, options = {}) {
+  const controller = new AbortController();
+  const cancel = function () { controller.abort(); };
+  if (options.signal?.aborted) controller.abort();
+  options.signal?.addEventListener("abort", cancel, { once: true });
+  const timer = window.setTimeout(cancel, 12000);
+  try {
+    const response = await fetch(input, { ...options, signal: controller.signal });
+    const body = await response.text();
+    return new Response(response.status === 204 ? null : body, {
+      status: response.status, statusText: response.statusText, headers: response.headers
+    });
+  } finally {
+    window.clearTimeout(timer);
+    options.signal?.removeEventListener("abort", cancel);
+  }
+}
+
+function renderProfile() {
+  const brand = document.querySelector(".brand");
+  brand.textContent = profile.title;
+  brand.setAttribute("aria-label", profile.title + " home");
+  const introduction = document.querySelector("#profile-introduction");
+  introduction.textContent = profile.introduction;
+  introduction.hidden = !profile.introduction || !detail.hidden;
+  document.title = openPostId ? (posts.find(post => post.id === openPostId)?.title || "Entry") + " · " + profile.title : profile.title;
+}
+
+async function refreshProfile() {
+  if (!client) return false;
+  const revision = ++profileRevision;
+  let result;
+  try { result = await request(client.from("site_profile").select("title, introduction, updated_at").eq("singleton", true).maybeSingle()); }
+  catch { return false; }
+  if (revision !== profileRevision || result.error || !result.data) return false;
+  profile = result.data;
+  renderProfile();
+  return true;
+}
 
 function resetCopyStatus() {
   window.clearTimeout(copyStatusTimer);
@@ -88,7 +162,7 @@ function postUrl(id) {
 function safeLink(raw) {
   try {
     const url = new URL(raw);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+    return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password ? url.href : null;
   } catch {
     return null;
   }
@@ -194,7 +268,7 @@ async function refreshContactLinks() {
   const revision = ++linksRevision;
   let result;
   try {
-    result = await client.from("external_links").select("platform, url");
+    result = await request(client.from("external_links").select("platform, url"));
   } catch {
     result = { error: true };
   }
@@ -215,7 +289,8 @@ function normalizeSearch(value) {
 
 function matchesSearch(post, term) {
   if (!term) return true;
-  return searchIndex.get(post.id)?.includes(term) || false;
+  const text = searchIndex.get(post.id) || "";
+  return term.split(" ").every(word => text.includes(word));
 }
 
 function postsForCategory(category, term) {
@@ -227,8 +302,8 @@ function postsForCategory(category, term) {
 function emptyCopy(category) {
   if (loading) return "Opening the archive…";
   if (loadError) return "The archive couldn't be loaded.";
-  if (normalizeSearch(searchTerm)) return "No entries match that search.";
-  return category === "about" ? "A little more, soon." : `No ${category} published yet.`;
+  if (normalizeSearch(searchTerm)) return "No entries match this filter.";
+  return sectionCopy[category].empty;
 }
 
 function postSummary(post) {
@@ -258,31 +333,30 @@ function postSummary(post) {
 function postMetadata(post) {
   const date = new Date(post.published_at);
   const parts = [];
-  if (!Number.isNaN(date.getTime())) parts.push(dateFormatter.format(date));
+  if (post.category === "notes" && !Number.isNaN(date.getTime())) parts.push(dateFormatter.format(date));
   if (canPublish && post.status === "draft") parts.unshift("Draft");
   return parts.join(" · ");
 }
 
 function syncSection() {
   const reading = !detail.hidden;
-  document.querySelector("#archive-intro").hidden = reading;
+  document.querySelector("#profile-introduction").hidden = reading || !profile.introduction;
+  document.querySelector("#archive-intro").classList.toggle("reading", reading);
   document.querySelector("#section-header").hidden = reading;
   const copy = sectionCopy[activeCategory];
   document.querySelector("#section-title").textContent = copy.title;
-  document.querySelector("#section-description").textContent = copy.description;
-  const count = postsForCategory(activeCategory, normalizeSearch(searchTerm)).length;
-  document.querySelector("#section-count").textContent = loading ? "The collection"
-    : count + (count === 1 ? " entry" : " entries") + (searchTerm ? " found" : " in the collection");
-  searchInput.placeholder = "Search " + activeCategory + "…";
-  categories.forEach(function (category) {
-    document.querySelector("#count-" + category).textContent = loading ? "…" : String(postsForCategory(category, "").length);
-  });
+  document.querySelector("#back-to-list").textContent = "← Back to " + copy.title.toLowerCase();
+  filterButton.hidden = reading || loadError || (postsForCategory(activeCategory, "").length < 6 && !filterOpen);
+  filterButton.textContent = filterOpen ? "Close filter" : "Filter " + copy.title.toLowerCase();
+  filterButton.setAttribute("aria-expanded", String(filterOpen));
+  document.querySelector("#search-label").textContent = "Filter " + copy.title.toLowerCase() + " by title or keyword";
+  document.querySelector("#owner-access").hidden = !canPublish && !isOwnerRoute();
   document.querySelector("#owner-access").textContent = canPublish ? "Owner workspace" : "Owner sign in";
 }
 
 function syncSearch() {
   syncSection();
-  searchRegion.hidden = !detail.hidden;
+  searchRegion.hidden = !detail.hidden || !filterOpen;
   clearSearchButton.hidden = !searchTerm;
   if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
 }
@@ -327,7 +401,7 @@ function showMessage(message, retry) {
 }
 
 function renderPosts(onlyCategory = activeCategory) {
-  syncSection();
+  syncSearch();
   if (!hasConfig) {
     showMessage("this place is being connected.");
     return;
@@ -336,7 +410,7 @@ function renderPosts(onlyCategory = activeCategory) {
     showMessage("couldn't load this page.", true);
     return;
   }
-  searchRegion.hidden = !detail.hidden;
+  searchRegion.hidden = !detail.hidden || !filterOpen;
   clearSearchButton.hidden = !searchTerm;
   if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
   content.setAttribute("aria-busy", String(loading));
@@ -360,13 +434,19 @@ function renderPosts(onlyCategory = activeCategory) {
       const copy = document.createElement("p");
       copy.textContent = emptyCopy(list.dataset.category);
       state.append(copy);
-      if (!loading) {
+      if (!loading && canPublish && !term) {
         const detail = document.createElement("p");
         detail.className = "empty-detail";
-        detail.textContent = normalizeSearch(searchTerm) ? "Try a shorter phrase, or explore another section."
-          : canPublish ? "Use New entry to add something, or publish a saved draft."
-          : sectionCopy[list.dataset.category].empty;
+        detail.textContent = "Use New entry to add something, or publish a saved draft.";
         state.append(detail);
+      }
+      if (term) {
+        const reset = document.createElement("button");
+        reset.className = "plain";
+        reset.type = "button";
+        reset.textContent = "Show all " + sectionCopy[list.dataset.category].title.toLowerCase();
+        reset.addEventListener("click", function () { searchTerm = ""; renderPosts(); searchInput.focus(); });
+        state.append(reset);
       }
       list.append(state);
       return;
@@ -377,6 +457,7 @@ function renderPosts(onlyCategory = activeCategory) {
       const meta = document.createElement("p");
       meta.className = "post-meta";
       meta.textContent = postMetadata(post);
+      meta.hidden = !meta.textContent;
       item.append(meta);
       const heading = document.createElement("h3");
       heading.className = "post-heading";
@@ -413,7 +494,7 @@ function showPost(id, resetScroll = true, moveFocus = true) {
   if (!post) return;
   resetCopyStatus();
   openPostId = id;
-  document.title = `${post.title.replace(/\s+/g, " ").trim()} · archive`;
+  document.title = `${post.title.replace(/\s+/g, " ").trim()} · ${profile.title}`;
   shareAction.hidden = post.status !== "published";
   document.querySelector("#detail-error").hidden = true;
   document.querySelector("#detail-title").textContent = post.title;
@@ -450,7 +531,7 @@ function showPost(id, resetScroll = true, moveFocus = true) {
 
 function showMissingPost(moveFocus = true) {
   resetCopyStatus();
-  document.title = "post unavailable · archive";
+  document.title = "post unavailable · " + profile.title;
   shareAction.hidden = true;
   const alreadyShown = !detail.hidden && document.querySelector("#detail-title").textContent === "this post isn't available.";
   openPostId = null;
@@ -477,7 +558,7 @@ function showMissingPost(moveFocus = true) {
 
 function showList(restoreFocus) {
   resetCopyStatus();
-  document.title = "archive";
+  document.title = profile.title;
   shareAction.hidden = true;
   const previous = openPostId;
   openPostId = null;
@@ -499,6 +580,7 @@ function focusPostLink(id) {
 }
 
 function selectTab(tab) {
+  if (activeCategory !== tab.id.slice(4)) { searchTerm = ""; filterOpen = false; }
   activeCategory = tab.id.slice(4);
   tabs.forEach(function (item) {
     const selected = item === tab;
@@ -553,7 +635,7 @@ async function refreshPosts() {
     let query = client.from("posts")
       .select("id, category, title, body, subtitle, link, status, published_at, updated_at");
     if (!canPublish) query = query.eq("status", "published");
-    result = await query.order("published_at", { ascending: false });
+    result = await request(query.order("published_at", { ascending: false }));
   } catch {
     result = { error: true };
   }
@@ -579,6 +661,7 @@ async function refreshPosts() {
 function clearPrivateView() {
   ++postsRevision;
   ++linksRevision;
+  ++profileRevision;
   canPublish = false;
   boardControls.hidden = true;
   posts = [];
@@ -586,13 +669,18 @@ function clearPrivateView() {
   document.querySelectorAll(".post-list").forEach(function (list) { list.replaceChildren(); });
   searchIndex.clear();
   searchTerm = "";
+  filterOpen = false;
   loading = true;
   loadError = false;
   if (composer.open) composer.close();
   if (linksDialog.open) linksDialog.close();
+  if (profileDialog.open) profileDialog.close();
   if (confirmDialog.open) confirmDialog.close("cancel");
   form.reset();
+  linksForm.reset();
+  profileForm.reset();
   editingId = null;
+  newPostId = null;
   editingVersion = null;
   ownerCheckUncertain = false;
   syncUnloadGuard();
@@ -613,7 +701,7 @@ async function refreshOwnerState() {
   const revision = ++ownerRevision;
   let sessionResult;
   try {
-    sessionResult = await client.auth.getSession();
+    sessionResult = await request(client.auth.getSession());
   } catch {
     sessionResult = { error: true };
   }
@@ -628,10 +716,10 @@ async function refreshOwnerState() {
   if (session) {
     let result;
     try {
-      result = await client.from("site_settings")
+      result = await request(client.from("site_settings")
         .select("owner_id")
         .eq("singleton", true)
-        .maybeSingle();
+        .maybeSingle());
     } catch {
       result = { error: true };
     }
@@ -687,15 +775,93 @@ function linksFormSnapshot() {
   return JSON.stringify(contactPlatforms.map(function (platform) { return linksForm.elements[platform].value; }));
 }
 
+function profileFormSnapshot() {
+  return JSON.stringify([profileForm.elements.title.value, profileForm.elements.introduction.value]);
+}
+
+async function closeProfileEditor() {
+  if (savingProfile || confirmDialog.open) return;
+  if (profileFormSnapshot() !== initialProfileFormState) {
+    if (!await askConfirmation("Discard your changes?", "Your introduction hasn't been saved.", "Discard changes", "Keep editing")) return;
+  }
+  profileDialog.close();
+}
+
+document.querySelector("#edit-profile").addEventListener("click", async function () {
+  if (!canPublish || savingProfile || loadingProfileEditor) return;
+  loadingProfileEditor = true;
+  const button = document.querySelector("#edit-profile");
+  button.disabled = true;
+  const loaded = await refreshProfile();
+  loadingProfileEditor = false;
+  button.disabled = false;
+  if (!loaded || !canPublish) {
+    const notice = document.querySelector("#owner-notice");
+    notice.textContent = "Couldn't load the introduction. Please try again.";
+    notice.hidden = !canPublish;
+    return;
+  }
+  profileVersion = profile.updated_at;
+  profileForm.elements.title.value = profile.title;
+  profileForm.elements.introduction.value = profile.introduction;
+  initialProfileFormState = profileFormSnapshot();
+  document.querySelector("#profile-error").hidden = true;
+  profileDialog.showModal();
+  profileForm.elements.title.focus();
+});
+document.querySelector("#close-profile").addEventListener("click", closeProfileEditor);
+profileDialog.addEventListener("cancel", function (event) { event.preventDefault(); void closeProfileEditor(); });
+profileDialog.addEventListener("close", syncUnloadGuard);
+profileForm.addEventListener("input", syncUnloadGuard);
+profileForm.addEventListener("change", syncUnloadGuard);
+profileForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  if (!canPublish || !client || savingProfile) return;
+  const error = document.querySelector("#profile-error");
+  const payload = { title: profileForm.elements.title.value.trim(), introduction: profileForm.elements.introduction.value.trim() };
+  if (!payload.title || payload.title.length > 80 || payload.introduction.length > 240) {
+    error.textContent = "Add a title (up to 80 characters) and an introduction (up to 240).";
+    error.hidden = false;
+    return;
+  }
+  savingProfile = true;
+  syncUnloadGuard();
+  const controls = Array.from(profileForm.querySelectorAll("button, input, textarea"));
+  controls.forEach(control => { control.disabled = true; });
+  profileForm.setAttribute("aria-busy", "true");
+  let result;
+  try {
+    result = await ownerReadyForWrite()
+      ? await request(client.from("site_profile").update(payload).eq("singleton", true).eq("updated_at", profileVersion).select("title, introduction, updated_at").maybeSingle())
+      : { error: true };
+  } catch { result = { error: true }; }
+  savingProfile = false;
+  controls.forEach(control => { control.disabled = false; });
+  profileForm.removeAttribute("aria-busy");
+  syncUnloadGuard();
+  if (!canPublish) return;
+  if (result.error || !result.data) {
+    error.textContent = result.error ? "Couldn't confirm the save. Your text is here; reload before retrying." : "The introduction changed in another tab. Copy your text before reloading.";
+    error.hidden = false;
+    return;
+  }
+  ++profileRevision;
+  profile = result.data;
+  renderProfile();
+  profileDialog.close();
+  announce("Introduction saved.");
+});
+
 function preventUnsavedUnload(event) {
   event.preventDefault();
   event.returnValue = true;
 }
 
 function syncUnloadGuard() {
-  const dirty = canPublish && (savingPost || savingLinks
+  const dirty = canPublish && (savingPost || savingLinks || savingProfile
     || (composer.open && formSnapshot() !== initialFormState)
-    || (linksDialog.open && linksFormSnapshot() !== initialLinksFormState));
+    || (linksDialog.open && linksFormSnapshot() !== initialLinksFormState)
+    || (profileDialog.open && profileFormSnapshot() !== initialProfileFormState));
   if (dirty === unloadGuardActive) return;
   unloadGuardActive = dirty;
   window[dirty ? "addEventListener" : "removeEventListener"]("beforeunload", preventUnsavedUnload);
@@ -705,6 +871,7 @@ function openComposer(post) {
   if (!canPublish) return;
   form.reset();
   editingId = post ? post.id : null;
+  newPostId = post ? null : crypto.randomUUID();
   editingStatus = post ? post.status : "published";
   editingVersion = post ? post.updated_at : null;
   form.elements.category.value = post ? post.category : activeCategory;
@@ -784,6 +951,12 @@ tabs.forEach(function (tab, index) {
   });
 });
 
+filterButton.addEventListener("click", function () {
+  filterOpen = !filterOpen;
+  if (!filterOpen) searchTerm = "";
+  renderPosts();
+  if (filterOpen) searchInput.focus();
+});
 searchInput.addEventListener("input", function () {
   searchTerm = searchInput.value;
   renderPosts(activeCategory);
@@ -897,7 +1070,7 @@ linksForm.addEventListener("submit", async function (event) {
   controls.forEach(function (control) { control.disabled = true; });
   let result;
   try {
-    result = await client.from("external_links").upsert(entries, { onConflict: "platform" });
+    result = await request(client.from("external_links").upsert(entries, { onConflict: "platform" }));
   } catch {
     result = { error: true };
   }
@@ -907,7 +1080,7 @@ linksForm.addEventListener("submit", async function (event) {
   controls.forEach(function (control) { control.disabled = false; });
   if (!canPublish) return;
   if (result.error) {
-    error.textContent = "couldn't save the links. nothing in this form was cleared.";
+    error.textContent = "Couldn't confirm the save. Your links are still here; reload before retrying.";
     error.hidden = false;
     return;
   }
@@ -966,9 +1139,9 @@ form.addEventListener("submit", async function (event) {
   let result;
   try {
     result = postId
-      ? await client.from("posts").update(payload).eq("id", postId)
-        .eq("updated_at", postVersion).select().maybeSingle()
-      : await client.from("posts").insert(payload).select().single();
+      ? await request(client.from("posts").update(payload).eq("id", postId)
+        .eq("updated_at", postVersion).select().maybeSingle())
+      : await request(client.from("posts").insert({ ...payload, id: newPostId }).select().single());
   } catch {
     result = { error: true };
   }
@@ -984,7 +1157,7 @@ form.addEventListener("submit", async function (event) {
     return;
   }
   if (result.error || !result.data) {
-    showFormError("could not save this post. your text is still here.");
+    showFormError("Couldn't confirm the save. Your text is still here; copy it and reload before retrying.");
     return;
   }
   composer.close();
@@ -1025,8 +1198,8 @@ document.querySelector("#delete-post").addEventListener("click", async function 
   announce("deleting post.");
   let result;
   try {
-    result = await client.from("posts").delete().eq("id", postId)
-      .eq("updated_at", postVersion).select("id").maybeSingle();
+    result = await request(client.from("posts").delete().eq("id", postId)
+      .eq("updated_at", postVersion).select("id").maybeSingle());
   } catch {
     result = { error: true };
   }
@@ -1040,7 +1213,7 @@ document.querySelector("#delete-post").addEventListener("click", async function 
       return;
     }
     const error = document.querySelector("#detail-error");
-    error.textContent = result.error ? "couldn't delete this post." : "this post changed in another tab or was removed. reload before deleting.";
+    error.textContent = result.error ? "Couldn't confirm the deletion. Reload before retrying." : "this post changed in another tab or was removed. reload before deleting.";
     error.hidden = false;
     return;
   }
@@ -1054,18 +1227,35 @@ document.querySelector("#delete-post").addEventListener("click", async function 
   if (!await refreshPosts()) announce("post deleted. couldn't refresh the list; showing the last loaded version.");
 });
 
+function readAuthCooldown() {
+  try {
+    const stored = Number(window.localStorage.getItem(authCooldownKey));
+    if (Number.isFinite(stored) && stored > Date.now() && stored <= Date.now() + 60 * 60 * 1000) {
+      nextMagicLinkAt = Math.max(nextMagicLinkAt, stored);
+    }
+  } catch { /* Private browsing may disable storage; the server still enforces limits. */ }
+}
+
+function setAuthCooldown(duration) {
+  nextMagicLinkAt = Date.now() + duration;
+  try { window.localStorage.setItem(authCooldownKey, String(nextMagicLinkAt)); } catch { /* Server throttles still apply. */ }
+}
+
 function syncAuthForm() {
+  readAuthCooldown();
+  window.clearTimeout(authCooldownTimer);
   const emailInput = document.querySelector("#auth-email");
   const button = document.querySelector("#send-sign-in");
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
   emailInput.disabled = sendingMagicLink || secondsRemaining > 0;
   button.disabled = sendingMagicLink || secondsRemaining > 0 || !client;
-  button.textContent = sendingMagicLink ? "Sending…" : secondsRemaining > 0 ? "Link sent" : "Send sign-in link";
+  button.textContent = sendingMagicLink ? "Sending…" : secondsRemaining > 0 ? "Wait " + Math.ceil(secondsRemaining / 60) + " min" : "Send sign-in link";
   if (sendingMagicLink) authForm.setAttribute("aria-busy", "true");
   else authForm.removeAttribute("aria-busy");
   document.querySelector("#auth-copy").textContent = secondsRemaining > 0
-    ? "Check your inbox and open the sign-in link to return to your workspace."
+    ? "If a link arrived, open it from your inbox. You can request another in " + Math.ceil(secondsRemaining / 60) + " min."
     : "Enter your registered email to receive a sign-in link.";
+  if (secondsRemaining > 0) authCooldownTimer = window.setTimeout(syncAuthForm, Math.min(30000, nextMagicLinkAt - Date.now()));
 }
 
 function openAuthDialog() {
@@ -1104,7 +1294,7 @@ document.querySelector("#sign-out").addEventListener("click", async function () 
   notice.hidden = true;
   button.disabled = true;
   let result;
-  try { result = await client.auth.signOut({ scope: "local" }); }
+  try { result = await request(client.auth.signOut({ scope: "local" })); }
   catch { result = { error: true }; }
   signingOut = false;
   button.disabled = false;
@@ -1122,17 +1312,18 @@ document.querySelector("#cancel-auth").addEventListener("click", function () { a
 authForm.addEventListener("submit", async function (event) {
   event.preventDefault();
   if (sendingMagicLink || !client) return;
+  readAuthCooldown();
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
   if (secondsRemaining > 0) {
     const error = document.querySelector("#auth-error");
-    error.textContent = "a link was just sent. try again in about a minute.";
+    error.textContent = "Please wait " + Math.ceil(secondsRemaining / 60) + " min before requesting another link.";
     error.hidden = false;
     return;
   }
   const emailInput = document.querySelector("#auth-email");
   const email = emailInput.value.trim();
   const error = document.querySelector("#auth-error");
-  if (!email || !emailInput.checkValidity()) {
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !emailInput.checkValidity()) {
     error.textContent = "enter a valid email address.";
     error.hidden = false;
     emailInput.setAttribute("aria-invalid", "true");
@@ -1143,35 +1334,35 @@ authForm.addEventListener("submit", async function (event) {
   emailInput.removeAttribute("aria-invalid");
   emailInput.removeAttribute("aria-describedby");
   sendingMagicLink = true;
+  // Record attempts before transport starts: failures and reloads must not trigger rapid retries.
+  setAuthCooldown(magicLinkCooldownMs);
   syncAuthForm();
   let result;
   try {
-    result = await client.auth.signInWithOtp({
+    result = await request(client.auth.signInWithOtp({
       email: email,
       options: {
         emailRedirectTo: window.location.origin + window.location.pathname + "?manage=1",
         shouldCreateUser: false
       }
-    });
+    }));
   } catch {
     result = { error: true };
   }
   sendingMagicLink = false;
   syncAuthForm();
   if (result.error) {
-    error.textContent = "couldn't send the sign-in link. please try again.";
+    if (result.error.code === "over_email_send_rate_limit") setAuthCooldown(60 * 60 * 1000);
+    syncAuthForm();
+    error.textContent = "Couldn't confirm the sign-in request. Check your inbox, then wait before trying again.";
     error.hidden = false;
     emailInput.setAttribute("aria-describedby", "auth-error");
     return;
   }
-  nextMagicLinkAt = Date.now() + magicLinkCooldownMs;
   syncAuthForm();
   announce("sign-in link sent.");
-  window.setTimeout(function () {
-    if (Date.now() < nextMagicLinkAt) return;
-    syncAuthForm();
-  }, magicLinkCooldownMs);
 });
+window.addEventListener("storage", function (event) { if (event.key === authCooldownKey) syncAuthForm(); });
 
 function showAuthLinkError() {
   const params = new URLSearchParams(window.location.hash.slice(1));
@@ -1189,17 +1380,34 @@ function isOwnerRoute() {
   return new URLSearchParams(window.location.search).get("manage") === "1";
 }
 
+function waitForSdk() {
+  return new Promise(function (resolve) {
+    const script = document.querySelector("#supabase-sdk");
+    let timer;
+    function finish() {
+      window.clearTimeout(timer);
+      script?.removeEventListener("load", finish);
+      script?.removeEventListener("error", finish);
+      resolve(Boolean(window.supabase));
+    }
+    script?.addEventListener("load", finish, { once: true });
+    script?.addEventListener("error", finish, { once: true });
+    timer = window.setTimeout(finish, 8000);
+    if (window.supabase) finish();
+  });
+}
+
 async function start() {
   renderPosts();
   if (!hasConfig) return;
-  if (!window.supabase) {
+  if (!window.supabase && !await waitForSdk()) {
     loading = false;
     loadError = true;
     renderPosts();
     return;
   }
   try {
-    client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, { global: { fetch: boundedFetch } });
   } catch {
     loading = false;
     loadError = true;
@@ -1221,7 +1429,7 @@ async function start() {
     }, 0);
   });
   showAuthLinkError();
-  const publicReads = Promise.all([refreshPosts(), refreshContactLinks()]);
+  const publicReads = Promise.all([refreshPosts(), refreshContactLinks(), refreshProfile()]);
   const ownerReady = await refreshOwnerState();
   if (ownerReady && canPublish) await refreshPosts();
   await publicReads;
@@ -1229,11 +1437,11 @@ async function start() {
 }
 
 async function refreshVisibleData() {
-  if (!client || document.hidden || composer.open || linksDialog.open || savingPost || savingLinks) return;
+  if (!client || document.hidden || composer.open || linksDialog.open || profileDialog.open || savingPost || savingLinks || savingProfile) return;
   if (Date.now() - lastVisibleRefresh < 30000) return;
   lastVisibleRefresh = Date.now();
   await refreshOwnerState();
-  await Promise.all([refreshPosts(), refreshContactLinks()]);
+  await Promise.all([refreshPosts(), refreshContactLinks(), refreshProfile()]);
 }
 
 document.addEventListener("visibilitychange", function () {
