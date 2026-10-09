@@ -350,7 +350,6 @@ function syncSection() {
   filterButton.textContent = filterOpen ? "Close filter" : "Filter " + copy.title.toLowerCase();
   filterButton.setAttribute("aria-expanded", String(filterOpen));
   document.querySelector("#search-label").textContent = "Filter " + copy.title.toLowerCase() + " by title or keyword";
-  document.querySelector("#owner-access").hidden = !canPublish && !isOwnerRoute();
   document.querySelector("#owner-access").textContent = canPublish ? "Owner workspace" : "Owner sign in";
 }
 
@@ -1269,7 +1268,8 @@ function openAuthDialog() {
   if (!emailInput.disabled) emailInput.focus();
 }
 
-document.querySelector("#owner-access").addEventListener("click", function () {
+document.querySelector("#owner-access").addEventListener("click", function (event) {
+  event.preventDefault();
   if (canPublish) {
     showList(false);
     setHash(activeCategory);

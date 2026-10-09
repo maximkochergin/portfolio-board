@@ -106,7 +106,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .contact-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; }
 .contacts-error { margin: 0; color: var(--muted); font-size: 13px; }
 .footer-meta { flex-shrink: 0; }
-.owner-access { color: var(--muted); font-size: 13px; }
+.owner-access { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 13px; }
 dialog { width: min(620px,calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 26px; overflow: auto; overscroll-behavior: contain; background: var(--surface); color: var(--ink); border: 0; border-radius: 3px; box-shadow: 0 12px 60px #0006; }
 body:has(dialog[open]) { overflow: hidden; }
 dialog::backdrop { background: #0009; }
