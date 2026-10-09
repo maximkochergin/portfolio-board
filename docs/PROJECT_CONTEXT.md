@@ -8,7 +8,7 @@ A minimalist, English-language personal portfolio and notes board. Visitors can 
 
 - Static HTML, CSS, and browser JavaScript; no application framework or production server.
 - `index.html` is the page structure; `styles.css` holds the visual system; `site.js` handles tabs, search, post display, Supabase reads, and owner actions.
-- `assets/ambient.js` runs the visitor-local clock, an inline greeting, and responsive tab orientation.
+- `assets/navigation.js` keeps tab orientation in sync with the responsive layout.
 - `config.js` contains the Supabase URL and publishable key. The key is public by design; database permissions must remain enforced by RLS.
 - Supabase Auth uses email sign-in links. PostgreSQL tables and owner checks are defined in `supabase/schema.sql`; upgrades go in `supabase/migrations/`.
 - `serve.mjs` is a loopback-only local preview server. GitHub Actions checks the scripts/tests and deploys an explicit static-file allowlist to GitHub Pages.
@@ -23,7 +23,7 @@ A minimalist, English-language personal portfolio and notes board. Visitors can 
 
 ## Current state
 
-The site is published at `https://maximkochergin.github.io/portfolio-board/`. The October 2026 rebuild uses a warm, typography-led layout inspired by git-scm.com: rust headings, teal links, a section index, entry previews, and a full-page reading view. There are no decorative rules, paper frames, or blocking intro animations. The owner-only editor, published posts, drafts, search, external contact links, text-only post formatting, local clock, greeting, and 404 page are implemented. Owner sign in is visible in the footer; `?manage=1` still opens it directly. Sign out ends only the current browser session. `history/REVIEW.md` records the 2026-09-25 audit; its historical findings should be checked against current code before treating them as open bugs.
+The site is published at `https://maximkochergin.github.io/portfolio-board/`. The October 2026 rebuild follows the dark version of git-scm.com: charcoal backgrounds, muted orange headings and links, the same serif font stack, and compact proportions. The user requested a faithful, minimal adaptation, no design plugin, no decorative dividers, and no clock or greeting. The owner-only editor, published posts, drafts, search, external contact links, text-only post formatting, and 404 page are implemented. Owner sign in is visible in the footer; `?manage=1` still opens it directly. Sign out ends only the current browser session. `history/REVIEW.md` records the 2026-09-25 audit; its historical findings should be checked against current code before treating them as open bugs.
 
 For a new session, the user only needs to describe the task. `AGENTS.md` carries the repository workflow automatically; Codex Memory may retain user preferences, but Git and the working tree remain authoritative for code and in-progress changes. When resuming a particular unfinished task in a new thread, state its intended outcome briefly; do not paste the project history.
 

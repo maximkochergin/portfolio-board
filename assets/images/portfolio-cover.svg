@@ -1,10 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
-  <rect width="1672" height="941" fill="#f0efe7"/>
-  <rect x="112" y="108" width="82" height="88" rx="14" fill="#c3472e"/>
-  <text x="152" y="175" text-anchor="middle" fill="#faf9f4" font-family="Georgia,serif" font-size="78" font-weight="700">a</text>
-  <text x="220" y="184" fill="#36372f" font-family="Georgia,serif" font-size="102" font-weight="700" letter-spacing="-6">archive</text>
-  <text x="112" y="336" fill="#68695e" font-family="Arial,sans-serif" font-size="20" letter-spacing="3">A PERSONAL ARCHIVE</text>
-  <text x="108" y="495" fill="#36372f" font-family="Georgia,serif" font-size="106" letter-spacing="-4">Work, notes &amp;</text>
-  <text x="108" y="624" fill="#36372f" font-family="Georgia,serif" font-size="106" letter-spacing="-4">the things <tspan fill="#c3472e" font-style="italic">in between.</tspan></text>
-  <text x="112" y="805" fill="#68695e" font-family="Arial,sans-serif" font-size="24">An open notebook. One entry at a time.</text>
+  <rect width="1672" height="941" fill="#2a2a2a"/>
+  <g font-family="Georgia,serif">
+    <text x="144" y="220" fill="#979594" font-size="108" font-weight="700">archive</text>
+    <text x="568" y="213" fill="#9a9994" font-size="42">--work-and-notes</text>
+    <text x="144" y="416" fill="#b3b1b1" font-size="44">A personal portfolio of projects, notes,</text>
+    <text x="144" y="486" fill="#b3b1b1" font-size="44">and the things I learn along the way.</text>
+    <text x="144" y="664" fill="#d7834f" font-size="52" font-weight="700">Work</text>
+    <text x="480" y="664" fill="#d7834f" font-size="52" font-weight="700">Notes</text>
+    <text x="816" y="664" fill="#d7834f" font-size="52" font-weight="700">About</text>
+    <text x="144" y="816" fill="#9a9797" font-size="30">A personal archive of work and notes.</text>
+  </g>
 </svg>

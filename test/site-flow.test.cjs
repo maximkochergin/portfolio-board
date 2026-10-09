@@ -262,7 +262,7 @@ test("entry previews keep untrusted titles as text and preserve real deep links"
   site.run("posts = [entry]; loading = false; renderPosts()");
   const item = site.get("#panel-work .post-list").children[0];
   assert.equal(item.name, "article");
-  assert.match(item.children[0].textContent, /9 Oct 2026.*1 min read/);
+  assert.equal(item.children[0].textContent, "9 Oct 2026");
   const title = item.children[1].children[0];
   assert.equal(title.name, "a");
   assert.equal(title.href, "#post/entry-1");

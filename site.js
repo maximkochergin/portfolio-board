@@ -28,9 +28,9 @@ const hasConfig = typeof config.supabaseUrl === "string"
   && config.supabaseAnonKey.length > 20;
 const categories = ["work", "notes", "about"];
 const sectionCopy = {
-  work: { title: "Selected work", description: "Projects, experiments, and things I've made.", empty: "Projects and experiments will find their home here." },
-  notes: { title: "Notes along the way", description: "Ideas, observations, and things worth keeping.", empty: "A space for ideas, discoveries, and unfinished thoughts." },
-  about: { title: "A little more context", description: "The person and the thinking behind the work.", empty: "A little about the person behind this archive." }
+  work: { title: "Work", description: "Projects, experiments, and things I've made.", empty: "Projects and experiments will find their home here." },
+  notes: { title: "Notes", description: "Ideas, observations, and things worth keeping.", empty: "A space for ideas, discoveries, and unfinished thoughts." },
+  about: { title: "About", description: "The person and the thinking behind the work.", empty: "A little about the person behind this archive." }
 };
 const magicLinkCooldownMs = 60 * 1000;
 const contactPlatforms = ["email", "github", "linkedin", "telegram", "discord", "x", "cv"];
@@ -226,7 +226,7 @@ function emptyCopy(category) {
 function postSummary(post) {
   const plain = String(post.subtitle || post.body || "")
     .replace(/```[\s\S]*?```/g, "")
-    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^(?:#{1,6}|[-+]|\d+\.)\s+/gm, "")
     .replace(/[*_`]/g, "")
     .replace(/\s+/g, " ").trim();
   if (plain.length <= 180) return plain;
@@ -237,10 +237,8 @@ function postSummary(post) {
 
 function postMetadata(post) {
   const date = new Date(post.published_at);
-  const words = String(post.body || "").trim().split(/\s+/).filter(Boolean).length;
   const parts = [];
   if (!Number.isNaN(date.getTime())) parts.push(new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(date));
-  parts.push(Math.max(1, Math.ceil(words / 220)) + " min read");
   if (canPublish && post.status === "draft") parts.unshift("Draft");
   return parts.join(" · ");
 }

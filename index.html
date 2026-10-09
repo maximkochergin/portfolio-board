@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#f0efe7" />
+    <meta name="theme-color" content="#2a2a2a" />
+    <meta name="color-scheme" content="dark" />
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-fF03TuCN+Idsz2WfawnadztDwB3/ibP4mUu7v5kNHUk='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
     <title>archive</title>
@@ -14,44 +15,42 @@
     <meta property="og:title" content="archive" />
     <meta property="og:description" content="A small place for work, notes, and the things in between." />
     <meta property="og:url" content="https://maximkochergin.github.io/portfolio-board/" />
-    <meta property="og:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png" />
-    <meta property="og:image:alt" content="Archive. Work, notes, and the things in between, on a warm cream background." />
+    <meta property="og:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png?v=git-dark-1" />
+    <meta property="og:image:alt" content="Archive. A personal portfolio of work and notes on a dark background." />
     <meta property="og:image:width" content="1672" />
     <meta property="og:image:height" content="941" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="archive" />
     <meta name="twitter:description" content="A small place for work, notes, and the things in between." />
-    <meta name="twitter:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png" />
-    <meta name="twitter:image:alt" content="Archive. Work, notes, and the things in between, on a warm cream background." />
+    <meta name="twitter:image" content="https://maximkochergin.github.io/portfolio-board/assets/images/portfolio-cover.png?v=git-dark-1" />
+    <meta name="twitter:image:alt" content="Archive. A personal portfolio of work and notes on a dark background." />
     <link rel="icon" href="./assets/icons/paper-mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=archive-2" />
-    <script src="./assets/ambient.js?v=archive-2" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=git-dark-1" />
+    <script src="./assets/navigation.js?v=git-dark-1" defer></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://maximkochergin.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to the archive</a>
     <div class="page site-shell">
       <header class="site-header">
-        <a class="brand" href="./" aria-label="archive home"><span class="brand-mark" aria-hidden="true">a</span><span class="brand-name">archive</span></a>
-        <p class="header-note">a collection in progress</p>
-        <a class="header-contact" href="#contacts">Find me elsewhere <span aria-hidden="true">↗</span></a>
+        <a class="brand" href="./" aria-label="archive home">archive</a>
+        <p class="header-note">--work-and-notes</p>
+        <div class="search-region" id="search-region" hidden>
+          <label class="sr-only" for="search-input">search posts</label>
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg>
+          <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search work…" />
+          <button class="plain clear-search" id="clear-search" type="button" hidden aria-label="Clear search">Clear</button>
+        </div>
       </header>
 
-      <section class="hero" id="archive-intro" aria-labelledby="intro-heading">
-        <div>
-          <p class="eyebrow" id="local-greeting">Hello. Welcome to the archive.</p>
-          <h1 id="intro-heading">Work, notes &amp;<br />the things <em>in between.</em></h1>
-        </div>
-        <div class="hero-copy">
-          <p>A place to keep what I build,<br class="desktop-break" /> what I learn, and a little context.</p>
-          <p class="hero-small">Projects sit beside the notes behind them.<br class="desktop-break" /> A small collection, growing over time.</p>
-          <a class="text-link" href="#main-content">Explore the archive <span aria-hidden="true">↓</span></a>
-        </div>
+      <section class="hero" id="archive-intro" aria-label="About the archive">
+        <p><strong>Archive</strong> is my personal portfolio: a place for <a href="#work">projects</a>, <a href="#notes">notes</a>, and the things I learn along the way.</p>
+        <p>Browse the work, read the notes, or find <a href="#about">a little about me</a>.</p>
       </section>
 
       <main class="archive-layout" id="main-content">
         <aside class="archive-navigation">
-          <p class="eyebrow navigation-label">The collection</p>
+          <p class="navigation-label">Browse</p>
           <nav class="switcher" aria-label="sections" role="tablist" aria-orientation="vertical">
             <button id="tab-work" type="button" role="tab" aria-selected="true" aria-controls="panel-work">
               <span class="tab-top"><span>Work</span><span class="tab-count" id="count-work"></span></span>
@@ -66,20 +65,14 @@
               <span class="tab-description">A little more context</span>
             </button>
           </nav>
-          <p class="navigation-note">An open notebook.<br />One entry at a time.</p>
         </aside>
 
         <div class="archive-content">
           <div class="section-header" id="section-header">
             <div class="section-heading">
               <p class="eyebrow" id="section-count">The archive</p>
-              <h2 id="section-title">Selected work</h2>
+              <h2 id="section-title">Work</h2>
               <p id="section-description">Projects, experiments, and things I've made.</p>
-            </div>
-            <div class="search-region" id="search-region" hidden>
-              <label class="sr-only" for="search-input">search posts</label>
-              <input id="search-input" type="search" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search work…" />
-              <button class="plain clear-search" id="clear-search" type="button" hidden aria-label="Clear search">Clear</button>
             </div>
           </div>
 
@@ -115,7 +108,7 @@
 
       <footer class="site-footer">
         <div class="footer-main">
-          <p class="footer-note">An archive, always in progress.</p>
+          <p class="footer-note">A personal archive of work and notes.</p>
           <nav class="contacts" id="contacts" aria-label="external profiles" tabindex="-1" hidden>
             <span class="contacts-label">Elsewhere</span>
             <div class="contact-icons" id="contact-icons"></div>
@@ -123,11 +116,6 @@
           <p class="contacts-error" id="contacts-error" role="status" hidden>Links are unavailable. <button class="plain" id="retry-contacts" type="button">Try again</button></p>
         </div>
         <div class="footer-meta">
-          <aside class="ambient-clock" id="ambient-clock" aria-label="your local time">
-            <span class="clock-label">Your local time</span>
-            <time class="clock-time" id="clock-time"></time>
-            <button class="clock-toggle" id="clock-toggle" type="button" aria-controls="clock-time" aria-expanded="true">Hide time</button>
-          </aside>
           <button class="plain owner-access" id="owner-access" type="button">Owner sign in</button>
         </div>
       </footer>
@@ -191,7 +179,7 @@
 
     <script src="./config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" defer></script>
-    <script src="./assets/post-format.js?v=archive-2" defer></script>
-    <script src="./site.js?v=archive-2" defer></script>
+    <script src="./assets/post-format.js?v=git-dark-1" defer></script>
+    <script src="./site.js?v=git-dark-1" defer></script>
   </body>
 </html>

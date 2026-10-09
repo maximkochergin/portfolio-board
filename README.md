@@ -6,12 +6,12 @@
 
 A personal portfolio and open notebook. Projects sit beside the notes behind them, with a little more context in **About**.
 
-The site uses a warm cream palette, serif headings, rust accents, and simple text links. Its October 2026 rebuild takes direction from [git-scm.com](https://git-scm.com/) while keeping an original identity. Space and typography organize the page; there are no decorative dividers, paper frames, or blocking intro screens.
+The site follows the dark version of [git-scm.com](https://git-scm.com/): a charcoal background, muted orange links, the same serif font stack, and compact text. There are no decorative dividers, oversized introductory headings, clocks, or greeting overlays.
 
 ## In the collection
 
 - **Work, Notes, About:** independent sections with entry counts and search.
-- **Reading:** dates, short previews, reading time, text formatting, and direct links to individual entries.
+- **Reading:** dates, short previews, text formatting, and direct links to individual entries.
 - **Owner workspace:** publish, save drafts, edit entries, and manage external links.
 - **Owner sign in:** visible in the footer, with the direct [manage route](https://maximkochergin.github.io/portfolio-board/?manage=1) still available. Sign in uses an email link; sign out affects the current session.
 - **Accessibility:** keyboard tabs, focus states, labelled forms, live feedback, reduced motion, and a responsive layout.

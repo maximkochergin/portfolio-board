@@ -66,7 +66,7 @@ test("local preview serves only the public site to local hosts", async () => {
     assert.equal((await get(port, "/index.html", `localhost:${port}`)).status, 200);
     assert.equal((await get(port, "/assets/icons/paper-mark.svg", localHost)).status, 200);
     assert.equal((await get(port, "/site.js", localHost, "HEAD")).status, 200);
-    assert.equal((await get(port, "/assets/ambient.js", localHost)).status, 200);
+    assert.equal((await get(port, "/assets/navigation.js", localHost)).status, 200);
     assert.equal((await get(port, "/assets/fonts/Pencerio-Hairline.woff2", localHost)).status, 200);
     assert.equal((await get(port, "/portfolio-board/", localHost)).status, 200);
     assert.match((await get(port, "/robots.txt", localHost)).body, /Sitemap: https:\/\/maximkochergin\.github\.io\/portfolio-board\/sitemap\.xml/);
