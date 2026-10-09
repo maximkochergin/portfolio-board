@@ -61,7 +61,6 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .post-item { min-width: 0; }
 .post-heading { margin: 5px 0 7px; font-size: 20px; font-weight: bold; line-height: 25px; }
 .post-title { display: inline-block; max-width: 100%; color: var(--accent); overflow-wrap: anywhere; }
-.post-arrow { display: none; }
 .post-preview { margin: 0; font-size: 14px; line-height: 22px; overflow-wrap: anywhere; }
 .post-meta { margin: 0; color: var(--muted); font-size: 12px; line-height: 18px; }
 #panel-about .post-list { grid-template-columns: 1fr; max-width: 600px; }
@@ -89,7 +88,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .detail-meta { margin: 0 0 6px; color: var(--muted); font-size: 12px; }
 .detail h1 { margin: 0 0 20px; color: var(--accent); font-size: 28px; font-weight: bold; line-height: 36px; overflow-wrap: anywhere; }
 .detail h1:focus { outline: none; }
-.subtitle { margin: -4px 0 22px; font-size: 17px; line-height: 25px; }
+.subtitle { margin: -4px 0 22px; font-size: 17px; line-height: 25px; overflow-wrap: anywhere; }
 .body { font-size: 16px; line-height: 25px; overflow-wrap: anywhere; }
 .body p { margin: 0 0 18px; white-space: pre-wrap; }
 .body h2, .body h3 { margin: 26px 0 12px; color: var(--accent); font-weight: bold; line-height: 28px; }

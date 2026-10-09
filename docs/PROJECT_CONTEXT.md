@@ -27,8 +27,10 @@ The site is published at `https://maximkochergin.github.io/portfolio-board/`. Th
 
 For a new session, the user only needs to describe the task. `AGENTS.md` carries the repository workflow automatically; Codex Memory may retain user preferences, but Git and the working tree remain authoritative for code and in-progress changes. When resuming a particular unfinished task in a new thread, state its intended outcome briefly; do not paste the project history.
 
+The October 2026 frontend fixes preserve pending post links through loading failures, protect unsaved posts and contact edits, prevent duplicate sign-in requests, and check post versions on deletion as well as editing. Lists render on demand and reuse unchanged DOM; auth events coalesce reloads. Saving and deleting respect navigation that happens while follow-up reads are pending. The regression suite covers these flows with mocked requests; browser checks use an isolated memory fixture for owner writes.
+
 ## Known limitations
 
 - GitHub Pages cannot set all response-level security headers or a custom static cache policy; consider a host change only if those controls are needed.
 - `robots.txt` lives at the GitHub Pages project subpath, not the host root.
-- The editor compares post `updated_at` values before updating. Contact saves send only changed platforms, so unrelated fields are not overwritten across tabs; concurrent changes to the same platform remain last-write-wins until a database-backed version check is warranted.
+- Editing and deleting compare post `updated_at` values. Contact saves send only changed platforms, so unrelated fields are not overwritten across tabs; concurrent changes to the same platform remain last-write-wins until a database-backed version check is warranted.

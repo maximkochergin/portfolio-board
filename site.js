@@ -34,6 +34,9 @@ const sectionCopy = {
 };
 const magicLinkCooldownMs = 60 * 1000;
 const contactPlatforms = ["email", "github", "linkedin", "telegram", "discord", "x", "cv"];
+const dateFormatter = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const listSignatures = new Map();
+const summaryCache = new WeakMap();
 
 let client = null;
 let posts = [];
@@ -47,6 +50,7 @@ let ownerCheckUncertain = false;
 let loading = true;
 let loadError = false;
 let nextMagicLinkAt = 0;
+let sendingMagicLink = false;
 let searchTerm = "";
 let postsRevision = 0;
 let ownerRevision = 0;
@@ -62,6 +66,10 @@ let savingLinks = false;
 let checkingLinksAccess = false;
 let loadingLinksEditor = false;
 let linksSnapshot = new Map();
+let initialLinksFormState = "";
+let unloadGuardActive = false;
+let authRefreshTimer = null;
+let signingOut = false;
 let copyStatusTimer = null;
 let lastVisibleRefresh = Date.now();
 
@@ -73,7 +81,7 @@ function resetCopyStatus() {
 function postUrl(id) {
   const canonical = document.querySelector('link[rel="canonical"]');
   const url = new URL(canonical?.href || window.location.pathname, window.location.origin);
-  url.hash = "post/" + id;
+  url.hash = "post/" + encodeURIComponent(id);
   return url.href;
 }
 
@@ -224,21 +232,33 @@ function emptyCopy(category) {
 }
 
 function postSummary(post) {
-  const plain = String(post.subtitle || post.body || "")
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/^(?:#{1,6}|[-+]|\d+\.)\s+/gm, "")
-    .replace(/[*_`]/g, "")
-    .replace(/\s+/g, " ").trim();
-  if (plain.length <= 180) return plain;
-  const shortened = plain.slice(0, 180);
-  const lastSpace = shortened.lastIndexOf(" ");
-  return shortened.slice(0, lastSpace > 130 ? lastSpace : 180) + "…";
+  const source = String(post.subtitle || post.body || "");
+  const cached = summaryCache.get(post);
+  if (cached?.source === source) return cached.text;
+  let plain = source;
+  if (window.postFormat) {
+    const blocks = window.postFormat.parsePostText(source);
+    const textBlocks = blocks.filter(function (block) { return block.type !== "code"; });
+    plain = (textBlocks.length ? textBlocks : blocks).map(function (block) {
+      if (block.type === "code") return block.text;
+      const text = block.type === "list" ? block.items.join(" ") : block.text;
+      return window.postFormat.parseInline(text).map(function (token) { return token.text; }).join("");
+    }).join(" ");
+  }
+  plain = plain.replace(/\s+/g, " ").trim();
+  if (plain.length > 180) {
+    const shortened = plain.slice(0, 180);
+    const lastSpace = shortened.lastIndexOf(" ");
+    plain = shortened.slice(0, lastSpace > 130 ? lastSpace : 180) + "…";
+  }
+  summaryCache.set(post, { source, text: plain });
+  return plain;
 }
 
 function postMetadata(post) {
   const date = new Date(post.published_at);
   const parts = [];
-  if (!Number.isNaN(date.getTime())) parts.push(new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(date));
+  if (!Number.isNaN(date.getTime())) parts.push(dateFormatter.format(date));
   if (canPublish && post.status === "draft") parts.unshift("Draft");
   return parts.join(" · ");
 }
@@ -283,6 +303,7 @@ function retryPosts() {
 }
 
 function showMessage(message, retry) {
+  listSignatures.clear();
   searchRegion.hidden = true;
   content.setAttribute("aria-busy", "false");
   announce(message);
@@ -305,7 +326,7 @@ function showMessage(message, retry) {
   });
 }
 
-function renderPosts(onlyCategory = null) {
+function renderPosts(onlyCategory = activeCategory) {
   syncSection();
   if (!hasConfig) {
     showMessage("this place is being connected.");
@@ -315,7 +336,9 @@ function renderPosts(onlyCategory = null) {
     showMessage("couldn't load this page.", true);
     return;
   }
-  syncSearch();
+  searchRegion.hidden = !detail.hidden;
+  clearSearchButton.hidden = !searchTerm;
+  if (searchInput.value !== searchTerm) searchInput.value = searchTerm;
   content.setAttribute("aria-busy", String(loading));
   const term = normalizeSearch(searchTerm);
   const currentCount = postsForCategory(activeCategory, term).length;
@@ -324,8 +347,13 @@ function renderPosts(onlyCategory = null) {
     : currentCount ? `${currentCount} posts in ${activeCategory}.` : "nothing published yet.");
   document.querySelectorAll(".post-list").forEach(function (list) {
     if (onlyCategory && list.dataset.category !== onlyCategory) return;
-    list.replaceChildren();
     const items = postsForCategory(list.dataset.category, term);
+    const signature = items.length ? JSON.stringify(items.map(function (post) {
+      return [post.id, post.title, postMetadata(post), postSummary(post)];
+    })) : JSON.stringify([emptyCopy(list.dataset.category), canPublish, Boolean(term)]);
+    if (listSignatures.get(list.dataset.category) === signature) return;
+    listSignatures.set(list.dataset.category, signature);
+    list.replaceChildren();
     if (!items.length) {
       const state = document.createElement("div");
       state.className = "empty-state";
@@ -357,16 +385,11 @@ function renderPosts(onlyCategory = null) {
       title.href = "#post/" + encodeURIComponent(post.id);
       title.dataset.postId = post.id;
       title.textContent = post.title;
-      const arrow = document.createElement("span");
-      arrow.className = "post-arrow";
-      arrow.textContent = "→";
-      arrow.setAttribute("aria-hidden", "true");
-      title.append(arrow);
       title.addEventListener("click", function (event) {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         showPost(post.id);
-        setHash("post/" + post.id, false, { fromList: post.category });
+        setHash("post/" + encodeURIComponent(post.id), false, { fromList: post.category });
       });
       heading.append(title);
       item.append(heading);
@@ -465,10 +488,14 @@ function showList(restoreFocus) {
     panel.hidden = panel.id !== "panel-" + activeCategory;
   });
   if (restoreFocus) {
-    const button = Array.from(document.querySelectorAll("#panel-" + activeCategory + " .post-title"))
-      .find(function (element) { return element.dataset.postId === previous; });
-    (button || document.querySelector("#tab-" + activeCategory)).focus();
+    focusPostLink(previous);
   }
+}
+
+function focusPostLink(id) {
+  const link = Array.from(document.querySelectorAll("#panel-" + activeCategory + " .post-title"))
+    .find(function (element) { return element.dataset.postId === id; });
+  (link || document.querySelector("#tab-" + activeCategory)).focus();
 }
 
 function selectTab(tab) {
@@ -486,10 +513,12 @@ function restoreLocation(moveFocus = true) {
   const hash = window.location.hash.slice(1);
   if (hash === "contacts" || hash === "main-content") {
     selectTab(document.querySelector("#tab-" + activeCategory));
+    if (hash === "main-content" && moveFocus) document.querySelector("#main-content").focus();
     return;
   }
   if (hash.indexOf("post/") === 0) {
-    const id = hash.slice(5);
+    let id = hash.slice(5);
+    try { id = decodeURIComponent(id); } catch { /* An invalid escape remains an unavailable ID. */ }
     const post = posts.find(function (item) { return item.id === id; });
     if (post) {
       if (openPostId !== post.id || activeCategory !== post.category) {
@@ -500,11 +529,16 @@ function restoreLocation(moveFocus = true) {
     }
     if (!loading && !loadError) {
       showMissingPost(moveFocus);
-      return;
+    } else {
+      showList(false);
+      renderPosts();
     }
+    return;
   }
+  const previousPost = openPostId;
   const category = categories.includes(hash) ? hash : "work";
   selectTab(document.querySelector("#tab-" + category));
+  if (moveFocus && previousPost) focusPostLink(previousPost);
   if (!categories.includes(hash)) setHash(category, true);
 }
 
@@ -528,7 +562,7 @@ async function refreshPosts() {
   if (result.error || !Array.isArray(result.data)) {
     loadError = posts.length === 0;
     renderPosts();
-    announce("couldn't refresh posts. showing the last loaded version.");
+    announce(loadError ? "couldn't load posts. try again." : "couldn't refresh posts. showing the last loaded version.");
     return false;
   }
   posts = result.data.filter(function (post) { return canPublish || post.status === "published"; });
@@ -548,6 +582,8 @@ function clearPrivateView() {
   canPublish = false;
   boardControls.hidden = true;
   posts = [];
+  listSignatures.clear();
+  document.querySelectorAll(".post-list").forEach(function (list) { list.replaceChildren(); });
   searchIndex.clear();
   searchTerm = "";
   loading = true;
@@ -559,6 +595,7 @@ function clearPrivateView() {
   editingId = null;
   editingVersion = null;
   ownerCheckUncertain = false;
+  syncUnloadGuard();
   const hadOpenPost = Boolean(openPostId);
   showList(false);
   if (hadOpenPost) setHash(activeCategory, true);
@@ -646,6 +683,24 @@ function formSnapshot() {
   ]);
 }
 
+function linksFormSnapshot() {
+  return JSON.stringify(contactPlatforms.map(function (platform) { return linksForm.elements[platform].value; }));
+}
+
+function preventUnsavedUnload(event) {
+  event.preventDefault();
+  event.returnValue = true;
+}
+
+function syncUnloadGuard() {
+  const dirty = canPublish && (savingPost || savingLinks
+    || (composer.open && formSnapshot() !== initialFormState)
+    || (linksDialog.open && linksFormSnapshot() !== initialLinksFormState));
+  if (dirty === unloadGuardActive) return;
+  unloadGuardActive = dirty;
+  window[dirty ? "addEventListener" : "removeEventListener"]("beforeunload", preventUnsavedUnload);
+}
+
 function openComposer(post) {
   if (!canPublish) return;
   form.reset();
@@ -664,6 +719,7 @@ function openComposer(post) {
   initialFormState = formSnapshot();
   form.removeAttribute("aria-busy");
   composer.showModal();
+  syncUnloadGuard();
   form.elements.title.focus();
 }
 
@@ -701,6 +757,17 @@ async function closeComposer() {
   composer.close();
 }
 
+async function closeLinksEditor() {
+  if (savingLinks || checkingLinksAccess || confirmDialog.open) return;
+  if (linksFormSnapshot() !== initialLinksFormState) {
+    const discard = await askConfirmation(
+      "discard your changes?", "the links you entered have not been saved.", "discard changes", "keep editing"
+    );
+    if (!discard) return;
+  }
+  linksDialog.close();
+}
+
 tabs.forEach(function (tab, index) {
   tab.addEventListener("click", function () {
     selectTab(tab);
@@ -728,7 +795,7 @@ clearSearchButton.addEventListener("click", function () {
   document.querySelector("#panel-" + activeCategory + " .post-list").scrollTop = 0;
   searchInput.focus();
 });
-window.addEventListener("hashchange", restoreLocation);
+window.addEventListener("hashchange", function () { restoreLocation(); });
 document.querySelector("#back-to-list").addEventListener("click", function () {
   const cameFromList = window.history.state?.fromList === activeCategory;
   showList(true);
@@ -774,18 +841,25 @@ document.querySelector("#edit-links").addEventListener("click", async function (
     linksForm.elements[platform].value = platform === "email" ? url.replace(/^mailto:/, "") : url;
   });
   document.querySelector("#links-error").hidden = true;
+  initialLinksFormState = linksFormSnapshot();
   linksDialog.showModal();
+  syncUnloadGuard();
   linksForm.elements.email.focus();
 });
 document.querySelector("#retry-contacts").addEventListener("click", function () {
   void refreshContactLinks();
 });
-document.querySelector("#close-links").addEventListener("click", function () {
-  if (!savingLinks && !checkingLinksAccess) linksDialog.close();
-});
+document.querySelector("#close-links").addEventListener("click", closeLinksEditor);
 linksDialog.addEventListener("cancel", function (event) {
-  if (savingLinks || checkingLinksAccess) event.preventDefault();
+  event.preventDefault();
+  void closeLinksEditor();
 });
+form.addEventListener("input", syncUnloadGuard);
+form.addEventListener("change", syncUnloadGuard);
+linksForm.addEventListener("input", syncUnloadGuard);
+linksForm.addEventListener("change", syncUnloadGuard);
+composer.addEventListener("close", syncUnloadGuard);
+linksDialog.addEventListener("close", syncUnloadGuard);
 linksForm.addEventListener("submit", async function (event) {
   event.preventDefault();
   if (!canPublish || !client || savingLinks || checkingLinksAccess) return;
@@ -817,6 +891,7 @@ linksForm.addEventListener("submit", async function (event) {
     return;
   }
   savingLinks = true;
+  syncUnloadGuard();
   linksForm.setAttribute("aria-busy", "true");
   const controls = Array.from(linksForm.querySelectorAll("button, input"));
   controls.forEach(function (control) { control.disabled = true; });
@@ -827,6 +902,7 @@ linksForm.addEventListener("submit", async function (event) {
     result = { error: true };
   }
   savingLinks = false;
+  syncUnloadGuard();
   linksForm.removeAttribute("aria-busy");
   controls.forEach(function (control) { control.disabled = false; });
   if (!canPublish) return;
@@ -858,6 +934,8 @@ form.addEventListener("submit", async function (event) {
     showFormError("couldn't verify access. your text is still here; try again.");
     return;
   }
+  const postId = editingId;
+  const postVersion = editingVersion;
   const intent = event.submitter && event.submitter.value === "draft" ? "draft" : "published";
   const payload = {
     category: form.elements.category.value,
@@ -879,6 +957,7 @@ form.addEventListener("submit", async function (event) {
   const buttons = [document.querySelector("#save-draft"), document.querySelector("#submit-post"), document.querySelector("#cancel-composer")];
   const fields = [form.elements.category, form.elements.title, form.elements.body, form.elements.subtitle, form.elements.link];
   savingPost = true;
+  syncUnloadGuard();
   buttons.forEach(function (button) { button.disabled = true; });
   fields.forEach(function (field) { field.disabled = true; });
   form.setAttribute("aria-busy", "true");
@@ -886,20 +965,21 @@ form.addEventListener("submit", async function (event) {
   document.querySelector("#form-error").hidden = true;
   let result;
   try {
-    result = editingId
-      ? await client.from("posts").update(payload).eq("id", editingId)
-        .eq("updated_at", editingVersion).select().maybeSingle()
+    result = postId
+      ? await client.from("posts").update(payload).eq("id", postId)
+        .eq("updated_at", postVersion).select().maybeSingle()
       : await client.from("posts").insert(payload).select().single();
   } catch {
     result = { error: true };
   }
   savingPost = false;
+  syncUnloadGuard();
   buttons.forEach(function (button) { button.disabled = false; });
   fields.forEach(function (field) { field.disabled = false; });
   updateAboutFields();
   form.removeAttribute("aria-busy");
   if (!canPublish) return;
-  if (!result.error && editingId && !result.data) {
+  if (!result.error && postId && !result.data) {
     showFormError("this post changed in another tab or was removed. your text is still here; copy it before reloading.");
     return;
   }
@@ -913,20 +993,23 @@ form.addEventListener("submit", async function (event) {
   editingStatus = result.data.status;
   posts = [result.data, ...posts.filter(function (post) { return post.id !== result.data.id; })];
   searchIndex.set(result.data.id, normalizeSearch([result.data.title, result.data.subtitle, result.data.body].filter(Boolean).join(" ")));
-  const refreshed = await refreshPosts();
   selectTab(document.querySelector("#tab-" + result.data.category));
-  if (editingId) {
+  if (postId) {
     showPost(result.data.id);
-    setHash("post/" + result.data.id, true);
+    setHash("post/" + encodeURIComponent(result.data.id), true);
   } else {
     setHash(result.data.category, true);
   }
+  const refreshed = await refreshPosts();
+  if (!canPublish) return;
   announce(refreshed ? savedMessage : `${savedMessage} couldn't refresh the list; showing the saved version.`);
 });
 
 document.querySelector("#delete-post").addEventListener("click", async function () {
   if (!canPublish || !client || !openPostId || deletingPost || confirmDialog.open) return;
   const postId = openPostId;
+  const postVersion = posts.find(function (post) { return post.id === postId; })?.updated_at;
+  if (!postVersion) return;
   const confirmed = await askConfirmation("delete this post?", "this can't be undone.", "delete");
   if (!confirmed || !canPublish) return;
   if (!await ownerReadyForWrite()) {
@@ -942,7 +1025,8 @@ document.querySelector("#delete-post").addEventListener("click", async function 
   announce("deleting post.");
   let result;
   try {
-    result = await client.from("posts").delete().eq("id", postId).select("id").maybeSingle();
+    result = await client.from("posts").delete().eq("id", postId)
+      .eq("updated_at", postVersion).select("id").maybeSingle();
   } catch {
     result = { error: true };
   }
@@ -951,33 +1035,48 @@ document.querySelector("#delete-post").addEventListener("click", async function 
   ownerActions.removeAttribute("aria-busy");
   if (!canPublish) return;
   if (result.error || !result.data) {
+    if (openPostId !== postId) {
+      announce("couldn't delete the selected post. it may have changed or been removed.");
+      return;
+    }
     const error = document.querySelector("#detail-error");
-    error.textContent = result.error ? "couldn't delete this post." : "this post was already removed elsewhere. reload the page.";
+    error.textContent = result.error ? "couldn't delete this post." : "this post changed in another tab or was removed. reload before deleting.";
     error.hidden = false;
     return;
   }
   announce("post deleted.");
   posts = posts.filter(function (post) { return post.id !== postId; });
   searchIndex.delete(postId);
-  showList(false);
-  setHash(activeCategory, true);
+  if (openPostId === postId) {
+    showList(false);
+    setHash(activeCategory, true);
+  }
   if (!await refreshPosts()) announce("post deleted. couldn't refresh the list; showing the last loaded version.");
 });
 
+function syncAuthForm() {
+  const emailInput = document.querySelector("#auth-email");
+  const button = document.querySelector("#send-sign-in");
+  const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
+  emailInput.disabled = sendingMagicLink || secondsRemaining > 0;
+  button.disabled = sendingMagicLink || secondsRemaining > 0 || !client;
+  button.textContent = sendingMagicLink ? "Sending…" : secondsRemaining > 0 ? "Link sent" : "Send sign-in link";
+  if (sendingMagicLink) authForm.setAttribute("aria-busy", "true");
+  else authForm.removeAttribute("aria-busy");
+  document.querySelector("#auth-copy").textContent = secondsRemaining > 0
+    ? "Check your inbox and open the sign-in link to return to your workspace."
+    : "Enter your registered email to receive a sign-in link.";
+}
+
 function openAuthDialog() {
   document.querySelector("#auth-error").hidden = true;
-  document.querySelector("#auth-copy").textContent = "Enter your registered email to receive a sign-in link.";
   const emailInput = document.querySelector("#auth-email");
   emailInput.removeAttribute("aria-invalid");
   emailInput.removeAttribute("aria-describedby");
-  const button = document.querySelector("#send-sign-in");
-  const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
-  emailInput.disabled = secondsRemaining > 0;
-  button.disabled = secondsRemaining > 0;
-  button.textContent = secondsRemaining > 0 ? "Link sent" : "Send sign-in link";
-  if (secondsRemaining <= 0) emailInput.value = "";
+  syncAuthForm();
+  if (!emailInput.disabled) emailInput.value = "";
   authDialog.showModal();
-  if (secondsRemaining <= 0) emailInput.focus();
+  if (!emailInput.disabled) emailInput.focus();
 }
 
 document.querySelector("#owner-access").addEventListener("click", function () {
@@ -998,7 +1097,8 @@ document.querySelector("#owner-access").addEventListener("click", function () {
 });
 
 document.querySelector("#sign-out").addEventListener("click", async function () {
-  if (!client || !canPublish) return;
+  if (!client || !canPublish || signingOut) return;
+  signingOut = true;
   const button = document.querySelector("#sign-out");
   const notice = document.querySelector("#owner-notice");
   notice.hidden = true;
@@ -1006,6 +1106,7 @@ document.querySelector("#sign-out").addEventListener("click", async function () 
   let result;
   try { result = await client.auth.signOut({ scope: "local" }); }
   catch { result = { error: true }; }
+  signingOut = false;
   button.disabled = false;
   if (result.error) {
     notice.textContent = "Couldn't sign out. Please try again.";
@@ -1020,6 +1121,7 @@ document.querySelector("#sign-out").addEventListener("click", async function () 
 document.querySelector("#cancel-auth").addEventListener("click", function () { authDialog.close(); });
 authForm.addEventListener("submit", async function (event) {
   event.preventDefault();
+  if (sendingMagicLink || !client) return;
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
   if (secondsRemaining > 0) {
     const error = document.querySelector("#auth-error");
@@ -1040,9 +1142,8 @@ authForm.addEventListener("submit", async function (event) {
   error.hidden = true;
   emailInput.removeAttribute("aria-invalid");
   emailInput.removeAttribute("aria-describedby");
-  const button = document.querySelector("#send-sign-in");
-  button.disabled = true;
-  button.textContent = "Sending…";
+  sendingMagicLink = true;
+  syncAuthForm();
   let result;
   try {
     result = await client.auth.signInWithOtp({
@@ -1055,8 +1156,8 @@ authForm.addEventListener("submit", async function (event) {
   } catch {
     result = { error: true };
   }
-  button.disabled = false;
-  button.textContent = "Send sign-in link";
+  sendingMagicLink = false;
+  syncAuthForm();
   if (result.error) {
     error.textContent = "couldn't send the sign-in link. please try again.";
     error.hidden = false;
@@ -1064,16 +1165,11 @@ authForm.addEventListener("submit", async function (event) {
     return;
   }
   nextMagicLinkAt = Date.now() + magicLinkCooldownMs;
-  emailInput.disabled = true;
-  button.disabled = true;
-  button.textContent = "Link sent";
-  document.querySelector("#auth-copy").textContent = "Check your inbox and open the sign-in link to return to your workspace.";
+  syncAuthForm();
   announce("sign-in link sent.");
   window.setTimeout(function () {
     if (Date.now() < nextMagicLinkAt) return;
-    emailInput.disabled = false;
-    button.disabled = false;
-    button.textContent = "Send sign-in link";
+    syncAuthForm();
   }, magicLinkCooldownMs);
 });
 
@@ -1111,14 +1207,17 @@ async function start() {
     return;
   }
   client.auth.onAuthStateChange(function (event) {
-    if (event === "INITIAL_SESSION") return;
+    if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
     ++ownerRevision;
     if (event === "SIGNED_OUT") clearPrivateView();
-    window.setTimeout(async function () {
+    window.clearTimeout(authRefreshTimer);
+    if (event === "SIGNED_OUT" && signingOut) return;
+    authRefreshTimer = window.setTimeout(async function () {
+      authRefreshTimer = null;
       const current = await refreshOwnerState();
       if (!current) return;
       await Promise.all([refreshPosts(), refreshContactLinks()]);
-      if (event === "SIGNED_IN" && canPublish && authDialog.open) authDialog.close();
+      if (canPublish && authDialog.open) authDialog.close();
     }, 0);
   });
   showAuthLinkError();

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const postFormat = require("../assets/post-format.js");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "site.js"), "utf8");
 
@@ -29,6 +30,9 @@ function makeSite() {
       const callbacks = this.listeners.get(name) || [];
       callbacks.push(callback);
       this.listeners.set(name, callbacks);
+    }
+    removeEventListener(name, callback) {
+      this.listeners.set(name, (this.listeners.get(name) || []).filter((item) => item !== callback));
     }
     async fire(name, event = {}) {
       for (const callback of this.listeners.get(name) || []) await callback(event);
@@ -72,6 +76,9 @@ function makeSite() {
   form.elements = Object.fromEntries(["category", "title", "body", "subtitle", "link"].map((name) => [name, get(`form-${name}`)]));
   const linksForm = get("#links-form");
   linksForm.elements = Object.fromEntries(["email", "github", "linkedin", "telegram", "discord", "x", "cv"].map((name) => [name, get(`links-${name}`)]));
+  const windowEvents = new Element("window");
+  const timers = [];
+  const historyCalls = [];
   document = {
     activeElement: null,
     title: "archive",
@@ -81,6 +88,8 @@ function makeSite() {
       if (selector === '[role="tab"]') return tabs;
       if (selector === '[role="tabpanel"]') return panels;
       if (selector === ".post-list") return lists;
+      const category = /^#panel-(work|notes|about) \.post-title$/.exec(selector)?.[1];
+      if (category) return get(`#panel-${category} .post-list`).children.flatMap((item) => item.children.filter((child) => child.name === "h3").flatMap((heading) => heading.children));
       return [];
     },
     createElement: (name) => new Element(name),
@@ -90,16 +99,27 @@ function makeSite() {
   };
   const window = {
     self: {}, top: {},
+    postFormat,
     portfolioConfig: { supabaseUrl: "https://example.supabase.co", supabaseAnonKey: "x".repeat(24) },
     location: { hash: "#work", pathname: "/portfolio-board/", origin: "https://example.test", search: "" },
-    history: { state: null, pushState() {}, replaceState() {}, back() {} },
-    addEventListener() {}, clearTimeout() {}, setTimeout() { return 1; }
+    history: {
+      state: null,
+      pushState(state, _, url) { this.replaceState(state, _, url); },
+      replaceState(state, _, url) { this.state = state; historyCalls.push(url); window.location.hash = new URL(url, window.location.origin + window.location.pathname).hash; },
+      back() {}
+    },
+    addEventListener: windowEvents.addEventListener.bind(windowEvents),
+    removeEventListener: windowEvents.removeEventListener.bind(windowEvents),
+    clearTimeout(id) { if (timers[id - 1]) timers[id - 1].active = false; },
+    setTimeout(callback, delay) { timers.push({ callback, delay, active: true }); return timers.length; }
   };
   get("#post-detail").hidden = true;
   get("link[rel=\"canonical\"]").href = "https://example.test/portfolio-board/";
   const context = vm.createContext({ document, window, URL, URLSearchParams, navigator: {}, console });
   vm.runInContext(source, context, { filename: "site.js" });
-  return { context, get, form, linksForm, run: (code) => vm.runInContext(code, context) };
+  return { context, get, form, linksForm, windowEvents, historyCalls,
+    async flushTimers() { for (const timer of timers.filter((item) => item.active && item.delay === 0)) { timer.active = false; await timer.callback(); } },
+    run: (code) => vm.runInContext(code, context) };
 }
 
 test("temporary owner-check failure keeps an unsaved post open", async () => {
@@ -318,4 +338,199 @@ test("failed sign out keeps owner state; successful local sign out clears privat
   assert.equal(site.run("posts.length"), 0);
   assert.equal(site.get("#board-controls").hidden, true);
   assert.equal(site.get("#owner-access").textContent, "Owner sign in");
+});
+
+test("a pending post route survives loading and a failed read", () => {
+  const site = makeSite();
+  site.run("window.location.hash = '#post/waiting'; loading = true; restoreLocation(false)");
+  assert.equal(site.context.window.location.hash, '#post/waiting');
+  assert.equal(site.historyCalls.length, 0);
+  site.run("loading = false; loadError = true; restoreLocation(false)");
+  assert.equal(site.context.window.location.hash, '#post/waiting');
+});
+
+test("encoded post routes open the intended entry", () => {
+  const site = makeSite();
+  site.run("posts = [{id:'entry/one',category:'notes',title:'Encoded entry',body:'Body',status:'published'}]; loading = false; window.location.hash = '#post/entry%2Fone'; restoreLocation(false)");
+  assert.equal(site.run("openPostId"), 'entry/one');
+  assert.equal(site.get('#detail-title').textContent, 'Encoded entry');
+});
+
+test("unchanged lists retain their nodes and hidden sections render on demand", () => {
+  const site = makeSite();
+  site.run("posts = [{id:'one',category:'work',title:'Work',body:'Text',status:'published'},{id:'two',category:'notes',title:'Note',body:'Text',status:'draft'}]; loading = false; canPublish = true; renderPosts()");
+  const list = site.get('#panel-work .post-list');
+  const entry = list.children[0];
+  assert.equal(site.get('#panel-notes .post-list').children.length, 0);
+  site.run('renderPosts()');
+  assert.equal(list.children[0], entry);
+  site.run("selectTab(document.querySelector('#tab-notes'))");
+  assert.equal(site.get('#panel-notes .post-list').children[0].name, 'article');
+  site.run('clearPrivateView()');
+  assert.equal(site.get('#panel-work .post-list').children.length, 0);
+  assert.equal(site.get('#panel-notes .post-list').children[0].name, 'div');
+});
+
+test("preview text preserves escaped formatting and literal underscores", () => {
+  const site = makeSite();
+  assert.equal(site.run("postSummary({body:'Use snake_case and \\\\*literal\\\\* markers. **Bold**.'})"), 'Use snake_case and *literal* markers. Bold.');
+});
+
+test("a pending sign-in request cannot be submitted twice or reopened as idle", async () => {
+  const site = makeSite();
+  let release;
+  let calls = 0;
+  site.context.mockClient = { auth: { signInWithOtp() { calls++; return new Promise((resolve) => { release = resolve; }); } } };
+  site.run('client = mockClient; openAuthDialog()');
+  const email = site.get('#auth-email');
+  email.value = 'owner@example.test';
+  email.checkValidity = () => true;
+  const first = site.get('#auth-form').fire('submit', { preventDefault() {} });
+  await site.get('#auth-form').fire('submit', { preventDefault() {} });
+  assert.equal(calls, 1);
+  site.get('#auth-dialog').close();
+  site.run('openAuthDialog()');
+  assert.equal(site.get('#send-sign-in').disabled, true);
+  assert.equal(email.disabled, true);
+  release({ error: null });
+  await first;
+  assert.match(site.get('#auth-copy').textContent, /inbox/);
+});
+
+test("changed contacts require confirmation before being discarded", async () => {
+  const site = makeSite();
+  site.context.mockClient = { from: () => ({ async select() { return { data: [], error: null }; } }) };
+  site.run('client = mockClient; canPublish = true');
+  await site.get('#edit-links').fire('click');
+  site.linksForm.elements.github.value = 'https://github.com/changed';
+  const close = site.get('#close-links').fire('click');
+  assert.equal(site.get('#confirm-dialog').open, true);
+  site.get('#confirm-dialog').close('cancel');
+  await close;
+  assert.equal(site.get('#links-dialog').open, true);
+  assert.equal(site.linksForm.elements.github.value, 'https://github.com/changed');
+  const discard = site.get('#close-links').fire('click');
+  site.get('#confirm-dialog').close('confirm');
+  await discard;
+  assert.equal(site.get('#links-dialog').open, false);
+});
+
+test("unload protection is installed only while there are unsaved changes", async () => {
+  const site = makeSite();
+  site.run('canPublish = true; openComposer(null)');
+  assert.equal((site.windowEvents.listeners.get('beforeunload') || []).length, 0);
+  site.form.elements.body.value = 'Unsaved';
+  await site.form.fire('input');
+  let prevented = false;
+  await site.windowEvents.fire('beforeunload', { preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  site.form.elements.body.value = '';
+  await site.form.fire('input');
+  assert.equal(site.windowEvents.listeners.get('beforeunload').length, 0);
+});
+
+test("delete checks the version the owner reviewed", async () => {
+  const site = makeSite();
+  const filters = [];
+  const query = { eq(key, value) { filters.push([key, value]); return this; }, select() { return this; }, async maybeSingle() { return { data: null, error: null }; } };
+  site.context.mockClient = { from: () => ({ delete: () => query }) };
+  site.run("client = mockClient; canPublish = true; posts = [{id:'entry',category:'work',title:'Original',body:'Body',status:'published',updated_at:'version-1'}]; showPost('entry',false,false)");
+  const pending = site.get('#delete-post').fire('click');
+  site.run("posts = [{...posts[0], updated_at:'version-2'}]");
+  site.get('#confirm-dialog').close('confirm');
+  await pending;
+  assert.deepEqual(filters, [['id', 'entry'], ['updated_at', 'version-1']]);
+  assert.match(site.get('#detail-error').textContent, /changed|removed/);
+});
+
+test("a saved post's refresh respects later navigation and a newly opened editor", async () => {
+  const site = makeSite();
+  const saved = { id: "entry", category: "work", title: "Saved", body: "Updated", status: "published", updated_at: "v2" };
+  let releaseRead;
+  let reading;
+  const readStarted = new Promise((resolve) => { reading = resolve; });
+  const update = { eq() { return this; }, select() { return this; }, async maybeSingle() { return { data: saved, error: null }; } };
+  site.context.mockPost = { ...saved, body: "Original", updated_at: "v1" };
+  site.context.mockClient = { from: () => ({
+    update: () => update,
+    select() { return { order() { reading(); return new Promise((resolve) => { releaseRead = resolve; }); } }; }
+  }) };
+  site.run("client = mockClient; canPublish = true; posts = [mockPost]; openComposer(mockPost)");
+  site.form.elements.body.value = "Updated";
+  const submitting = site.form.fire("submit", { preventDefault() {}, submitter: { value: "published" } });
+  await readStarted;
+  assert.equal(site.run("window.location.hash"), "#post/entry");
+  await site.get("#tab-notes").fire("click");
+  await site.get("#new-post").fire("click");
+  site.form.elements.body.value = "Another unsaved entry";
+  releaseRead({ data: [saved], error: null });
+  await submitting;
+  assert.equal(site.run("window.location.hash"), "#notes");
+  assert.equal(site.run("activeCategory"), "notes");
+  assert.equal(site.get("#composer").open, true);
+  assert.equal(site.form.elements.body.value, "Another unsaved entry");
+});
+
+test("a failed deep-link load can be retried without losing its destination", async () => {
+  const site = makeSite();
+  let failed = true;
+  const post = { id: "entry", category: "notes", title: "Recovered", body: "Text", status: "published" };
+  site.context.mockClient = { from: () => ({
+    select() { return this; }, eq() { return this; },
+    async order() { return failed ? { error: true } : { data: [post], error: null }; }
+  }) };
+  site.run("client = mockClient; window.location.hash = '#post/entry'; restoreLocation()");
+  assert.equal(await site.run("refreshPosts()"), false);
+  assert.equal(site.run("window.location.hash"), "#post/entry");
+  failed = false;
+  assert.equal(await site.run("refreshPosts()"), true);
+  assert.equal(site.get("#detail-title").textContent, "Recovered");
+  assert.equal(site.get("#post-detail").hidden, false);
+});
+
+test("auth events coalesce reads and token refresh does not reload unchanged content", async () => {
+  const site = makeSite();
+  let authEvent;
+  const reads = { sessions: 0, posts: 0, links: 0 };
+  const mockClient = {
+    auth: {
+      onAuthStateChange(callback) { authEvent = callback; },
+      async getSession() { reads.sessions++; return { data: { session: null }, error: null }; }
+    },
+    from(table) {
+      if (table === "external_links") return { async select() { reads.links++; return { data: [], error: null }; } };
+      return { select() { return this; }, eq() { return this; }, async order() { reads.posts++; return { data: [], error: null }; } };
+    }
+  };
+  site.context.mockClient = mockClient;
+  site.run("window.supabase = { createClient: () => mockClient }");
+  await site.run("start()");
+  const initial = { ...reads };
+  authEvent("INITIAL_SESSION");
+  authEvent("TOKEN_REFRESHED");
+  await site.flushTimers();
+  assert.deepEqual(reads, initial);
+  authEvent("SIGNED_IN");
+  authEvent("SIGNED_IN");
+  authEvent("USER_UPDATED");
+  await site.flushTimers();
+  assert.deepEqual(reads, { sessions: initial.sessions + 1, posts: initial.posts + 1, links: initial.links + 1 });
+  site.run("canPublish = true; posts = [{id:'private', category:'notes', status:'draft', title:'Private', body:'Secret'}]; selectTab(document.querySelector('#tab-notes'))");
+  authEvent("SIGNED_OUT");
+  assert.equal(site.run("posts.length"), 0);
+  assert.equal(site.get("#panel-notes .post-list").children[0].name, "div");
+});
+
+test("contact changes also protect against reload and sign out removes that protection", async () => {
+  const site = makeSite();
+  site.context.mockClient = { from: () => ({ async select() { return { data: [], error: null }; } }) };
+  site.run("client = mockClient; canPublish = true");
+  await site.get("#edit-links").fire("click");
+  assert.equal((site.windowEvents.listeners.get("beforeunload") || []).length, 0);
+  site.linksForm.elements.github.value = "https://github.com/example";
+  await site.linksForm.fire("input");
+  assert.equal(site.windowEvents.listeners.get("beforeunload").length, 1);
+  site.run("clearPrivateView()");
+  assert.equal(site.windowEvents.listeners.get("beforeunload").length, 0);
+  assert.equal(site.get("#links-dialog").open, false);
 });
