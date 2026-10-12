@@ -32,6 +32,8 @@ On any page, use the discreet **Owner sign in** link in the footer to request a 
 
 The owner can publish or save a draft, edit existing posts, and change the external links through **Edit links** in the owner workspace. Leaving a contact field empty hides its text link. Posts can use `##`/`###` headings, lists, `**strong**`, `*emphasis*`, inline backticks, and fenced code blocks. Raw HTML is displayed as text.
 
+Contact saves call the owner-only `save_external_links` RPC, comparing each changed contact with the value loaded into the editor. A conflict rejects the whole batch and leaves the edits in the form. Existing projects need `20261012154537_guard_external_link_edits.sql` before deploying this client. The function uses caller permissions and the existing RLS policies, with no public execution grant. `supabase/tests/external-links.sql` verifies success, stale edits, batch rollback, validation, hidden contacts, and non-owner rejection inside a transaction that ends with `rollback`.
+
 **Edit intro** changes the public site title and introduction; no name or professional role is inserted automatically. The introduction may be empty. Existing databases need `20261009103741_editable_site_profile.sql`; it adds a public profile with owner-only updates, without changing posts, contacts, or ownership. Profile edits compare `updated_at` to avoid overwriting another tab.
 
 ## authentication limits and recovery
@@ -46,6 +48,8 @@ Production settings recorded on 2026-10-09:
 SDK loading stops waiting after 8 seconds. API transport aborts after 12 seconds, including response-body reads; an outer 15-second deadline also releases UI states when SDK/session work stalls. No writes are automatically retried. A failed write may have reached the database: keep/copy the editor text and reload before retrying. New entries reuse one UUID throughout an editor session to prevent duplicate inserts after uncertain responses. Existing entry/profile edits and deletion compare the version the owner reviewed.
 
 Regression tests simulate network failures, stalled requests, late responses, quota errors, reloads, and stale edits without sending emails. Live anonymous/non-owner read checks confirm draft isolation; browser owner writes use a local memory fixture.
+
+Sign-in stays disabled while the client loads, then unlocks the already open form. Success is announced inside the dialog and retains the email when reopened. On SDK failure the form shows an unavailable state. Owner editors also ignore delayed loads when another editor has opened; background list updates preserve keyboard focus, and tab arrow keys follow the current horizontal or vertical orientation.
 
 ## publish and operate
 

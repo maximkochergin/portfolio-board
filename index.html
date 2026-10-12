@@ -157,7 +157,7 @@
     <dialog id="auth-dialog" aria-labelledby="auth-title">
       <form id="auth-form" novalidate>
         <div class="dialog-header"><p class="eyebrow">Welcome back</p><h2 id="auth-title">Owner sign in</h2></div>
-        <p class="dialog-copy" id="auth-copy">Enter your email to receive a sign-in link.</p>
+        <p class="dialog-copy" id="auth-copy" role="status">Enter your email to receive a sign-in link.</p>
         <label for="auth-email">Email</label>
         <input id="auth-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="Your registered email" />
         <p class="error" id="auth-error" role="alert" hidden></p>
@@ -176,6 +176,6 @@
     <script src="./config.js"></script>
     <script id="supabase-sdk" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" async></script>
     <script src="./assets/post-format.js?v=git-dark-1" defer></script>
-    <script src="./site.js?v=simple-3" defer></script>
+    <script src="./site.js?v=ux-1" defer></script>
   </body>
 </html>

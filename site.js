@@ -56,6 +56,8 @@ let loading = true;
 let loadError = false;
 let nextMagicLinkAt = 0;
 let sendingMagicLink = false;
+let magicLinkSent = false;
+let authClientState = hasConfig ? "loading" : "unavailable";
 let searchTerm = "";
 let postsRevision = 0;
 let ownerRevision = 0;
@@ -400,6 +402,7 @@ function showMessage(message, retry) {
 }
 
 function renderPosts(onlyCategory = activeCategory) {
+  const focusedPostId = document.activeElement?.dataset?.postId;
   syncSearch();
   if (!hasConfig) {
     showMessage("this place is being connected.");
@@ -416,8 +419,8 @@ function renderPosts(onlyCategory = activeCategory) {
   const term = normalizeSearch(searchTerm);
   const currentCount = postsForCategory(activeCategory, term).length;
   announce(loading ? "loading posts." : term
-    ? currentCount ? `${currentCount} matching posts.` : "nothing matches that search."
-    : currentCount ? `${currentCount} posts in ${activeCategory}.` : "nothing published yet.");
+    ? currentCount ? `${currentCount} matching entries.` : "nothing matches that filter."
+    : currentCount ? `${currentCount} entries in ${sectionCopy[activeCategory].title.toLowerCase()}.` : "nothing published yet.");
   document.querySelectorAll(".post-list").forEach(function (list) {
     if (onlyCategory && list.dataset.category !== onlyCategory) return;
     const items = postsForCategory(list.dataset.category, term);
@@ -480,6 +483,7 @@ function renderPosts(onlyCategory = activeCategory) {
       list.append(item);
     });
   });
+  if (focusedPostId && detail.hidden) focusPostLink(focusedPostId, true);
 }
 
 function setHash(value, replace, state = null) {
@@ -572,10 +576,10 @@ function showList(restoreFocus) {
   }
 }
 
-function focusPostLink(id) {
+function focusPostLink(id, preventScroll = false) {
   const link = Array.from(document.querySelectorAll("#panel-" + activeCategory + " .post-title"))
     .find(function (element) { return element.dataset.postId === id; });
-  (link || document.querySelector("#tab-" + activeCategory)).focus();
+  (link || document.querySelector("#tab-" + activeCategory)).focus({ preventScroll });
 }
 
 function selectTab(tab) {
@@ -778,6 +782,10 @@ function profileFormSnapshot() {
   return JSON.stringify([profileForm.elements.title.value, profileForm.elements.introduction.value]);
 }
 
+function ownerEditorOpen() {
+  return composer.open || linksDialog.open || profileDialog.open || confirmDialog.open;
+}
+
 async function closeProfileEditor() {
   if (savingProfile || confirmDialog.open) return;
   if (profileFormSnapshot() !== initialProfileFormState) {
@@ -787,7 +795,8 @@ async function closeProfileEditor() {
 }
 
 document.querySelector("#edit-profile").addEventListener("click", async function () {
-  if (!canPublish || savingProfile || loadingProfileEditor) return;
+  if (!canPublish || savingProfile || loadingProfileEditor || ownerEditorOpen()) return;
+  document.querySelector("#owner-notice").hidden = true;
   loadingProfileEditor = true;
   const button = document.querySelector("#edit-profile");
   button.disabled = true;
@@ -800,6 +809,7 @@ document.querySelector("#edit-profile").addEventListener("click", async function
     notice.hidden = !canPublish;
     return;
   }
+  if (ownerEditorOpen()) return;
   profileVersion = profile.updated_at;
   profileForm.elements.title.value = profile.title;
   profileForm.elements.introduction.value = profile.introduction;
@@ -867,7 +877,7 @@ function syncUnloadGuard() {
 }
 
 function openComposer(post) {
-  if (!canPublish) return;
+  if (!canPublish || ownerEditorOpen() || savingPost) return;
   form.reset();
   editingId = post ? post.id : null;
   newPostId = post ? null : crypto.randomUUID();
@@ -940,7 +950,9 @@ tabs.forEach(function (tab, index) {
     setHash(activeCategory);
   });
   tab.addEventListener("keydown", function (event) {
-    if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const horizontal = document.querySelector(".switcher").getAttribute("aria-orientation") === "horizontal";
+    const arrows = horizontal ? ["ArrowRight", "ArrowLeft"] : ["ArrowDown", "ArrowUp"];
+    if (![...arrows, "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1
       : (index + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1) + tabs.length) % tabs.length;
@@ -994,7 +1006,8 @@ document.querySelector("#edit-post").addEventListener("click", function () {
 });
 document.querySelector("#cancel-composer").addEventListener("click", () => { void closeComposer(); });
 document.querySelector("#edit-links").addEventListener("click", async function () {
-  if (!canPublish || savingLinks || loadingLinksEditor) return;
+  if (!canPublish || savingLinks || loadingLinksEditor || ownerEditorOpen()) return;
+  document.querySelector("#owner-notice").hidden = true;
   loadingLinksEditor = true;
   const editLinksButton = document.querySelector("#edit-links");
   editLinksButton.disabled = true;
@@ -1003,10 +1016,13 @@ document.querySelector("#edit-links").addEventListener("click", async function (
   editLinksButton.disabled = false;
   if (loaded !== "ok") {
     if (loaded === "stale") return;
-    announce("couldn't load external links. please try again.");
+    const notice = document.querySelector("#owner-notice");
+    notice.textContent = "Couldn't load your links. Please try again.";
+    notice.hidden = !canPublish;
+    announce(notice.textContent);
     return;
   }
-  if (!canPublish || linksDialog.open) return;
+  if (!canPublish || ownerEditorOpen()) return;
   linksSnapshot = new Map(contactLinks);
   contactPlatforms.forEach(function (platform) {
     const url = contactLinks.get(platform) || "";
@@ -1050,13 +1066,14 @@ linksForm.addEventListener("submit", async function (event) {
   for (const platform of contactPlatforms) {
     const raw = linksForm.elements[platform].value.trim();
     const url = safeContactLink(platform, raw);
-    if (raw && !url) {
-      error.textContent = platform === "email" ? "enter a valid email address." : `enter a valid ${platform} https link.`;
+    if (raw && (!url || url.length > 500)) {
+      error.textContent = url && url.length > 500 ? "That link is too long (maximum 500 characters)."
+        : platform === "email" ? "enter a valid email address." : `enter a valid ${platform} https link.`;
       error.hidden = false;
       linksForm.elements[platform].focus();
       return;
     }
-    if (url !== (linksSnapshot.get(platform) || null)) entries.push({ platform, url });
+    if (url !== (linksSnapshot.get(platform) || null)) entries.push({ platform, url, expected_url: linksSnapshot.get(platform) || null });
   }
   if (!entries.length) {
     linksDialog.close();
@@ -1069,7 +1086,7 @@ linksForm.addEventListener("submit", async function (event) {
   controls.forEach(function (control) { control.disabled = true; });
   let result;
   try {
-    result = await request(client.from("external_links").upsert(entries, { onConflict: "platform" }));
+    result = await request(client.rpc("save_external_links", { changes: entries }));
   } catch {
     result = { error: true };
   }
@@ -1078,8 +1095,10 @@ linksForm.addEventListener("submit", async function (event) {
   linksForm.removeAttribute("aria-busy");
   controls.forEach(function (control) { control.disabled = false; });
   if (!canPublish) return;
-  if (result.error) {
-    error.textContent = "Couldn't confirm the save. Your links are still here; reload before retrying.";
+  if (result.error || result.data !== true) {
+    error.textContent = result.error?.code === "40001"
+      ? "A link changed in another tab. Your edits are still here; copy them before reloading."
+      : "Couldn't confirm the save. Your links are still here; reload before retrying.";
     error.hidden = false;
     return;
   }
@@ -1119,6 +1138,7 @@ form.addEventListener("submit", async function (event) {
   };
   if (!payload.title || !payload.body) {
     showFormError("please add a title and some text.");
+    (payload.title ? form.elements.body : form.elements.title).focus();
     return;
   }
   if (payload.link && !safeLink(payload.link)) {
@@ -1248,12 +1268,19 @@ function syncAuthForm() {
   const secondsRemaining = Math.ceil((nextMagicLinkAt - Date.now()) / 1000);
   emailInput.disabled = sendingMagicLink || secondsRemaining > 0;
   button.disabled = sendingMagicLink || secondsRemaining > 0 || !client;
-  button.textContent = sendingMagicLink ? "Sending…" : secondsRemaining > 0 ? "Wait " + Math.ceil(secondsRemaining / 60) + " min" : "Send sign-in link";
+  button.textContent = sendingMagicLink ? "Sending…" : !client && authClientState === "loading" ? "Preparing…" : secondsRemaining > 0 ? "Wait " + Math.ceil(secondsRemaining / 60) + " min" : "Send sign-in link";
   if (sendingMagicLink) authForm.setAttribute("aria-busy", "true");
   else authForm.removeAttribute("aria-busy");
-  document.querySelector("#auth-copy").textContent = secondsRemaining > 0
-    ? "If a link arrived, open it from your inbox. You can request another in " + Math.ceil(secondsRemaining / 60) + " min."
-    : "Enter your registered email to receive a sign-in link.";
+  let copy = "Enter your registered email to receive a sign-in link.";
+  if (sendingMagicLink) copy = "Sending your sign-in link…";
+  else if (!client) copy = authClientState === "loading" ? "Preparing sign in…" : "Sign in is unavailable. Reload the page and try again.";
+  else if (magicLinkSent) {
+    copy = "Check your inbox and spam folder for the sign-in link. ";
+    copy += secondsRemaining > 0 ? "You can request another in " + Math.ceil(secondsRemaining / 60) + " min." : "You can request another link if needed.";
+  } else if (secondsRemaining > 0) {
+    copy = "If a link arrived, open it from your inbox. You can request another in " + Math.ceil(secondsRemaining / 60) + " min.";
+  }
+  document.querySelector("#auth-copy").textContent = copy;
   if (secondsRemaining > 0) authCooldownTimer = window.setTimeout(syncAuthForm, Math.min(30000, nextMagicLinkAt - Date.now()));
 }
 
@@ -1263,12 +1290,12 @@ function openAuthDialog() {
   emailInput.removeAttribute("aria-invalid");
   emailInput.removeAttribute("aria-describedby");
   syncAuthForm();
-  if (!emailInput.disabled) emailInput.value = "";
   authDialog.showModal();
   if (!emailInput.disabled) emailInput.focus();
 }
 
 document.querySelector("#owner-access").addEventListener("click", function (event) {
+  if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
   if (canPublish) {
     showList(false);
@@ -1278,12 +1305,6 @@ document.querySelector("#owner-access").addEventListener("click", function (even
     return;
   }
   openAuthDialog();
-  if (!client) {
-    const error = document.querySelector("#auth-error");
-    error.textContent = "Sign in is temporarily unavailable. Reload the page and try again.";
-    error.hidden = false;
-    document.querySelector("#send-sign-in").disabled = true;
-  }
 });
 
 document.querySelector("#sign-out").addEventListener("click", async function () {
@@ -1304,6 +1325,7 @@ document.querySelector("#sign-out").addEventListener("click", async function () 
     return;
   }
   clearPrivateView();
+  document.querySelector("#owner-access").focus();
   await Promise.all([refreshPosts(), refreshContactLinks()]);
   announce("Signed out of this browser.");
 });
@@ -1334,6 +1356,7 @@ authForm.addEventListener("submit", async function (event) {
   emailInput.removeAttribute("aria-invalid");
   emailInput.removeAttribute("aria-describedby");
   sendingMagicLink = true;
+  magicLinkSent = false;
   // Record attempts before transport starts: failures and reloads must not trigger rapid retries.
   setAuthCooldown(magicLinkCooldownMs);
   syncAuthForm();
@@ -1359,6 +1382,7 @@ authForm.addEventListener("submit", async function (event) {
     emailInput.setAttribute("aria-describedby", "auth-error");
     return;
   }
+  magicLinkSent = true;
   syncAuthForm();
   announce("sign-in link sent.");
 });
@@ -1401,6 +1425,8 @@ async function start() {
   renderPosts();
   if (!hasConfig) return;
   if (!window.supabase && !await waitForSdk()) {
+    authClientState = "unavailable";
+    syncAuthForm();
     loading = false;
     loadError = true;
     renderPosts();
@@ -1409,11 +1435,15 @@ async function start() {
   try {
     client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, { global: { fetch: boundedFetch } });
   } catch {
+    authClientState = "unavailable";
+    syncAuthForm();
     loading = false;
     loadError = true;
     renderPosts();
     return;
   }
+  authClientState = "ready";
+  syncAuthForm();
   client.auth.onAuthStateChange(function (event) {
     if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
     ++ownerRevision;

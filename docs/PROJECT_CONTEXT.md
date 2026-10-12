@@ -35,4 +35,4 @@ The October 9 simplification adds bounded SDK/transport/UI waits, preserves retr
 
 - GitHub Pages cannot set all response-level security headers or a custom static cache policy; consider a host change only if those controls are needed.
 - `robots.txt` lives at the GitHub Pages project subpath, not the host root.
-- Editing and deleting compare post `updated_at` values. Contact saves send only changed platforms, so unrelated fields are not overwritten across tabs; concurrent changes to the same platform remain last-write-wins until a database-backed version check is warranted.
+- Editing and deleting compare post `updated_at` values. Contact saves send only changed platforms through `save_external_links`; the server compares the URLs the owner reviewed and rejects the entire batch on a conflict. The October 12 regression checks also cover early sign-in, delayed editors, keyboard navigation, focus restoration, and URL expansion beyond the database length limit.

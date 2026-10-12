@@ -176,16 +176,16 @@ test("editing one contact does not resend unchanged profiles", async () => {
       assert.equal(table, "external_links");
       return {
         async select() { return { data: saved, error: null }; },
-        async upsert(entries) { written = entries; return { error: null }; }
       };
-    }
+    },
+    async rpc(name, args) { assert.equal(name, "save_external_links"); written = args.changes; return { data: true, error: null }; }
   };
   site.run("client = mockClient; canPublish = true");
   await site.get("#edit-links").fire("click");
   site.linksForm.elements.telegram.value = "https://t.me/second";
   await site.linksForm.fire("submit", { preventDefault() {} });
   assert.deepEqual(JSON.parse(JSON.stringify(written)), [
-    { platform: "telegram", url: "https://t.me/second" }
+    { platform: "telegram", url: "https://t.me/second", expected_url: "https://t.me/first" }
   ]);
   assert.equal(site.get("#links-dialog").open, false);
 });
@@ -348,6 +348,7 @@ test("failed sign out keeps owner state; successful local sign out clears privat
   assert.equal(site.run("posts.length"), 0);
   assert.equal(site.get("#board-controls").hidden, true);
   assert.equal(site.get("#owner-access").textContent, "Owner sign in");
+  assert.equal(site.context.document.activeElement, site.get("#owner-access"));
 });
 
 test("a pending post route survives loading and a failed read", () => {
@@ -722,4 +723,144 @@ test('an SDK load event resumes initialization and removes its listeners', async
   assert.equal(await pending, true);
   assert.equal(site.get('#supabase-sdk').listeners.get('load').length, 0);
   assert.equal(site.get('#supabase-sdk').listeners.get('error').length, 0);
+});
+
+test('opening sign in before SDK readiness unlocks the existing form and retains its email', async () => {
+  const site = makeSite();
+  const starting = site.run('start()');
+  await site.get('#owner-access').fire('click', {preventDefault(){}});
+  site.get('#auth-email').value = 'owner@example.test';
+  assert.equal(site.get('#send-sign-in').disabled, true);
+  assert.match(site.get('#auth-copy').textContent, /Preparing/);
+  const query = {select(){return this;},eq(){return this;},async order(){return {data:[],error:null};},async maybeSingle(){return {data:null,error:null};}};
+  site.context.window.supabase = {createClient(){return {auth:{onAuthStateChange(){},async getSession(){return {data:{session:null},error:null};}},from(){return query;}};}};
+  await site.get('#supabase-sdk').fire('load');
+  await starting;
+  assert.equal(site.get('#auth-dialog').open, true);
+  assert.equal(site.get('#send-sign-in').disabled, false);
+  assert.equal(site.get('#auth-email').value, 'owner@example.test');
+  assert.match(site.get('#auth-copy').textContent, /registered email/);
+});
+
+test('a failed SDK changes an already open sign-in form from preparing to unavailable', async () => {
+  const site = makeSite();
+  const starting = site.run('start()');
+  await site.get('#owner-access').fire('click', {preventDefault(){}});
+  await site.expireSdk();
+  await starting;
+  assert.match(site.get('#auth-copy').textContent, /unavailable/);
+  assert.equal(site.get('#send-sign-in').disabled, true);
+});
+
+test('sign-in success is visible inside the dialog and survives closing and reopening it', async () => {
+  const site = makeSite();
+  site.context.mockClient = {auth:{async signInWithOtp(){return {error:null};}}};
+  site.run('client = mockClient; openAuthDialog()');
+  site.get('#auth-email').value = 'owner@example.test';
+  site.get('#auth-email').checkValidity = () => true;
+  await site.get('#auth-form').fire('submit', {preventDefault(){}});
+  assert.match(site.get('#auth-copy').textContent, /Check your inbox and spam/);
+  site.run('syncAuthForm()');
+  await site.get('#cancel-auth').fire('click');
+  await site.get('#owner-access').fire('click', {preventDefault(){}});
+  assert.equal(site.get('#auth-email').value, 'owner@example.test');
+  assert.match(site.get('#auth-copy').textContent, /Check your inbox and spam/);
+});
+
+test('modified owner-link clicks keep normal browser navigation', async () => {
+  const site = makeSite();
+  let prevented = false;
+  await site.get('#owner-access').fire('click', {ctrlKey:true,preventDefault(){prevented=true;}});
+  assert.equal(prevented, false);
+  assert.equal(site.get('#auth-dialog').open, false);
+});
+
+for (const [orientation, usedKey, scrollKey] of [['horizontal','ArrowRight','ArrowDown'],['vertical','ArrowDown','ArrowRight']]) {
+  test(`${orientation} tabs handle their own arrow keys and preserve other keyboard behavior`, async () => {
+    const site = makeSite();
+    site.get('.switcher').setAttribute('aria-orientation', orientation);
+    let prevented = false;
+    await site.get('#tab-work').fire('keydown', {key:scrollKey,preventDefault(){prevented=true;}});
+    assert.equal(prevented, false);
+    assert.equal(site.run('activeCategory'), 'work');
+    await site.get('#tab-work').fire('keydown', {key:usedKey,preventDefault(){prevented=true;}});
+    assert.equal(prevented, true);
+    assert.equal(site.run('activeCategory'), 'notes');
+  });
+}
+
+test('refreshing an updated list keeps keyboard focus on the same project', () => {
+  const site = makeSite();
+  site.run("posts = [{id:'focus-1',title:'First title',body:'A project',category:'work',status:'published'}]; loading = false; renderPosts()");
+  const firstLink = site.get('#panel-work .post-list').children[0].children[1].children[0];
+  firstLink.focus();
+  site.run("posts = [{...posts[0],title:'Updated title'}]; renderPosts()");
+  const newLink = site.get('#panel-work .post-list').children[0].children[1].children[0];
+  assert.notEqual(firstLink, newLink);
+  assert.equal(site.context.document.activeElement, newLink);
+});
+
+for (const [button, table, dialog] of [['#edit-links','external_links','#links-dialog'],['#edit-profile','site_profile','#profile-dialog']]) {
+  test(`a delayed ${table} editor load cannot cover a newer post editor`, async () => {
+    const site = makeSite();
+    let release;
+    const pending = new Promise(resolve => {release=resolve;});
+    site.context.mockClient = {from(name){assert.equal(name,table);return {select(){return this;},eq(){return this;},maybeSingle(){return pending;},then(resolve,reject){return pending.then(resolve,reject);}};}};
+    site.run('client = mockClient; canPublish = true');
+    const loadingEditor = site.get(button).fire('click');
+    site.run('openComposer(null)');
+    site.form.elements.body.value = 'Keep this unsaved text';
+    release({data:table==='external_links'?[]:{title:'archive',introduction:'Projects',updated_at:'v1'},error:null});
+    await loadingEditor;
+    assert.equal(site.get(dialog).open, false);
+    assert.equal(site.get('#composer').open, true);
+    assert.equal(site.form.elements.body.value, 'Keep this unsaved text');
+  });
+}
+
+test('opening the post editor twice does not reset its unsaved content', () => {
+  const site = makeSite();
+  site.run('canPublish = true; openComposer(null)');
+  site.form.elements.body.value = 'Unsaved text';
+  site.run('openComposer(null)');
+  assert.equal(site.form.elements.body.value, 'Unsaved text');
+});
+
+test('a stale contact save keeps all edits and explains the conflict', async () => {
+  const site = makeSite();
+  const saved = [{platform:'github',url:'https://github.com/first'}];
+  let changes;
+  site.context.mockClient = {from(){return {async select(){return {data:saved,error:null};}};},async rpc(name,args){changes=args.changes;return {error:{code:'40001'},data:null};}};
+  site.run('client = mockClient; canPublish = true');
+  await site.get('#edit-links').fire('click');
+  site.linksForm.elements.github.value = 'https://github.com/second';
+  await site.linksForm.fire('submit', {preventDefault(){}});
+  assert.equal(changes[0].expected_url, saved[0].url);
+  assert.equal(site.get('#links-dialog').open, true);
+  assert.equal(site.linksForm.elements.github.value, 'https://github.com/second');
+  assert.equal(site.run("contactLinks.get('github')"), saved[0].url);
+  assert.match(site.get('#links-error').textContent, /changed in another tab/);
+});
+
+test('contact loading failures leave a visible owner notice', async () => {
+  const site = makeSite();
+  site.context.mockClient = {from(){return {async select(){return {error:true};}};}};
+  site.run('client = mockClient; canPublish = true');
+  await site.get('#edit-links').fire('click');
+  assert.equal(site.get('#owner-notice').hidden, false);
+  assert.match(site.get('#owner-notice').textContent, /Couldn't load your links/);
+});
+
+test('URL encoding cannot silently push a contact beyond the database length limit', async () => {
+  const site = makeSite();
+  let wrote = false;
+  site.context.mockClient = {from(){return {async select(){return {data:[],error:null};}};},async rpc(){wrote=true;return {data:true,error:null};}};
+  site.run('client = mockClient; canPublish = true');
+  await site.get('#edit-links').fire('click');
+  site.linksForm.elements.cv.value = 'https://example.test/' + '文'.repeat(200);
+  await site.linksForm.fire('submit',{preventDefault(){}});
+  assert.equal(wrote, false);
+  assert.equal(site.get('#links-dialog').open, true);
+  assert.match(site.get('#links-error').textContent,/maximum 500/);
+  assert.equal(site.context.document.activeElement, site.linksForm.elements.cv);
 });
