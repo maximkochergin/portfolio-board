@@ -1,13 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
-  <rect width="1672" height="941" fill="#2a2a2a"/>
+  <rect width="1672" height="941" fill="#1b2027"/>
   <g font-family="Georgia,serif">
-    <text x="144" y="220" fill="#979594" font-size="108" font-weight="700">archive</text>
-    <text x="568" y="213" fill="#9a9994" font-size="42">--work-and-notes</text>
-    <text x="144" y="416" fill="#b3b1b1" font-size="44">A personal portfolio of projects, notes,</text>
-    <text x="144" y="486" fill="#b3b1b1" font-size="44">and the things I learn along the way.</text>
-    <text x="144" y="664" fill="#d7834f" font-size="52" font-weight="700">Work</text>
-    <text x="480" y="664" fill="#d7834f" font-size="52" font-weight="700">Notes</text>
-    <text x="816" y="664" fill="#d7834f" font-size="52" font-weight="700">About</text>
-    <text x="144" y="816" fill="#9a9797" font-size="30">A personal archive of work and notes.</text>
+    <text x="144" y="220" fill="#eef1f5" font-size="108" font-weight="700">archive</text>
+    <text x="144" y="416" fill="#d4dae1" font-size="44">A personal portfolio of projects, notes,</text>
+    <text x="144" y="486" fill="#d4dae1" font-size="44">and the things I learn along the way.</text>
+    <text x="144" y="664" fill="#9bbbd8" font-size="52" font-weight="700">Projects</text>
+    <text x="480" y="664" fill="#a5afbc" font-size="52" font-weight="700">Notes</text>
+    <text x="816" y="664" fill="#a5afbc" font-size="52" font-weight="700">About</text>
   </g>
 </svg>
