@@ -1,0 +1,12 @@
+Geist and Geist Mono variable webfonts
+Source: https://github.com/vercel/geist-font
+Revision: 10dc7658f13c38a474cde201bb09a4617267545b
+Original files: fonts/Geist/webfonts/Geist[wght].woff2 and fonts/GeistMono/webfonts/GeistMono[wght].woff2
+License: fonts/Geist-OFL.txt (SIL Open Font License 1.1)
+
+Supabase JavaScript browser bundle 2.117.0
+Source package: @supabase/supabase-js@2.117.0, dist/umd/supabase.js
+Source repository: https://github.com/supabase/supabase-js
+The local file is byte-for-byte identical to the previously loaded pinned bundle.
+Integrity: sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6
+License: vendor/supabase-LICENSE.txt (MIT)

@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
     <meta name="color-scheme" content="light dark" />
     <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'sha256-9kUuT/AbWd7z9zMlHvbPgOv6VwgbtUDDwu1ex3+I46I='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9kUuT/AbWd7z9zMlHvbPgOv6VwgbtUDDwu1ex3+I46I='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
     <title>archive</title>
     <link rel="canonical" href="https://quipmug.github.io/portfolio-board/" />
     <meta property="og:type" content="website" />
@@ -26,8 +26,10 @@
     <meta name="twitter:image" content="https://quipmug.github.io/portfolio-board/assets/images/portfolio-cover.png?v=slate-1" />
     <meta name="twitter:image:alt" content="Archive. A personal portfolio of work and notes on a dark background." />
     <link rel="icon" href="./assets/icons/paper-mark.svg?v=mono-1" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=mono-1" />
+    <link rel="preload" href="./assets/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="./styles.css?v=type-motion-1" />
     <script src="./assets/navigation.js?v=git-dark-1" defer></script>
+    <script src="./assets/motion.js?v=1" defer></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://quipmug.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
@@ -175,8 +177,8 @@
     </dialog>
 
     <script src="./config.js"></script>
-    <script id="supabase-sdk" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" async></script>
+    <script id="supabase-sdk" src="./assets/vendor/supabase-2.117.0.js?v=1" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" async></script>
     <script src="./assets/post-format.js?v=git-dark-1" defer></script>
-    <script src="./site.js?v=ux-1" defer></script>
+    <script src="./site.js?v=type-motion-1" defer></script>
   </body>
 </html>

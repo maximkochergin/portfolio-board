@@ -471,8 +471,12 @@ function renderPosts(onlyCategory = activeCategory) {
       title.addEventListener("click", function (event) {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
-        showPost(post.id);
-        setHash("post/" + encodeURIComponent(post.id), false, { fromList: post.category });
+        const openEntry = () => {
+          showPost(post.id);
+          setHash("post/" + encodeURIComponent(post.id), false, { fromList: post.category });
+        };
+        if (window.portfolioMotion) window.portfolioMotion.run(openEntry);
+        else openEntry();
       });
       heading.append(title);
       item.append(heading);
@@ -981,10 +985,14 @@ clearSearchButton.addEventListener("click", function () {
 });
 window.addEventListener("hashchange", function () { restoreLocation(); });
 document.querySelector("#back-to-list").addEventListener("click", function () {
-  const cameFromList = window.history.state?.fromList === activeCategory;
-  showList(true);
-  if (cameFromList) window.history.back();
-  else setHash(activeCategory, true);
+  const returnToList = () => {
+    const cameFromList = window.history.state?.fromList === activeCategory;
+    showList(true);
+    if (cameFromList) window.history.back();
+    else setHash(activeCategory, true);
+  };
+  if (window.portfolioMotion) window.portfolioMotion.run(returnToList, { settleHash: "#" + activeCategory });
+  else returnToList();
 });
 document.querySelector("#copy-post-link").addEventListener("click", async function () {
   if (!openPostId) return;
