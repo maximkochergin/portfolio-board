@@ -151,7 +151,7 @@ using ((select private.can_manage_posts()))
 with check ((select private.can_manage_posts()));
 
 insert into public.external_links (platform, url) values
-  ('github', 'https://github.com/maximkochergin'),
+  ('github', 'https://github.com/quipmug'),
   ('linkedin', 'https://www.linkedin.com/in/maksym-kocherhin-312557402/'),
   ('telegram', 'https://t.me/frosteddoor'),
   ('x', 'https://x.com/jphghd')
