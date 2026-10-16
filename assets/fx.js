@@ -4,7 +4,9 @@
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const revealSelector = ".post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table)";
-    const excluded = "dialog, [role='dialog'], #board-controls, #owner-actions, input, textarea, select, [contenteditable]:not([contenteditable='false']), :disabled, [aria-disabled='true']";
+    const excluded = "dialog, [role='dialog'], #board-controls, #owner-actions, input, textarea, select, [contenteditable]:not([contenteditable='false']), [inert], :disabled, [aria-disabled='true']";
+    const infinityButton = document.querySelector("button.role-connector");
+    const infinityFallback = document.querySelector(".role-connector-fallback");
     const seen = new WeakSet();
     const pending = new Set();
     let failed = false;
@@ -31,6 +33,7 @@
     let lean = 0;
     let targetLean = 0;
     let lastMove = 0;
+    let infinityTimer = 0;
 
     const guard = callback => (...args) => {
       if (failed) return;
@@ -40,6 +43,24 @@
     const enabled = () => finePointer.matches && !reducedMotion.matches && !suspended && !document.hidden;
     const blocked = element => modalOpen || !element?.closest || Boolean(element.closest(excluded + ", .panel-ghost"));
     const inViewport = () => x >= 0 && y >= 0 && x < root.clientWidth && y < root.clientHeight;
+
+    function resetInfinityHover() {
+      infinityButton?.classList.remove("is-reacting");
+      infinityButton?.style.removeProperty("--loop-tilt");
+    }
+
+    function finishInfinity() {
+      window.clearTimeout(infinityTimer);
+      infinityTimer = 0;
+      infinityButton?.classList.remove("is-looping");
+    }
+
+    function animateInfinity() {
+      if (!infinityButton || document.hidden || infinityTimer) return;
+      infinityButton.classList.add("is-looping");
+      // The timer also settles feedback when animations are disabled or interrupted.
+      infinityTimer = window.setTimeout(guard(finishInfinity), 950);
+    }
 
     function resetInterest() {
       if (interest) {
@@ -72,8 +93,9 @@
       visible = false;
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
-      cursor?.classList.remove("is-visible", "is-interactive", "is-entry", "is-interest", "is-pressed");
+      cursor?.classList.remove("is-visible", "is-interactive", "is-entry", "is-interest", "is-infinity", "is-pressed");
       echo?.classList.remove("is-visible", "is-pressed");
+      resetInfinityHover();
       resetInterest();
       resetMagnet();
       resetSpotlight();
@@ -110,6 +132,14 @@
       if (!inViewport() || blocked(target)) { hidePointer(); return; }
       cursor.classList.toggle("is-interactive", Boolean(target.closest("a[href], button:not(:disabled), summary, [role='button']:not([aria-disabled='true'])")));
       cursor.classList.toggle("is-entry", Boolean(target.closest(".post-list > .post-item")));
+      const overInfinity = Boolean(target.closest("button.role-connector"));
+      cursor.classList.toggle("is-infinity", overInfinity);
+      if (overInfinity && infinityButton) {
+        const box = infinityButton.getBoundingClientRect();
+        const tilt = Math.max(-12, Math.min(12, (x - box.left - box.width / 2) * .6));
+        infinityButton.style.setProperty("--loop-tilt", tilt.toFixed(1) + "deg");
+        infinityButton.classList.add("is-reacting");
+      } else resetInfinityHover();
       const nextInterest = target.closest(".interest-item");
       if (nextInterest !== interest) resetInterest();
       cursor.classList.toggle("is-interest", Boolean(nextInterest));
@@ -233,8 +263,8 @@
       if (!intersection || suspended) return;
       pending.forEach(element => {
         if (!element.isConnected) {
-          intersection.unobserve(element);
-          pending.delete(element);
+          // Detached nodes may be reused; never leave an unobserved node hidden.
+          reveal(element);
         }
       });
       document.querySelectorAll(revealSelector).forEach(element => {
@@ -254,6 +284,7 @@
     }
 
     function syncPreferences() {
+      if (document.hidden || reducedMotion.matches || suspended) finishInfinity();
       if (enabled()) createPointer();
       else removePointer();
       if (reducedMotion.matches || suspended || !("IntersectionObserver" in window)) { revealAll(); return; }
@@ -282,6 +313,9 @@
       root.classList.remove("js-reveal", "has-custom-cursor");
       try {
         mutations?.disconnect();
+        finishInfinity();
+        if (infinityButton) infinityButton.hidden = true;
+        if (infinityFallback) infinityFallback.hidden = false;
         removePointer();
       } catch { /* Content stays visible even if an effect cannot be cleaned up. */ }
       finally {
@@ -294,7 +328,7 @@
       mutations = new MutationObserver(guard(records => {
         if (records.some(record => !record.target.parentElement?.closest(".panel-ghost"))) queueScan();
       }));
-      const observe = () => mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "open", "aria-hidden", "aria-modal", "role"] });
+      const observe = () => mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "open", "aria-hidden", "aria-modal", "role", "disabled", "aria-disabled", "inert", "href"] });
       observe();
       syncModal();
       syncPreferences();
@@ -302,7 +336,7 @@
       document.addEventListener("pointerover", guard(movePointer), { passive: true });
       document.addEventListener("pointerout", guard(event => { if (!event.relatedTarget) hidePointer(); }), { passive: true });
       document.addEventListener("pointerdown", guard(event => {
-        if (blocked(event.target)) { hidePointer(); return; }
+        if (!enabled() || event.pointerType === "touch" || blocked(event.target)) { hidePointer(); return; }
         if (!visible) return;
         cursor.classList.add("is-pressed");
         echo.classList.add("is-pressed");
@@ -311,14 +345,15 @@
         cursor?.classList.remove("is-pressed");
         echo?.classList.remove("is-pressed");
       }), { passive: true });
-      document.addEventListener("keydown", guard(hidePointer));
+      document.addEventListener("pointercancel", guard(hidePointer), { passive: true });
+      document.addEventListener("keydown", guard(hidePointer), true);
       document.addEventListener("focusin", guard(event => {
         if (blocked(event.target)) hidePointer();
         const pending = event.target.closest(".reveal-pending");
         if (pending) reveal(pending);
       }));
       window.addEventListener("blur", guard(hidePointer));
-      window.addEventListener("scroll", guard(hidePointer), { passive: true });
+      document.addEventListener("scroll", guard(hidePointer), { passive: true, capture: true });
       window.addEventListener("resize", guard(() => { hidePointer(); queueScan(); }), { passive: true });
       window.addEventListener("orientationchange", guard(() => { hidePointer(); queueScan(); }), { passive: true });
       document.addEventListener("visibilitychange", guard(syncPreferences));
@@ -327,6 +362,7 @@
       window.addEventListener("pagehide", guard(() => {
         suspended = true;
         mutations.disconnect();
+        finishInfinity();
         removePointer();
         revealAll();
       }));
@@ -337,6 +373,16 @@
         syncModal();
         syncPreferences();
       }));
+      if (infinityButton) {
+        infinityButton.addEventListener("click", guard(animateInfinity));
+        const finish = guard(event => {
+          if (event.animationName === "infinity-loop") finishInfinity();
+        });
+        infinityButton.addEventListener("animationend", finish);
+        infinityButton.addEventListener("animationcancel", finish);
+        infinityButton.hidden = false;
+        if (infinityFallback) infinityFallback.hidden = true;
+      }
     } catch { failOpen(); }
   }
 

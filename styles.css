@@ -276,6 +276,8 @@ a:not(.post-title):not(.contact-link):active, button:not([role="tab"]):active, s
 .fx-cursor.is-interest { --cursor-turn: 0deg; --cursor-scale: 1; }
 .fx-cursor.is-interest .fx-cursor-shape::before { opacity: 0; }
 .fx-cursor.is-interest .fx-cursor-shape::after { opacity: 1; transform: rotate(45deg) scale(1); }
+.fx-cursor.is-infinity .fx-cursor-shape::before { opacity: 0; }
+.fx-cursor.is-infinity .fx-cursor-shape::after { left: -12px; top: -10px; width: 24px; height: 20px; -webkit-mask-image: url("./assets/icons/infinity-light.svg"); mask-image: url("./assets/icons/infinity-light.svg"); opacity: 1; transform: rotate(-12deg) scale(1); }
 .fx-cursor.is-pressed { --cursor-scale: .7; }
 .fx-cursor-echo.is-pressed { opacity: 0; }
 html:not(.has-custom-cursor) :is(.fx-cursor,.fx-cursor-echo) { opacity: 0; visibility: hidden; transition: none; }
@@ -297,7 +299,7 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
   .post-item:hover { --row-shift: 0.3125rem; }
   .post-item:hover .post-title::after { opacity: 1; transform: translate(1px,-50%); }
   @supports selector(:has(*)) {
-    .post-list:has(.post-item:hover) .post-item:not(:hover):not(:focus-within) { opacity: .45; }
+    .post-list:has(.post-item:hover) .post-item:not(:hover):not(:focus-within) .post-title { color: var(--muted); }
   }
 }
 @media (hover: none) {
@@ -369,7 +371,7 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
 #contact-icons a:is([href*="x.com"],[href*="twitter.com"]) { --link-icon: url("./assets/icons/x-logo-light.svg"); }
 #contact-icons a[href*="discord"] { --link-icon: url("./assets/icons/discord-logo-light.svg"); }
 #contact-icons a[href^="mailto:"] { --link-icon: url("./assets/icons/envelope-simple-light.svg"); }
-#contact-icons .contact-link:focus-visible, #contact-icons .contact-link:active { opacity: .8; transition: none; }
+#contact-icons .contact-link:focus-visible, #contact-icons .contact-link:active { --pill-outline: var(--ink); color: var(--page); background-size: 100% 100%; opacity: .8; transition: none; }
 #contact-icons .contact-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 #contact-icons .contact-link:active { opacity: .8; transition: none; }
 .owner-access { gap: 0.5rem; }
@@ -429,12 +431,23 @@ html.theme-changing #contact-icons .contact-link { transition: background-size 2
 .identity { min-width: 0; }
 .identity-name { margin: .75rem 0 0; font-size: 1rem; font-weight: 500; }
 .identity-role { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .375rem 0 0; color: var(--muted); font-size: .875rem; }
-.role-connector { transition: transform 300ms var(--motion-ease); display: inline-block; flex-shrink: 0; width: 1.4em; height: 1.4em; width: round(nearest,1.4em,1px); height: round(nearest,1.4em,1px); background: currentColor; -webkit-mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; }
+.role-connector { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; margin: -.5rem -.25rem; border: 0; border-radius: .5rem; color: var(--ink); background: transparent; }
+.role-connector:focus-visible { outline-offset: 1px; }
+.role-connector-mark, .role-connector-fallback { display: inline-block; flex-shrink: 0; width: 1.4em; height: 1.4em; width: round(nearest,1.4em,1px); height: round(nearest,1.4em,1px); background: currentColor; -webkit-mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; }
+.role-connector-fallback { width: 44px; height: 44px; margin: -.5rem -.25rem; -webkit-mask-size: 1.4em; mask-size: 1.4em; }
+.role-connector-mark { transition: transform 300ms var(--motion-ease); transform: rotate(var(--loop-tilt,0deg)); }
+.role-connector.is-looping .role-connector-mark { animation: infinity-loop 800ms var(--motion-ease) both; }
+@keyframes infinity-loop {
+  0% { transform: perspective(8rem) rotateY(0deg) rotate(0deg) scale(1); }
+  35% { transform: perspective(8rem) rotateY(180deg) rotate(-18deg) scale(1.18); }
+  70% { transform: perspective(8rem) rotateY(300deg) rotate(12deg) scale(1.08); }
+  100% { transform: perspective(8rem) rotateY(360deg) rotate(0deg) scale(1); }
+}
 .site-header { align-items: flex-start; }
 .site-footer { padding-top: 4.5rem; }
 .footer-meta { display: block; margin: 0; }
 @media (max-width: 767px) { .site-footer { padding-top: 3rem; } }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse), (hover: none) {
   input, textarea, select, dialog input, dialog textarea, dialog select, .search-region input { font-size: 16px; }
   .plain, .secondary, .primary, .text-link, .owner-access, .contact-link { min-height: 44px; }
 }
@@ -449,13 +462,14 @@ html.theme-changing #contact-icons .contact-link { transition: background-size 2
 .interest-tech { --interest-icon: url("./assets/icons/atom-light.svg"); }
 .interest-trading { --interest-icon: url("./assets/icons/chart-line-up-light.svg"); }
 @media (hover: hover) and (pointer: fine) {
-  .identity:hover .role-connector { transform: rotate(-8deg) scale(1.08); }
+  .role-connector:is(:hover,.is-reacting) .role-connector-mark { transform: rotate(var(--loop-tilt,-8deg)) scale(1.14); }
   .interest-item.is-reacting .interest-icon { opacity: 1; transform: translateY(-2px) rotate(var(--asset-tilt,0deg)) scale(1.1); }
   .interest-ai.is-reacting .interest-icon { transform: translateY(-2px) rotate(calc(25deg + var(--asset-tilt,0deg))) scale(1.12); }
   .interest-tech.is-reacting .interest-icon { transform: translateY(-2px) rotate(calc(18deg + var(--asset-tilt,0deg))) scale(1.1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .interest-icon, .role-connector { transform: none !important; }
+  .interest-icon, .role-connector-mark { transform: none !important; }
+  .role-connector.is-looping { opacity: .55; }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   #contact-icons .contact-link::after { transform: none !important; }
