@@ -14,7 +14,7 @@
 }
 :root {
   color-scheme: light;
-  font-size: 15.2px;
+  font-size: 14.8px;
   --page: #fafafa;
   --ink: #171717;
   --muted: #6e6e6e;
@@ -29,7 +29,7 @@
   --mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --text-small: 0.875rem;
   --text-meta: clamp(12px, .8rem + .05vw, .8125rem);
-  --text-base: 1rem;
+  --text-base: max(15px,1rem);
   --text-heading: var(--text-base);
   --gutter: clamp(1.25rem, 4vw, 2.5rem);
   --spotlight: #0000000d;
@@ -259,18 +259,29 @@ a:not(.post-title):not(.contact-link):active, button:not([role="tab"]):active, s
 ::view-transition-old(archive-content) { animation: archive-fade-out 230ms ease-out both; mix-blend-mode: normal; }
 ::view-transition-new(archive-content) { animation: archive-fade-in 230ms ease-out both; mix-blend-mode: normal; }
 
-.fx-dot, .fx-ring { position: fixed; top: 0; left: 0; z-index: 50; pointer-events: none; color: #ffffff; mix-blend-mode: difference; opacity: 0; transition: opacity 150ms; }
-.fx-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.fx-ring { width: 32px; height: 32px; }
-.fx-ring-shape { position: absolute; inset: 0; border: 1px solid currentColor; border-radius: 50%; opacity: .7; transform: scale(1); transition: transform 200ms var(--motion-ease), opacity 200ms; }
-.fx-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 400 12px/1 var(--font); opacity: 0; transition: opacity 150ms; }
-.fx-dot.is-visible, .fx-ring.is-visible { opacity: 1; }
-.fx-ring.is-interactive .fx-ring-shape { opacity: .4; transform: scale(1.6); }
-.fx-ring.is-entry .fx-ring-shape { opacity: .5; transform: scale(2); }
-.fx-ring.is-entry .fx-label { opacity: 1; }
-.fx-ring.is-pressed .fx-ring-shape { transform: scale(.9); }
-.fx-ring.is-interactive.is-pressed .fx-ring-shape { transform: scale(1.44); }
-.fx-ring.is-entry.is-pressed .fx-ring-shape { transform: scale(1.8); }
+/* A cut paper pointer replaces the native cursor only while the guarded FX is active. */
+.fx-cursor, .fx-cursor-echo { position: fixed; top: 0; left: 0; z-index: 70; color: #ffffff; mix-blend-mode: difference; opacity: 0; pointer-events: none; }
+.fx-cursor { width: 20px; height: 24px; }
+.fx-cursor-shape { position: absolute; inset: 0; transform-origin: 0 0; transform: rotate(calc(var(--cursor-lean,0deg) + var(--cursor-turn,0deg))) scale(var(--cursor-scale,1)); transition: transform 180ms var(--motion-ease); }
+.fx-cursor-shape::before { content: ""; position: absolute; inset: 0; background: currentColor; clip-path: polygon(0 0,18px 13px,10px 15px,7px 24px); opacity: 1; transition: opacity 120ms; }
+.fx-cursor-shape::after { content: ""; position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("./assets/icons/asterisk-simple-light.svg") center / contain no-repeat; mask: url("./assets/icons/asterisk-simple-light.svg") center / contain no-repeat; opacity: 0; transform: rotate(-45deg) scale(.65); transition: transform 280ms var(--motion-ease), opacity 120ms; }
+.fx-cursor-label { position: absolute; left: 22px; top: 18px; font: 400 12px/1 var(--font); white-space: nowrap; opacity: 0; transform: translateX(-4px); transition: opacity 150ms, transform 180ms var(--motion-ease); }
+.fx-cursor-label::after { content: ""; display: inline-block; width: 1em; height: 1em; margin-left: .35em; vertical-align: -.1em; background: currentColor; -webkit-mask: url("./assets/icons/arrow-right-light.svg") center / contain no-repeat; mask: url("./assets/icons/arrow-right-light.svg") center / contain no-repeat; }
+.fx-cursor-echo { width: 12px; height: 16px; clip-path: polygon(0 0,11px 8px,6px 10px,4px 16px); background: currentColor; transition: opacity 120ms; }
+.fx-cursor.is-visible { opacity: 1; }
+.fx-cursor-echo.is-visible { opacity: .16; }
+.fx-cursor.is-interactive { --cursor-turn: -10deg; --cursor-scale: .86; }
+.fx-cursor.is-entry { --cursor-turn: -28deg; }
+.fx-cursor.is-entry .fx-cursor-label { opacity: 1; transform: translateX(0); }
+.fx-cursor.is-interest { --cursor-turn: 0deg; --cursor-scale: 1; }
+.fx-cursor.is-interest .fx-cursor-shape::before { opacity: 0; }
+.fx-cursor.is-interest .fx-cursor-shape::after { opacity: 1; transform: rotate(45deg) scale(1); }
+.fx-cursor.is-pressed { --cursor-scale: .7; }
+.fx-cursor-echo.is-pressed { opacity: 0; }
+html:not(.has-custom-cursor) :is(.fx-cursor,.fx-cursor-echo) { opacity: 0; visibility: hidden; transition: none; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.has-custom-cursor, html.has-custom-cursor * { cursor: none !important; }
+}
 .post-list::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(circle 20rem at var(--mx,50%) var(--my,50%), var(--spotlight), transparent 100%); opacity: 0; transition: opacity 200ms; }
 .post-list.has-spotlight::before { opacity: 1; }
 html.js-reveal .post-list > .post-item.reveal-pending, html.js-reveal .detail:not(.panel-ghost) .body > .reveal-pending { animation: none; opacity: 0; transform: translateY(0.5rem); }
@@ -326,7 +337,7 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
   .publish-actions > .secondary { justify-self: end; }
 }
 @media (pointer: coarse), (hover: none) {
-  .fx-dot, .fx-ring { display: none; }
+  .fx-cursor, .fx-cursor-echo { display: none; }
   .contact-link, .switcher button { --magnet-x: 0px !important; --magnet-y: 0px !important; }
   .post-list::before { content: none; }
 }
@@ -363,8 +374,6 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
 #contact-icons .contact-link:active { opacity: .8; transition: none; }
 .owner-access { gap: 0.5rem; }
 .owner-access::before { --link-icon: url("./assets/icons/lock-simple-light.svg"); width: 0.875rem; height: 0.875rem; }
-.fx-ring.is-contact .fx-ring-shape { transform: scale(1.25); }
-.fx-ring.is-contact.is-pressed .fx-ring-shape { transform: scale(1.125); }
 
 /* Owner dialogs share one field, button, and spacing system. */
 .owner-label, .eyebrow { font: 500 0.75rem/1.5 var(--font); letter-spacing: .08em; text-transform: uppercase; }
@@ -420,7 +429,7 @@ html.theme-changing #contact-icons .contact-link { transition: background-size 2
 .identity { min-width: 0; }
 .identity-name { margin: .75rem 0 0; font-size: 1rem; font-weight: 500; }
 .identity-role { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .375rem 0 0; color: var(--muted); font-size: .875rem; }
-.role-connector { display: inline-block; flex-shrink: 0; width: 1.15em; height: 1.15em; width: round(nearest,1.15em,1px); height: round(nearest,1.15em,1px); background: currentColor; -webkit-mask: url("./assets/icons/arrows-left-right-light.svg") center / contain no-repeat; mask: url("./assets/icons/arrows-left-right-light.svg") center / contain no-repeat; }
+.role-connector { transition: transform 300ms var(--motion-ease); display: inline-block; flex-shrink: 0; width: 1.4em; height: 1.4em; width: round(nearest,1.4em,1px); height: round(nearest,1.4em,1px); background: currentColor; -webkit-mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; }
 .site-header { align-items: flex-start; }
 .site-footer { padding-top: 4.5rem; }
 .footer-meta { display: block; margin: 0; }
@@ -429,11 +438,28 @@ html.theme-changing #contact-icons .contact-link { transition: background-size 2
   input, textarea, select, dialog input, dialog textarea, dialog select, .search-region input { font-size: 16px; }
   .plain, .secondary, .primary, .text-link, .owner-access, .contact-link { min-height: 44px; }
 }
+/* Plain interest labels are informational, with small pointer-driven icon reactions. */
+.interest-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem .75rem; margin-top: 1rem; font-size: .875rem; line-height: 1.5; }
+.interest-label { color: var(--muted); }
+.interests { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: 0; margin: 0; list-style: none; }
+.interest-item { display: inline-flex; align-items: center; gap: .375rem; color: var(--ink); }
+.interest-icon { display: inline-block; flex-shrink: 0; width: 1.25em; height: 1.25em; width: round(nearest,1.25em,1px); height: round(nearest,1.25em,1px); background: currentColor; -webkit-mask: var(--interest-icon) center / contain no-repeat; mask: var(--interest-icon) center / contain no-repeat; opacity: .8; transform: translateY(0) rotate(0deg); transition: transform 300ms var(--motion-ease), opacity 180ms; }
+.interest-crypto { --interest-icon: url("./assets/icons/currency-btc-light.svg"); }
+.interest-ai { --interest-icon: url("./assets/icons/sparkle-light.svg"); }
+.interest-tech { --interest-icon: url("./assets/icons/atom-light.svg"); }
+.interest-trading { --interest-icon: url("./assets/icons/chart-line-up-light.svg"); }
+@media (hover: hover) and (pointer: fine) {
+  .identity:hover .role-connector { transform: rotate(-8deg) scale(1.08); }
+  .interest-item.is-reacting .interest-icon { opacity: 1; transform: translateY(-2px) rotate(var(--asset-tilt,0deg)) scale(1.1); }
+  .interest-ai.is-reacting .interest-icon { transform: translateY(-2px) rotate(calc(25deg + var(--asset-tilt,0deg))) scale(1.12); }
+  .interest-tech.is-reacting .interest-icon { transform: translateY(-2px) rotate(calc(18deg + var(--asset-tilt,0deg))) scale(1.1); }
+}
 @media (prefers-reduced-motion: reduce) {
+  .interest-icon, .role-connector { transform: none !important; }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   #contact-icons .contact-link::after { transform: none !important; }
-  .fx-dot, .fx-ring, .post-list::before { display: none; }
+  .fx-cursor, .fx-cursor-echo, .post-list::before { display: none; }
   .contact-link, .switcher button { --magnet-x: 0px !important; --magnet-y: 0px !important; }
   html.js-reveal .post-list > .post-item.reveal-pending, html.js-reveal .detail:not(.panel-ghost) .body > .reveal-pending { opacity: 1; transform: none; }
 }

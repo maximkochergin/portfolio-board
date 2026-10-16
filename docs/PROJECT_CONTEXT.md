@@ -19,7 +19,7 @@ A minimalist, English-language personal portfolio and notes board. Visitors can 
 - RLS is the security boundary for public reads, private drafts, and owner writes. UI checks only control what the owner sees.
 - Never place Supabase service-role credentials in the repository or browser. Do not expose additional tables or APIs without an explicit access policy.
 - GitHub Pages hosts the project under `/portfolio-board/`; it forces HTTPS but does not let this project configure every response security header or cache policy. The page uses a CSP meta policy.
-- The owner supplied the public identity: Maxim Kochergin, Software Engineer - DevOps. The role is displayed with a neutral arrows-left-right mask instead of a text dash. Do not invent personal links.
+- The owner supplied the public identity: Maxim Kochergin, Software Engineer - DevOps. The role is displayed with a neutral infinity mask instead of a text dash. Do not invent personal links.
 
 ## Current state
 
@@ -43,13 +43,13 @@ The October 16 interaction update keeps Geist on all controls and links, with Fr
 
 ## Contact and dialog refinement
 
-Header contacts are wrapping 44px pills with Phosphor Light masks selected by href in CSS. A bottom-up neutral fill inverts focused, pressed, or hovered pills; touch gets only press feedback. The cursor ring stays at 40px over contacts, and magnetic movement is preserved. External-link arrows have been removed; entry row arrows remain. Owner sign-in uses a small lock mask. All owner dialogs share 16px corners, neutral blurred backdrops, 48px fields and full-width primary actions, with bottom-sheet geometry on phones. Busy indicators follow existing aria-busy states; alert masks reuse existing error nodes. No data or auth behavior changes.
+Header contacts are wrapping 44px pills with Phosphor Light masks selected by href in CSS. A bottom-up neutral fill inverts focused, pressed, or hovered pills; touch gets only press feedback. The cursor uses an angular pointer and a fading angular echo, while magnetic movement is preserved. External-link arrows have been removed; entry row arrows remain. Owner sign-in uses a small lock mask. All owner dialogs share 16px corners, neutral blurred backdrops, 48px fields and full-width primary actions, with bottom-sheet geometry on phones. Busy indicators follow existing aria-busy states; alert masks reuse existing error nodes. No data or auth behavior changes.
 
 Fragment Mono Latin 400 replaces Geist Mono after a temporary local comparison against Martian Mono and Sometype Mono at 12–13px in both themes. Fragment was chosen for its compact width and small-size clarity next to Geist. Only the selected WOFF2 and its upstream OFL-1.1 license are shipped. Eyebrows, previews and operational labels use Geist.
 
 ## Final visual update
 
-The interface uses a 15.2px root scale and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
+The interface uses a 14.8px root scale with a 15px main-text floor and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
 
 `assets/theme-init.js` is an external blocking head script that applies a valid persisted theme before CSS paints. `assets/theme.js` cycles system/light/dark, stores only explicit choices under `theme`, syncs storage events, follows live system preferences, and updates browser metadata. Storage failures fall back to a working in-page choice. No runtime CDN or inline scripts are used.
 
@@ -57,10 +57,16 @@ Contact pills use a single background-size fill and inset outline, not a transfo
 
 The static brand and profile fallback are quipmug. The legacy Supabase title archive is mapped to quipmug for display only. Other custom titles and the editable source value stay intact. No production data is changed for this redesign. The supplied identity is displayed under the brand in the top header, with a Phosphor connector between the two role labels. The footer has returned to its original discreet Owner sign in link, with no large signature, divider, or Back to top link.
 
-The root favicon.svg is theme-aware; assets/brand/q-mark.svg is its reusable geometric source. favicon-32.png and apple-touch-icon.png are local raster fallbacks. assets/brand/cover.html and cover.css are the source for the 1672x941 sharing image, rendered with local Geist; a Phosphor arrows-left-right mask connects the two role labels. Root icon files are explicitly allowed by the preview server and included in the Pages artifact. Only the inert SVG favicon response permits its exact embedded theme stylesheet by hash; HTML pages retain self-only external styles and scripts.
+The root favicon.svg is theme-aware; assets/brand/q-mark.svg is its reusable geometric source. favicon-32.png and apple-touch-icon.png are local raster fallbacks. assets/brand/cover.html and cover.css are the source for the 1672x941 sharing image, rendered with local Geist; a Phosphor infinity mask connects the two role labels. Root icon files are explicitly allowed by the preview server and included in the Pages artifact. Only the inert SVG favicon response permits its exact embedded theme stylesheet by hash; HTML pages retain self-only external styles and scripts.
 
 The owner approved updating only the preview test's two old archive title expectations and replacing its obsolete inline JSON-LD expectation with local-script/CSP and brand metadata checks. The remaining test contracts are unchanged.
 
 ## Identity placement correction
 
-The owner clarified that the identity belongs at the top, replacing the archive block entirely. The bottom returns to its earlier minimal footer. Use the refined 15.2px root scale (a 5% reduction from the original 16px), retain the working theme controls and stable pill surfaces, and keep Projects / Notes / About, Supabase operations and editable intro intact. Display-only title mapping is shared by the header, entry titles and unavailable-entry titles; no production database changes or manual rename are needed.
+The owner clarified that the identity belongs at the top, replacing the archive block entirely. The bottom returns to its earlier minimal footer. Use the refined 14.8px root scale with readable 15px main text, retain the working theme controls and stable pill surfaces, and keep Projects / Notes / About, Supabase operations and editable intro intact. Display-only title mapping is shared by the header, entry titles and unavailable-entry titles; no production database changes or manual rename are needed.
+
+## Interests and pointer refinement
+
+The owner supplied Crypto, AI, Tech and Trading as interests. A plain Exploring row under the role uses local Phosphor Light currency-btc, sparkle, atom and chart-line-up masks. These are informational labels, not buttons. The role connector uses infinity as a quiet DevOps cycle symbol; the sharing image matches it and includes the interest sentence. All six new assets, including the cursor asterisk, are unchanged official MIT SVGs recorded in THIRD_PARTY.txt.
+
+At fine-pointer hover with motion enabled, assets/fx.js now replaces the native pointer with a small cut-paper shape, bounded velocity lean and press feedback. A faint angular echo follows briefly and fades when movement settles; requestAnimationFrame stops at idle. Entry hover adds a View label. Interest hover turns the cursor into an asterisk and gives the corresponding icon a bounded tilt. There are no cursor circles or rings. The native pointer is restored over inputs, disabled controls, owner areas/dialogs, scrollbars, outside the window, during keyboard use and on cleanup/failure. Touch and reduced motion create no cursor nodes. CSS cursor hiding is also guarded by the same media conditions and the active root class.
