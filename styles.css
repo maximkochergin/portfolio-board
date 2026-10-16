@@ -6,10 +6,10 @@
   font-display: swap;
 }
 @font-face {
-  font-family: "Geist Mono";
-  src: url("./assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-family: "Fragment Mono";
+  src: url("./assets/fonts/FragmentMono-Latin-400.woff2") format("woff2");
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 400;
   font-display: swap;
 }
 :root {
@@ -21,9 +21,11 @@
   --hover: #000000;
   --field-line: #898989;
   --code: #f0f0f0;
-  --backdrop: #00000066;
+  --backdrop: #00000099;
+  --dialog: #ffffff;
+  --dialog-shadow: 0 16px 48px #00000012;
   --font: "Geist", ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --text-small: 14px;
   --text-meta: clamp(12px, .75rem + .05vw, 13px);
   --text-base: clamp(16px, 1rem, 18px);
@@ -42,6 +44,8 @@
     --field-line: #626262;
     --code: #1b1b1b;
     --backdrop: #00000099;
+    --dialog: #161616;
+    --dialog-shadow: none;
     --spotlight: #ffffff0f;
   }
 }
@@ -191,7 +195,7 @@ dialog .error { margin: 16px 0 0; }
 .error-content { margin-block: auto; padding-block: 64px; }
 .error-content h1 { margin: 0 0 24px; font-size: var(--text-heading); font-weight: 500; line-height: 1.4; }
 .error-content > p { margin: 0 0 24px; color: var(--muted); }
-.post-meta, .detail-meta, .post-preview, .subtitle, .owner-label, .eyebrow, .footer-note, .copy-status {
+.post-meta, .detail-meta, .subtitle {
   font-family: var(--mono);
   font-size: var(--text-meta);
   letter-spacing: .025em;
@@ -203,14 +207,6 @@ a:active, button:active, summary:active { --press-scale: .98; opacity: .7; }
 .contact-link:active, .switcher button:active { transition-duration: 100ms; }
 a:not(.post-title):not(.contact-link):active, button:not([role="tab"]):active, summary:active { transform: scale(.98); }
 .post-item:has(.post-title:active) { --press-scale: .98; opacity: .7; transition-duration: 100ms; }
-.contact-link::after, .owner-access::after, .body a[href]::after, .detail-link[href]::after, #copy-post-link::after {
-  content: ""; display: inline-block; flex-shrink: 0; width: .9em; height: .9em; margin-inline-start: .4em; vertical-align: -.08em; background-color: currentColor;
-  -webkit-mask: url("./assets/icons/arrow-up-right-light.svg") center / contain no-repeat;
-  mask: url("./assets/icons/arrow-up-right-light.svg") center / contain no-repeat;
-  opacity: .6; transform: translate(0,0); transition: opacity 200ms, transform 200ms var(--motion-ease); pointer-events: none;
-}
-.owner-access::after, #copy-post-link::after { -webkit-mask-image: url("./assets/icons/arrow-right-light.svg"); mask-image: url("./assets/icons/arrow-right-light.svg"); }
-.contact-link:focus-visible::after, .owner-access:focus-visible::after, .body a[href]:focus-visible::after, .detail-link[href]:focus-visible::after, #copy-post-link:focus-visible::after { opacity: 1; transform: translate(2px,-2px); }
 .post-title::after { content: ""; position: absolute; right: 3px; top: 50%; width: 16px; height: 16px; background-color: currentColor; -webkit-mask: url("./assets/icons/arrow-right-light.svg") center / contain no-repeat; mask: url("./assets/icons/arrow-right-light.svg") center / contain no-repeat; opacity: .5; transform: translate(0,-50%); transition: opacity 200ms, transform 200ms var(--motion-ease); pointer-events: none; }
 .post-item:focus-within .post-title::after { opacity: 1; transform: translate(3px,-50%); }
 
@@ -268,7 +264,6 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
 .post-list > .post-item:has(.post-title:active), html.js-reveal .post-list > .post-item.reveal-visible:has(.post-title:active) { opacity: .7; transform: translateX(var(--row-shift,0px)) scale(.98); transition-duration: 100ms; }
 
 @media (hover: hover) and (pointer: fine) {
-  .contact-link:hover::after, .owner-access:hover::after, .body a[href]:hover::after, .detail-link[href]:hover::after, #copy-post-link:hover::after { opacity: 1; transform: translate(2px,-2px); }
   .post-list { margin-inline-end: 6px; }
   .post-title::after { opacity: 0; transform: translate(-4px,-50%); }
   .post-item:hover { --row-shift: 5px; }
@@ -302,7 +297,7 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
   .owner-label { flex-basis: 100%; }
   .workspace-actions { gap: 8px 20px; }
   .site-footer { padding-top: 48px; }
-  dialog, #auth-dialog, #confirm-dialog { position: fixed; inset: auto 0 0; width: 100%; max-width: 100%; max-height: 92vh; max-height: 92dvh; margin: 0; padding: 24px calc(24px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) calc(24px + env(safe-area-inset-left,0px)); border: 0; border-top: 1px solid var(--field-line); border-radius: 14px 14px 0 0; }
+  dialog, #auth-dialog, #confirm-dialog { position: fixed; inset: auto 0 0; width: 100%; max-width: 100%; max-height: 92vh; max-height: 92dvh; margin: 0; padding: 24px calc(24px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) calc(24px + env(safe-area-inset-left,0px)); border: 0; border-top: 1px solid var(--field-line); border-radius: 20px 20px 0 0; }
   dialog input, dialog textarea, dialog select { font-size: 16px; scroll-margin-block: 24px; }
   dialog textarea { min-height: 220px; min-height: clamp(220px, 36dvh, 360px); }
   #profile-copy { min-height: 120px; }
@@ -318,9 +313,89 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
   .contact-link, .switcher button { --magnet-x: 0px !important; --magnet-y: 0px !important; }
   .post-list::before { content: none; }
 }
+/* Contact pills use only href selectors; dynamic link text stays unchanged. */
+.contacts, .contact-icons { align-items: center; gap: 10px; }
+.contacts { margin-top: 16px; }
+#contact-icons .contact-link {
+  position: relative; isolation: isolate; overflow: hidden; justify-content: center;
+  gap: 8px; padding: 10px 14px; min-height: 44px; border: 1px solid var(--line);
+  border-radius: 999px; color: var(--ink); font: 500 14px/1.5 var(--font);
+  transition: transform 300ms var(--motion-ease), color 280ms, border-color 280ms;
+}
+#contact-icons .contact-link::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: var(--ink); transform: scaleY(0); transform-origin: bottom;
+  transition: transform 280ms var(--motion-ease); pointer-events: none;
+}
+#contact-icons .contact-link::after, .owner-access::before, dialog .error::before {
+  content: ""; display: inline-block; flex-shrink: 0; width: 17px; height: 17px;
+  background-color: currentColor; -webkit-mask: var(--link-icon) center / contain no-repeat;
+  mask: var(--link-icon) center / contain no-repeat; pointer-events: none;
+}
+#contact-icons .contact-link::after { order: -1; transition: transform 280ms var(--motion-ease); }
+#contact-icons .contact-link { --link-icon: url("./assets/icons/file-text-light.svg"); }
+#contact-icons a[href*="linkedin.com"] { --link-icon: url("./assets/icons/linkedin-logo-light.svg"); }
+#contact-icons a[href*="github.com"] { --link-icon: url("./assets/icons/github-logo-light.svg"); }
+#contact-icons a:is([href*="t.me"],[href*="telegram"]) { --link-icon: url("./assets/icons/telegram-logo-light.svg"); }
+#contact-icons a:is([href*="x.com"],[href*="twitter.com"]) { --link-icon: url("./assets/icons/x-logo-light.svg"); }
+#contact-icons a[href*="discord"] { --link-icon: url("./assets/icons/discord-logo-light.svg"); }
+#contact-icons a[href^="mailto:"] { --link-icon: url("./assets/icons/envelope-simple-light.svg"); }
+#contact-icons .contact-link:focus-visible, #contact-icons .contact-link:active { color: var(--page); border-color: var(--ink); opacity: 1; }
+#contact-icons .contact-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+#contact-icons .contact-link:focus-visible::before, #contact-icons .contact-link:active::before { transform: scaleY(1); }
+#contact-icons .contact-link:active { --press-scale: .97; transition-duration: 100ms; }
+#contact-icons .contact-link:active::before { transition: none; }
+.owner-access { gap: 8px; }
+.owner-access::before { --link-icon: url("./assets/icons/lock-simple-light.svg"); width: 14px; height: 14px; }
+.fx-ring.is-contact .fx-ring-shape { transform: scale(1.25); }
+.fx-ring.is-contact.is-pressed .fx-ring-shape { transform: scale(1.125); }
+
+/* Owner dialogs share one field, button, and spacing system. */
+.owner-label, .eyebrow { font: 500 12px/1.5 var(--font); letter-spacing: .08em; text-transform: uppercase; }
+.post-preview, .footer-note, .copy-status { font-family: var(--font); font-size: var(--text-small); }
+dialog, #auth-dialog, #confirm-dialog {
+  width: min(420px,calc(100% - 40px)); padding: 32px;
+  border: 1px solid var(--line); border-radius: 16px; background: var(--dialog); box-shadow: var(--dialog-shadow);
+}
+dialog[open] { animation: dialog-enter 250ms var(--motion-ease) both; }
+dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(6px); animation: backdrop-enter 200ms ease both; }
+.dialog-header h2 { font-size: 24px; font-weight: 500; letter-spacing: -.01em; line-height: 1.25; }
+.dialog-copy { font-size: 14px; line-height: 1.65; }
+dialog label { font-size: 13px; }
+dialog input, dialog textarea, dialog select { min-height: 48px; border-radius: 10px; font-size: 16px; background: var(--dialog); }
+dialog textarea { min-height: 220px; min-height: clamp(220px, 36dvh, 360px); }
+#profile-copy { min-height: 120px; }
+dialog :is(input, textarea, select):focus-visible { border-color: var(--ink); outline: 2px solid var(--ink); outline-offset: 2px; }
+dialog .actions { position: static; display: flex; flex-direction: column; gap: 8px; background: var(--dialog); }
+dialog .publish-actions { display: contents; }
+dialog .actions .primary { order: -1; width: 100%; min-height: 48px; justify-content: center; border-radius: 10px; }
+dialog .actions :is(.plain,.secondary) { min-height: 44px; justify-content: center; color: var(--muted); }
+dialog .actions :is(.plain,.secondary):hover { color: var(--ink); }
+dialog .primary:hover:not(:disabled) { opacity: .9; }
+dialog .primary:disabled { opacity: .5; }
+dialog .error { display: flex; align-items: flex-start; gap: 8px; padding: 0; border: 0; font-size: 13px; line-height: 1.6; }
+dialog .error::before { --link-icon: url("./assets/icons/warning-circle-light.svg"); margin-top: 2px; }
+#auth-copy::before { content: ""; display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; background: currentColor; -webkit-mask: url("./assets/icons/envelope-simple-light.svg") center / contain no-repeat; mask: url("./assets/icons/envelope-simple-light.svg") center / contain no-repeat; }
+dialog form[aria-busy="true"] .primary::before { content: ""; width: 14px; height: 14px; border: 1px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: button-busy 800ms linear infinite; }
+@keyframes dialog-enter { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes button-busy { to { transform: rotate(360deg); } }
+@media (hover: hover) {
+  #contact-icons .contact-link:hover { color: var(--page); border-color: var(--ink); }
+  #contact-icons .contact-link:hover::before { transform: scaleY(1); }
+  #contact-icons .contact-link:is(:hover,:focus-visible)::after { transform: rotate(-8deg); }
+}
+@media (max-width: 767px) {
+  dialog, #auth-dialog, #confirm-dialog {
+    width: 100%; max-height: 92vh; max-height: 92dvh; border-radius: 20px 20px 0 0;
+    padding: 24px calc(24px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) calc(24px + env(safe-area-inset-left,0px));
+  }
+  dialog::before { content: ""; display: block; width: 36px; height: 4px; margin: -12px auto 24px; background: var(--field-line); border-radius: 999px; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  #contact-icons .contact-link::after { transform: none !important; }
   .fx-dot, .fx-ring, .post-list::before { display: none; }
   .contact-link, .switcher button { --magnet-x: 0px !important; --magnet-y: 0px !important; }
   html.js-reveal .post-list > .post-item.reveal-pending, html.js-reveal .detail:not(.panel-ghost) .body > .reveal-pending { opacity: 1; transform: none; }

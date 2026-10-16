@@ -1,7 +1,7 @@
-Geist and Geist Mono variable webfonts
+Geist variable webfont
 Source: https://github.com/vercel/geist-font
 Revision: 10dc7658f13c38a474cde201bb09a4617267545b
-Original files: fonts/Geist/webfonts/Geist[wght].woff2 and fonts/GeistMono/webfonts/GeistMono[wght].woff2
+Original files: fonts/Geist/webfonts/Geist[wght].woff2
 License: fonts/Geist-OFL.txt (SIL Open Font License 1.1)
 
 Supabase JavaScript browser bundle 2.117.0
@@ -11,9 +11,15 @@ The local file is byte-for-byte identical to the previously loaded pinned bundle
 Integrity: sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6
 License: vendor/supabase-LICENSE.txt (MIT)
 
-Phosphor Icons: arrow-up-right and arrow-right, Light weight
+Phosphor Icons, Light weight: social logos, envelope-simple, file-text,
+lock-simple, warning-circle, and arrow-right
 Source: https://github.com/phosphor-icons/core
 Revision: 2b75f3ad12b420c9504ef05df8d2564a28f8500e
-Original files: assets/light/arrow-up-right-light.svg and assets/light/arrow-right-light.svg
-The SVG files are stored locally without modification and used as CSS masks.
+Original files: assets/light/<name>-light.svg, stored unchanged as local CSS masks.
 License: icons/Phosphor-LICENSE.txt (MIT)
+
+Fragment Mono, Latin, normal 400
+Source: https://github.com/weiweihuanghuang/fragment-mono
+Distribution: https://cdn.jsdelivr.net/fontsource/fonts/fragment-mono@latest/latin-400-normal.woff2
+License source: https://raw.githubusercontent.com/google/fonts/main/ofl/fragmentmono/OFL.txt
+License: fonts/FragmentMono-OFL.txt (SIL Open Font License 1.1)

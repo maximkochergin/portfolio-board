@@ -59,7 +59,7 @@
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
       dot?.classList.remove("is-visible", "is-pressed");
-      ring?.classList.remove("is-visible", "is-interactive", "is-entry", "is-pressed");
+      ring?.classList.remove("is-visible", "is-interactive", "is-entry", "is-contact", "is-pressed");
       resetMagnet();
       resetSpotlight();
     }
@@ -93,6 +93,7 @@
       const target = document.elementFromPoint(x, y);
       if (blocked(target)) { hidePointer(); return; }
       ring.classList.toggle("is-interactive", Boolean(target.closest("a[href], button:not(:disabled), summary, [role='button']:not([aria-disabled='true'])")));
+      ring.classList.toggle("is-contact", Boolean(target.closest("#contact-icons .contact-link")));
       ring.classList.toggle("is-entry", Boolean(target.closest(".post-list > .post-item")));
       let nearest = null;
       let distance = 60;
