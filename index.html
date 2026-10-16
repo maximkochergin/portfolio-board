@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="A small place for work, notes, and the things in between." />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
@@ -27,9 +27,10 @@
     <meta name="twitter:image:alt" content="Archive. A personal portfolio of work and notes on a dark background." />
     <link rel="icon" href="./assets/icons/paper-mark.svg?v=mono-1" type="image/svg+xml" />
     <link rel="preload" href="./assets/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=type-motion-1" />
-    <script src="./assets/navigation.js?v=git-dark-1" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=interaction-1" />
+    <script src="./assets/navigation.js?v=interaction-1" defer></script>
     <script src="./assets/motion.js?v=1" defer></script>
+    <script src="./assets/fx.js?v=1" defer></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"archive","url":"https://quipmug.github.io/portfolio-board/","description":"A small place for work, notes, and the things in between."}</script>
   </head>
   <body>
@@ -95,7 +96,7 @@
               <p class="subtitle" id="detail-subtitle" hidden></p>
               <div class="body" id="detail-body"></div>
               <a class="text-link detail-link" id="detail-link" target="_blank" rel="noopener noreferrer" hidden></a>
-              <div class="share-action" id="share-action" hidden><button class="plain" id="copy-post-link" type="button">Copy entry link <span aria-hidden="true">↗</span></button><span class="copy-status" id="copy-link-status" role="status" aria-live="polite"></span></div>
+              <div class="share-action" id="share-action" hidden><button class="plain" id="copy-post-link" type="button">Copy entry link</button><span class="copy-status" id="copy-link-status" role="status" aria-live="polite"></span></div>
               <p class="detail-error" id="detail-error" role="alert" hidden></p>
               <div class="owner-actions" id="owner-actions" hidden><button class="secondary" type="button" id="edit-post">Edit entry</button><button class="plain danger" type="button" id="delete-post">Delete entry</button></div>
             </article>
