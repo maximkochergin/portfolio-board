@@ -10,7 +10,7 @@ if (port === 80) {
   allowedHosts.add("127.0.0.1");
   allowedHosts.add("localhost");
 }
-const publicFiles = new Set(["index.html", "404.html", "robots.txt", "sitemap.xml", "styles.css", "site.js", "config.js"]);
+const publicFiles = new Set(["index.html", "404.html", "robots.txt", "sitemap.xml", "styles.css", "site.js", "config.js", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"]);
 function isPublicFile(path) {
   return publicFiles.has(path) || (path.startsWith(`assets${sep}`)
     && !path.split(sep).some((part) => part.startsWith(".")));
@@ -27,7 +27,7 @@ const types = {
   ".txt": "text/plain; charset=utf-8"
 };
 const securityHeaders = {
-  "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-9kUuT/AbWd7z9zMlHvbPgOv6VwgbtUDDwu1ex3+I46I='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'",
+  "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'",
   "cross-origin-resource-policy": "same-origin",
   "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
   "referrer-policy": "no-referrer",
@@ -69,6 +69,10 @@ createServer(function (request, response) {
       "content-type": types[extname(realFile)] || "application/octet-stream",
       "cache-control": sitePath === "/config.js" ? "no-store" : "no-cache"
     };
+    if (sitePath === "/favicon.svg") {
+      // Only this inert SVG needs its exact embedded color-scheme stylesheet.
+      headers["content-security-policy"] = "default-src 'none'; style-src 'sha256-hBk83qZaZBJmK7BFWYBHmBWCXiuie9gg87naBfoN8Ng='; script-src 'none'; object-src 'none'; base-uri 'none'";
+    }
     response.writeHead(200, headers);
     if (request.method === "HEAD") response.end();
     else createReadStream(realFile).on("error", function () { response.destroy(); }).pipe(response);

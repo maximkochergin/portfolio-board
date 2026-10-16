@@ -1,0 +1,10 @@
+@font-face { font-family: Geist; src: url("../fonts/Geist-Variable.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
+* { box-sizing: border-box; }
+html { font-size: 32px; }
+html, body { margin: 0; width: 1672px; height: 941px; background: #111111; color: #ededed; }
+body { display: flex; align-items: center; font-family: Geist, sans-serif; }
+main { width: 100%; padding: 3.75rem; }
+h1 { margin: 0; font-size: 6.5rem; font-weight: 500; line-height: .9; letter-spacing: -.04em; }
+.name { margin: 1.25rem 0 0; font-size: 1rem; font-weight: 500; }
+.role { display: flex; align-items: center; gap: .625rem; margin: .75rem 0 0; color: #8f8f8f; font-size: .875rem; font-weight: 400; }
+.connection { width: .875rem; height: .875rem; background: currentColor; mask: url("../icons/arrows-left-right-light.svg") center / contain no-repeat; -webkit-mask: url("../icons/arrows-left-right-light.svg") center / contain no-repeat; }

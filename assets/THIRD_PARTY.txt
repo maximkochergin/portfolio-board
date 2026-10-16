@@ -12,7 +12,8 @@ Integrity: sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1ae
 License: vendor/supabase-LICENSE.txt (MIT)
 
 Phosphor Icons, Light weight: social logos, envelope-simple, file-text,
-lock-simple, warning-circle, and arrow-right
+lock-simple, warning-circle, arrow-right, arrow-up, monitor, sun, moon,
+and arrows-left-right
 Source: https://github.com/phosphor-icons/core
 Revision: 2b75f3ad12b420c9504ef05df8d2564a28f8500e
 Original files: assets/light/<name>-light.svg, stored unchanged as local CSS masks.

@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { readFile } from "node:fs/promises";
 import { request } from "node:http";
@@ -62,7 +61,7 @@ test("local preview serves only the public site to local hosts", async () => {
     const localHost = `127.0.0.1:${port}`;
     const localPage = await get(port, "/?manage=1", localHost);
     assert.equal(localPage.status, 200);
-    assert.match(localPage.body, /<title>archive<\/title>/);
+    assert.match(localPage.body, /<title>quipmug<\/title>/);
     assert.equal((await get(port, "/index.html", `localhost:${port}`)).status, 200);
     assert.equal((await get(port, "/assets/icons/paper-mark.svg", localHost)).status, 200);
     assert.equal((await get(port, "/site.js", localHost, "HEAD")).status, 200);
@@ -78,7 +77,7 @@ test("local preview serves only the public site to local hosts", async () => {
     assert.equal((await get(port, `http://attacker.example:${port}/.gitignore`, `attacker.example:${port}`)).status, 403);
     const missing = await get(port, "/.gitignore", localHost);
     assert.equal(missing.status, 404);
-    assert.match(missing.body, /<title>page not found \| archive<\/title>/);
+    assert.match(missing.body, /<title>page not found \| quipmug<\/title>/);
     assert.match(missing.body, /page not found\./);
     assert.equal((await get(port, "/.gitignore", localHost, "HEAD")).body, "");
     assert.equal((await get(port, "/%2egitignore", localHost)).status, 404);
@@ -93,15 +92,19 @@ test("local preview serves only the public site to local hosts", async () => {
   }
 });
 
-test("metadata JSON-LD hash is allowed by preview and page CSP", async () => {
+test("metadata and external scripts follow the page and preview CSP", async () => {
   const [html, server] = await Promise.all([
     readFile(new URL("../index.html", import.meta.url), "utf8"),
     readFile(new URL("../serve.mjs", import.meta.url), "utf8")
   ]);
-  const json = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)?.[1];
-  assert.ok(json, "expected WebSite JSON-LD");
-  assert.equal(JSON.parse(json)["@type"], "WebSite");
-  const hash = "'sha256-" + createHash("sha256").update(json).digest("base64") + "'";
-  assert.ok(html.includes(hash), "metadata script must match page CSP");
-  assert.ok(server.includes(hash), "metadata script must match preview CSP");
+  assert.match(html, /<meta property="og:title" content="quipmug"/);
+  assert.match(html, /<meta name="twitter:title" content="quipmug"/);
+  assert.ok(html.includes("script-src 'self';"), "page scripts must be self-hosted");
+  assert.ok(server.includes("script-src 'self';"), "preview must use the same script policy");
+  const scripts = Array.from(html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g));
+  assert.ok(scripts.length > 0, "expected external application scripts");
+  scripts.forEach(([, attributes, body]) => {
+    assert.match(attributes, /src="\.\/[^"\s]+"/, "script source must be local");
+    assert.equal(body.trim(), "", "inline scripts must not be present");
+  });
 });

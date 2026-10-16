@@ -3,7 +3,7 @@
     const root = document.documentElement;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const revealSelector = ".post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table)";
+    const revealSelector = ".footer-sign, .post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table)";
     const excluded = "dialog, [role='dialog'], #board-controls, #owner-actions, input, textarea, select, [contenteditable]:not([contenteditable='false'])";
     const seen = new WeakSet();
     const pending = new Set();
@@ -118,8 +118,8 @@
         if (next < distance) {
           nearest = element;
           distance = next;
-          offsetX = Math.max(-7, Math.min(7, dx * .25));
-          offsetY = Math.max(-7, Math.min(7, dy * .25));
+          offsetX = Math.round(Math.max(-7, Math.min(7, dx * .25)) * 2) / 2;
+          offsetY = Math.round(Math.max(-7, Math.min(7, dy * .25)) * 2) / 2;
         }
       });
       if (nearest !== magnet) resetMagnet();
@@ -197,6 +197,7 @@
       });
       document.querySelectorAll(revealSelector).forEach(element => {
         if (seen.has(element) || element.closest("[hidden], .panel-ghost") || !element.getClientRects().length) return;
+        if (element.matches(".footer-sign") && document.querySelector(".content[aria-busy='true']")) return;
         seen.add(element);
         if (element.getBoundingClientRect().top < window.innerHeight) return;
         element.classList.add("motion-entered", "reveal-pending");
@@ -252,7 +253,7 @@
       mutations = new MutationObserver(guard(records => {
         if (records.some(record => !record.target.parentElement?.closest(".panel-ghost"))) queueScan();
       }));
-      const observe = () => mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "open", "aria-hidden", "aria-modal", "role"] });
+      const observe = () => mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "open", "aria-hidden", "aria-modal", "aria-busy", "role"] });
       observe();
       syncModal();
       syncPreferences();

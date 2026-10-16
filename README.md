@@ -1,5 +1,5 @@
-# portfolio
+# quipmug
 
 A personal collection of projects, notes, and ideas.
 
-**[View portfolio](https://quipmug.github.io/portfolio-board/)**
+**[View quipmug](https://quipmug.github.io/portfolio-board/)**
