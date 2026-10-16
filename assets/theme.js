@@ -50,12 +50,5 @@
   window.addEventListener("storage", event => {
     if (event.key === "theme" || event.key === null) apply(event.newValue, true);
   });
-  const top = document.querySelector("#page-top");
-  document.querySelector(".back-to-top")?.addEventListener("click", event => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !top) return;
-    event.preventDefault();
-    top.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: reduced.matches ? "instant" : "smooth" });
-  });
   apply(mode);
 })();

@@ -19,7 +19,7 @@ A minimalist, English-language personal portfolio and notes board. Visitors can 
 - RLS is the security boundary for public reads, private drafts, and owner writes. UI checks only control what the owner sees.
 - Never place Supabase service-role credentials in the repository or browser. Do not expose additional tables or APIs without an explicit access policy.
 - GitHub Pages hosts the project under `/portfolio-board/`; it forces HTTPS but does not let this project configure every response security header or cache policy. The page uses a CSP meta policy.
-- The owner supplied the public footer identity: Maxim Kochergin, Software Engineer - DevOps. Preserve that exact footer role spelling. Do not invent personal links.
+- The owner supplied the public identity: Maxim Kochergin, Software Engineer - DevOps. The role is displayed with a neutral arrows-left-right mask instead of a text dash. Do not invent personal links.
 
 ## Current state
 
@@ -49,14 +49,18 @@ Fragment Mono Latin 400 replaces Geist Mono after a temporary local comparison a
 
 ## Final visual update
 
-The interface uses a 15px root scale and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
+The interface uses a 16px root scale and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
 
 `assets/theme-init.js` is an external blocking head script that applies a valid persisted theme before CSS paints. `assets/theme.js` cycles system/light/dark, stores only explicit choices under `theme`, syncs storage events, follows live system preferences, and updates browser metadata. Storage failures fall back to a working in-page choice. No runtime CDN or inline scripts are used.
 
 Contact pills use a single background-size fill and inset outline, not a transformed overlay or active scale. Magnetic offsets are quantized to half pixels and applied with translate3d without a transform transition on pills. Icons use rounded whole-pixel em dimensions. This removes the separate curved layers and fractional interpolation that produced edge artifacts.
 
-The static brand and profile fallback are quipmug. Existing Supabase profile titles remain authoritative: the owner must change Site title to quipmug once in Edit intro. No production data is changed for this redesign. The footer displays the supplied identity and a noninteractive wordmark, participates in scroll reveal, and includes Back to top with keyboard focus restored to the header.
+The static brand and profile fallback are quipmug. The legacy Supabase title archive is mapped to quipmug for display only. Other custom titles and the editable source value stay intact. No production data is changed for this redesign. The supplied identity is displayed under the brand in the top header, with a Phosphor connector between the two role labels. The footer has returned to its original discreet Owner sign in link, with no large signature, divider, or Back to top link.
 
 The root favicon.svg is theme-aware; assets/brand/q-mark.svg is its reusable geometric source. favicon-32.png and apple-touch-icon.png are local raster fallbacks. assets/brand/cover.html and cover.css are the source for the 1672x941 sharing image, rendered with local Geist; a Phosphor arrows-left-right mask connects the two role labels. Root icon files are explicitly allowed by the preview server and included in the Pages artifact. Only the inert SVG favicon response permits its exact embedded theme stylesheet by hash; HTML pages retain self-only external styles and scripts.
 
 The owner approved updating only the preview test's two old archive title expectations and replacing its obsolete inline JSON-LD expectation with local-script/CSP and brand metadata checks. The remaining test contracts are unchanged.
+
+## Identity placement correction
+
+The owner clarified that the identity belongs at the top, replacing the archive block entirely. The bottom returns to its earlier minimal footer. Restore the 16px root scale, retain the working theme controls and stable pill surfaces, and keep Projects / Notes / About, Supabase operations and editable intro intact. Display-only title mapping is shared by the header, entry titles and unavailable-entry titles; no production database changes or manual rename are needed.

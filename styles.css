@@ -14,7 +14,7 @@
 }
 :root {
   color-scheme: light;
-  font-size: 15px;
+  font-size: 16px;
   --page: #fafafa;
   --ink: #171717;
   --muted: #6e6e6e;
@@ -415,22 +415,19 @@ html { scroll-behavior: smooth; }
 .theme-toggle { --theme-icon: url("./assets/icons/monitor-light.svg"); }
 .theme-toggle[data-mode="light"] { --theme-icon: url("./assets/icons/sun-light.svg"); }
 .theme-toggle[data-mode="dark"] { --theme-icon: url("./assets/icons/moon-light.svg"); }
-html.theme-changing, html.theme-changing body, html.theme-changing :is(dialog,input,textarea,select,.actions,.primary,.post-item,.site-footer,.theme-toggle,.owner-access,.back-to-top,.brand,.hero > p,.tab-top,.footer-wordmark,.footer-name,.footer-role) { transition: background-color 250ms, color 250ms, border-color 250ms; }
+html.theme-changing, html.theme-changing body, html.theme-changing :is(dialog,input,textarea,select,.actions,.primary,.post-item,.site-footer,.theme-toggle,.owner-access,.brand,.hero > p,.tab-top,.identity-name,.identity-role) { transition: background-color 250ms, color 250ms, border-color 250ms; }
 html.theme-changing #contact-icons .contact-link { transition: background-size 280ms var(--motion-ease), box-shadow 250ms, color 250ms, opacity 100ms; }
-.site-footer { margin-top: auto; padding-top: clamp(3rem,6vw,6rem); }
-.footer-sign { padding-top: clamp(3rem,6vw,6rem); border-top: 1px solid var(--line); }
-.footer-wordmark { margin: 0; font: 500 clamp(2.75rem,10vw,6.5rem)/.9 var(--font); letter-spacing: -.04em; }
-.footer-name { margin: 1.25rem 0 0; font-size: 1rem; font-weight: 500; }
-.footer-role { margin: .75rem 0 0; color: var(--muted); font-size: .875rem; }
-.footer-meta { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1.25rem; margin-top: 1.25rem; }
-.back-to-top { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; color: var(--muted); font-size: var(--text-small); }
-.back-to-top:hover { color: var(--ink); }
-.back-to-top::after { content: ""; width: 1em; height: 1em; background: currentColor; -webkit-mask: url("./assets/icons/arrow-up-light.svg") center / contain no-repeat; mask: url("./assets/icons/arrow-up-light.svg") center / contain no-repeat; }
-html.js-reveal .footer-sign.reveal-pending { opacity: 0; transform: translateY(.5rem); }
-html.js-reveal .footer-sign.reveal-visible { opacity: 1; transform: translateY(0); transition: opacity 400ms var(--motion-ease), transform 400ms var(--motion-ease); }
+.identity { min-width: 0; }
+.identity-name { margin: .75rem 0 0; font-size: 1rem; font-weight: 500; }
+.identity-role { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .375rem 0 0; color: var(--muted); font-size: .875rem; }
+.role-connector { display: inline-block; flex-shrink: 0; width: 1.15em; height: 1.15em; width: round(nearest,1.15em,1px); height: round(nearest,1.15em,1px); background: currentColor; -webkit-mask: url("./assets/icons/arrows-left-right-light.svg") center / contain no-repeat; mask: url("./assets/icons/arrows-left-right-light.svg") center / contain no-repeat; }
+.site-header { align-items: flex-start; }
+.site-footer { padding-top: 4.5rem; }
+.footer-meta { display: block; margin: 0; }
+@media (max-width: 767px) { .site-footer { padding-top: 3rem; } }
 @media (max-width: 767px) {
   input, textarea, select, dialog input, dialog textarea, dialog select, .search-region input { font-size: 16px; }
-  .plain, .secondary, .primary, .text-link, .owner-access, .back-to-top, .contact-link { min-height: 44px; }
+  .plain, .secondary, .primary, .text-link, .owner-access, .contact-link { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
@@ -438,5 +435,5 @@ html.js-reveal .footer-sign.reveal-visible { opacity: 1; transform: translateY(0
   #contact-icons .contact-link::after { transform: none !important; }
   .fx-dot, .fx-ring, .post-list::before { display: none; }
   .contact-link, .switcher button { --magnet-x: 0px !important; --magnet-y: 0px !important; }
-  html.js-reveal .post-list > .post-item.reveal-pending, html.js-reveal .detail:not(.panel-ghost) .body > .reveal-pending, html.js-reveal .footer-sign.reveal-pending { opacity: 1; transform: none; }
+  html.js-reveal .post-list > .post-item.reveal-pending, html.js-reveal .detail:not(.panel-ghost) .body > .reveal-pending { opacity: 1; transform: none; }
 }

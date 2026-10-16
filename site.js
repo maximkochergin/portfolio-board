@@ -127,14 +127,20 @@ async function boundedFetch(input, options = {}) {
   }
 }
 
+function displaySiteTitle() {
+  // Keep the original default from overriding the new brand; custom titles remain editable.
+  return profile.title === "archive" ? "quipmug" : profile.title;
+}
+
 function renderProfile() {
+  const title = displaySiteTitle();
   const brand = document.querySelector(".brand");
-  brand.textContent = profile.title;
-  brand.setAttribute("aria-label", profile.title + " home");
+  brand.textContent = title;
+  brand.setAttribute("aria-label", title + " home");
   const introduction = document.querySelector("#profile-introduction");
   introduction.textContent = profile.introduction;
   introduction.hidden = !profile.introduction || !detail.hidden;
-  document.title = openPostId ? (posts.find(post => post.id === openPostId)?.title || "Entry") + " · " + profile.title : profile.title;
+  document.title = openPostId ? (posts.find(post => post.id === openPostId)?.title || "Entry") + " · " + title : title;
 }
 
 async function refreshProfile() {
@@ -501,7 +507,7 @@ function showPost(id, resetScroll = true, moveFocus = true) {
   if (!post) return;
   resetCopyStatus();
   openPostId = id;
-  document.title = `${post.title.replace(/\s+/g, " ").trim()} · ${profile.title}`;
+  document.title = `${post.title.replace(/\s+/g, " ").trim()} · ${displaySiteTitle()}`;
   shareAction.hidden = post.status !== "published";
   document.querySelector("#detail-error").hidden = true;
   document.querySelector("#detail-title").textContent = post.title;
@@ -538,7 +544,7 @@ function showPost(id, resetScroll = true, moveFocus = true) {
 
 function showMissingPost(moveFocus = true) {
   resetCopyStatus();
-  document.title = "post unavailable · " + profile.title;
+  document.title = "post unavailable · " + displaySiteTitle();
   shareAction.hidden = true;
   const alreadyShown = !detail.hidden && document.querySelector("#detail-title").textContent === "this post isn't available.";
   openPostId = null;
@@ -565,7 +571,7 @@ function showMissingPost(moveFocus = true) {
 
 function showList(restoreFocus) {
   resetCopyStatus();
-  document.title = profile.title;
+  document.title = displaySiteTitle();
   shareAction.hidden = true;
   const previous = openPostId;
   openPostId = null;
