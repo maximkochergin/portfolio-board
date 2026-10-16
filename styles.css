@@ -261,27 +261,27 @@ a:not(.post-title):not(.contact-link):active, button:not([role="tab"]):active, s
 
 /* A cut paper pointer replaces the native cursor only while the guarded FX is active. */
 .fx-cursor, .fx-cursor-echo { position: fixed; top: 0; left: 0; z-index: 70; color: #ffffff; mix-blend-mode: difference; opacity: 0; pointer-events: none; }
-.fx-cursor { width: 20px; height: 24px; }
-.fx-cursor-shape { position: absolute; inset: 0; transform-origin: 0 0; transform: rotate(calc(var(--cursor-lean,0deg) + var(--cursor-turn,0deg))) scale(var(--cursor-scale,1)); transition: transform 180ms var(--motion-ease); }
-.fx-cursor-shape::before { content: ""; position: absolute; inset: 0; background: currentColor; clip-path: polygon(0 0,18px 13px,10px 15px,7px 24px); opacity: 1; transition: opacity 120ms; }
-.fx-cursor-shape::after { content: ""; position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("./assets/icons/asterisk-simple-light.svg") center / contain no-repeat; mask: url("./assets/icons/asterisk-simple-light.svg") center / contain no-repeat; opacity: 0; transform: rotate(-45deg) scale(.65); transition: transform 280ms var(--motion-ease), opacity 120ms; }
-.fx-cursor-label { position: absolute; left: 22px; top: 18px; font: 400 12px/1 var(--font); white-space: nowrap; opacity: 0; transform: translateX(-4px); transition: opacity 150ms, transform 180ms var(--motion-ease); }
+.fx-cursor { width: 16px; height: 20px; }
+.fx-cursor-shape { position: absolute; inset: 0; transform-origin: 0 0; transform: rotate(calc(var(--cursor-lean,0deg) + var(--cursor-turn,0deg))) scale(var(--cursor-scale,1)); }
+.fx-cursor-shape::before { content: ""; position: absolute; inset: 0; background: currentColor; clip-path: polygon(0 0,14px 10px,8px 12px,5px 20px); }
+.fx-cursor-shape::after { content: ""; position: absolute; left: 10px; top: -4px; width: 12px; height: 12px; background: currentColor; -webkit-mask: url("./assets/icons/asterisk-simple-light.svg") center / contain no-repeat; mask: url("./assets/icons/asterisk-simple-light.svg") center / contain no-repeat; opacity: 0; transform: rotate(-15deg) scale(.7); transition: transform 120ms var(--motion-ease), opacity 80ms; }
+.fx-cursor-label { position: absolute; left: 16px; top: 13px; font: 400 12px/1 var(--font); white-space: nowrap; opacity: 0; transform: translateX(-2px); transition: opacity 100ms, transform 120ms var(--motion-ease); }
 .fx-cursor-label::after { content: ""; display: inline-block; width: 1em; height: 1em; margin-left: .35em; vertical-align: -.1em; background: currentColor; -webkit-mask: url("./assets/icons/arrow-right-light.svg") center / contain no-repeat; mask: url("./assets/icons/arrow-right-light.svg") center / contain no-repeat; }
-.fx-cursor-echo { width: 12px; height: 16px; clip-path: polygon(0 0,11px 8px,6px 10px,4px 16px); background: currentColor; transition: opacity 120ms; }
+.fx-cursor.is-edge-right .fx-cursor-label { left: auto; right: calc(100% + 6px); }
+.fx-cursor.is-edge-bottom .fx-cursor-label { top: auto; bottom: calc(100% + 4px); }
+.fx-cursor-echo { width: 8px; height: 11px; clip-path: polygon(0 0,8px 6px,4px 7px,3px 11px); background: currentColor; transition: opacity 70ms; }
 .fx-cursor.is-visible { opacity: 1; }
-.fx-cursor-echo.is-visible { opacity: .16; }
-.fx-cursor.is-interactive { --cursor-turn: -10deg; --cursor-scale: .86; }
-.fx-cursor.is-entry { --cursor-turn: -28deg; }
+.fx-cursor-echo.is-visible { opacity: .08; }
+.fx-cursor.is-interactive { --cursor-turn: -4deg; --cursor-scale: .96; }
+.fx-cursor.is-entry { --cursor-turn: -6deg; }
 .fx-cursor.is-entry .fx-cursor-label { opacity: 1; transform: translateX(0); }
 .fx-cursor.is-interest { --cursor-turn: 0deg; --cursor-scale: 1; }
-.fx-cursor.is-interest .fx-cursor-shape::before { opacity: 0; }
-.fx-cursor.is-interest .fx-cursor-shape::after { opacity: 1; transform: rotate(45deg) scale(1); }
-.fx-cursor.is-infinity .fx-cursor-shape::before { opacity: 0; }
-.fx-cursor.is-infinity .fx-cursor-shape::after { left: -12px; top: -10px; width: 24px; height: 20px; -webkit-mask-image: url("./assets/icons/infinity-light.svg"); mask-image: url("./assets/icons/infinity-light.svg"); opacity: 1; transform: rotate(-12deg) scale(1); }
-.fx-cursor.is-pressed { --cursor-scale: .7; }
+.fx-cursor.is-interest .fx-cursor-shape::after { opacity: 1; transform: rotate(15deg) scale(1); }
+.fx-cursor.is-infinity .fx-cursor-shape::after { top: -5px; width: 14px; -webkit-mask-image: url("./assets/icons/infinity-light.svg"); mask-image: url("./assets/icons/infinity-light.svg"); opacity: 1; transform: rotate(-8deg) scale(1); }
+.fx-cursor.is-pressed { --cursor-scale: .9; }
 .fx-cursor-echo.is-pressed { opacity: 0; }
 html:not(.has-custom-cursor) :is(.fx-cursor,.fx-cursor-echo) { opacity: 0; visibility: hidden; transition: none; }
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
   html.has-custom-cursor, html.has-custom-cursor * { cursor: none !important; }
 }
 .post-list::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(circle 20rem at var(--mx,50%) var(--my,50%), var(--spotlight), transparent 100%); opacity: 0; transition: opacity 200ms; }
@@ -338,7 +338,7 @@ html.js-reveal .post-list > .post-item:focus-within { opacity: 1; transform: non
   dialog .primary.danger { padding-inline: 1rem; border: 1px solid var(--field-line); }
   .publish-actions > .secondary { justify-self: end; }
 }
-@media (pointer: coarse), (hover: none) {
+@media (pointer: coarse), (hover: none), (forced-colors: active) {
   .fx-cursor, .fx-cursor-echo { display: none; }
   .contact-link, .switcher button { --magnet-x: 0px !important; --magnet-y: 0px !important; }
   .post-list::before { content: none; }

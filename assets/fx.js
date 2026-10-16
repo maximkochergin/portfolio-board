@@ -3,6 +3,7 @@
     const root = document.documentElement;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const forcedColors = window.matchMedia("(forced-colors: active)");
     const revealSelector = ".post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table)";
     const excluded = "dialog, [role='dialog'], #board-controls, #owner-actions, input, textarea, select, [contenteditable]:not([contenteditable='false']), [inert], :disabled, [aria-disabled='true']";
     const infinityButton = document.querySelector("button.role-connector");
@@ -33,6 +34,9 @@
     let lean = 0;
     let targetLean = 0;
     let lastMove = 0;
+    let lastFrame = 0;
+    let primaryDown = false;
+    let nativeDrag = false;
     let infinityTimer = 0;
 
     const guard = callback => (...args) => {
@@ -40,7 +44,7 @@
       try { return callback(...args); }
       catch { failOpen(); }
     };
-    const enabled = () => finePointer.matches && !reducedMotion.matches && !suspended && !document.hidden;
+    const enabled = () => finePointer.matches && !reducedMotion.matches && !forcedColors.matches && !suspended && !document.hidden;
     const blocked = element => modalOpen || !element?.closest || Boolean(element.closest(excluded + ", .panel-ghost"));
     const inViewport = () => x >= 0 && y >= 0 && x < root.clientWidth && y < root.clientHeight;
 
@@ -93,6 +97,8 @@
       visible = false;
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
+      lastFrame = 0;
+      lean = targetLean = 0;
       cursor?.classList.remove("is-visible", "is-interactive", "is-entry", "is-interest", "is-infinity", "is-pressed");
       echo?.classList.remove("is-visible", "is-pressed");
       resetInfinityHover();
@@ -150,18 +156,16 @@
         interest.style.setProperty("--asset-tilt", tilt.toFixed(1) + "deg");
         interest.classList.add("is-reacting");
       }
-      let nearest = null;
-      let distance = 60;
-      let offsetX = 0;
-      let offsetY = 0;
-      document.querySelectorAll(".contact-link, .switcher button").forEach(element => {
-        if (element.closest("[hidden], .panel-ghost") || element.matches(":disabled, [aria-disabled='true']") || !element.getClientRects().length) return;
-        const box = element.getBoundingClientRect();
-        let shiftX = element === magnet ? magnetX : 0;
-        let shiftY = element === magnet ? magnetY : 0;
-        if (element === magnet && typeof DOMMatrixReadOnly === "function") {
+      // Only the actual hovered link moves, so empty space never attracts a target.
+      const nextMagnet = target.closest(".contact-link, .switcher button");
+      if (nextMagnet !== magnet) resetMagnet();
+      if (nextMagnet) {
+        const box = nextMagnet.getBoundingClientRect();
+        let shiftX = nextMagnet === magnet ? magnetX : 0;
+        let shiftY = nextMagnet === magnet ? magnetY : 0;
+        if (typeof DOMMatrixReadOnly === "function") {
           try {
-            const transform = window.getComputedStyle(element).transform;
+            const transform = window.getComputedStyle(nextMagnet).transform;
             const matrix = transform === "none" ? null : new DOMMatrixReadOnly(transform);
             shiftX = matrix?.m41 || 0;
             shiftY = matrix?.m42 || 0;
@@ -169,21 +173,11 @@
         }
         const dx = x - (box.left + box.width / 2 - shiftX);
         const dy = y - (box.top + box.height / 2 - shiftY);
-        const next = Math.hypot(dx, dy);
-        if (next < distance) {
-          nearest = element;
-          distance = next;
-          offsetX = Math.round(Math.max(-7, Math.min(7, dx * .25)) * 2) / 2;
-          offsetY = Math.round(Math.max(-7, Math.min(7, dy * .25)) * 2) / 2;
-        }
-      });
-      if (nearest !== magnet) resetMagnet();
-      if (nearest) {
-        magnet = nearest;
-        magnetX = offsetX;
-        magnetY = offsetY;
-        magnet.style.setProperty("--magnet-x", offsetX.toFixed(2) + "px");
-        magnet.style.setProperty("--magnet-y", offsetY.toFixed(2) + "px");
+        magnet = nextMagnet;
+        magnetX = Math.round(Math.max(-3, Math.min(3, dx * .12)) * 2) / 2;
+        magnetY = Math.round(Math.max(-3, Math.min(3, dy * .12)) * 2) / 2;
+        magnet.style.setProperty("--magnet-x", magnetX.toFixed(1) + "px");
+        magnet.style.setProperty("--magnet-y", magnetY.toFixed(1) + "px");
       }
       const list = target.closest(".post-list");
       if (list !== spotlight) resetSpotlight();
@@ -196,22 +190,35 @@
       }
     }
 
+    function keepEchoClose() {
+      const dx = x - echoX;
+      const dy = y - echoY;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 6) {
+        echoX = x - dx * 6 / distance;
+        echoY = y - dy * 6 / distance;
+      }
+    }
+
     const tick = guard(timestamp => {
       frame = 0;
       if (!visible || !enabled()) return;
       if (dirty) { dirty = false; updateSurfaces(); }
       if (!visible) return;
-      echoX += (x - echoX) * .22;
-      echoY += (y - echoY) * .22;
-      if (timestamp - lastMove > 60) targetLean = 0;
-      lean += (targetLean - lean) * .22;
-      const moving = Math.abs(x - echoX) + Math.abs(y - echoY) > .2 || Math.abs(lean) > .05;
+      const elapsed = lastFrame ? Math.max(0, Math.min(50, timestamp - lastFrame)) : 16.7;
+      lastFrame = timestamp;
+      const ease = 1 - Math.exp(-elapsed / 20);
+      keepEchoClose();
+      echoX += (x - echoX) * ease;
+      echoY += (y - echoY) * ease;
+      if (timestamp - lastMove > 40) targetLean = 0;
+      lean += (targetLean - lean) * ease;
+      const moving = Math.hypot(x - echoX, y - echoY) > .1 || Math.abs(lean) > .03;
       if (!moving) { echoX = x; echoY = y; lean = 0; }
       echo.style.transform = `translate3d(${echoX}px, ${echoY}px, 0)`;
       cursor.style.setProperty("--cursor-lean", lean.toFixed(2) + "deg");
-      echo.style.setProperty("--cursor-lean", lean.toFixed(2) + "deg");
       if (moving) scheduleFrame();
-      else echo.classList.remove("is-visible");
+      else { lastFrame = 0; echo.classList.remove("is-visible"); }
     });
     function scheduleFrame() {
       if (!frame) frame = window.requestAnimationFrame(tick);
@@ -219,29 +226,47 @@
 
     function movePointer(event) {
       if (!enabled() || !cursor || event.pointerType === "touch") { hidePointer(); return; }
-      if (blocked(event.target)) { hidePointer(); return; }
+      primaryDown = Boolean(event.buttons & 1);
+      if (!event.buttons) nativeDrag = false;
+      if (nativeDrag || (event.buttons & ~1)) { hidePointer(); return; }
       const previousX = x;
+      const previousMove = lastMove;
       x = event.clientX;
       y = event.clientY;
-      if (!inViewport()) { hidePointer(); return; }
+      if (!inViewport() || blocked(document.elementFromPoint(x, y))) { hidePointer(); return; }
       if (!known || !visible) {
         echoX = x;
         echoY = y;
         lean = targetLean = 0;
         echo.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         cursor.style.setProperty("--cursor-lean", "0deg");
-        echo.style.setProperty("--cursor-lean", "0deg");
       }
-      else targetLean = Math.max(-12, Math.min(12, (x - previousX) * .7));
       lastMove = performance.now();
+      if (visible) {
+        const elapsed = Math.max(1, lastMove - previousMove);
+        targetLean = Math.max(-5, Math.min(5, (x - previousX) / elapsed * 2));
+      }
       known = visible = dirty = true;
       cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      cursor.classList.toggle("is-edge-right", x + 70 > root.clientWidth);
+      cursor.classList.toggle("is-edge-bottom", y + 32 > root.clientHeight);
+      // Clamp immediately as well as on animation frames, even during fast sweeps.
+      keepEchoClose();
+      echo.style.transform = `translate3d(${echoX}px, ${echoY}px, 0)`;
       cursor.classList.add("is-visible");
       echo.classList.add("is-visible");
       cursor.classList.toggle("is-pressed", Boolean(event.buttons & 1));
       echo.classList.toggle("is-pressed", Boolean(event.buttons & 1));
       root.classList.add("has-custom-cursor");
       scheduleFrame();
+    }
+
+    function releasePointer(event) {
+      primaryDown = false;
+      nativeDrag = false;
+      cursor?.classList.remove("is-pressed");
+      echo?.classList.remove("is-pressed");
+      if (visible && event && event.pointerType !== "touch") movePointer(event);
     }
 
     function reveal(element) {
@@ -328,7 +353,7 @@
       mutations = new MutationObserver(guard(records => {
         if (records.some(record => !record.target.parentElement?.closest(".panel-ghost"))) queueScan();
       }));
-      const observe = () => mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "open", "aria-hidden", "aria-modal", "role", "disabled", "aria-disabled", "inert", "href"] });
+      const observe = () => mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "open", "aria-hidden", "aria-modal", "role", "disabled", "aria-disabled", "inert", "href", "contenteditable"] });
       observe();
       syncModal();
       syncPreferences();
@@ -336,29 +361,44 @@
       document.addEventListener("pointerover", guard(movePointer), { passive: true });
       document.addEventListener("pointerout", guard(event => { if (!event.relatedTarget) hidePointer(); }), { passive: true });
       document.addEventListener("pointerdown", guard(event => {
-        if (!enabled() || event.pointerType === "touch" || blocked(event.target)) { hidePointer(); return; }
-        if (!visible) return;
-        cursor.classList.add("is-pressed");
-        echo.classList.add("is-pressed");
-      }), { passive: true });
-      document.addEventListener("pointerup", guard(() => {
-        cursor?.classList.remove("is-pressed");
-        echo?.classList.remove("is-pressed");
-      }), { passive: true });
-      document.addEventListener("pointercancel", guard(hidePointer), { passive: true });
+        primaryDown = Boolean(event.buttons & 1);
+        if (event.button !== 0 || blocked(event.target)
+          || event.clientX >= root.clientWidth || event.clientY >= root.clientHeight) {
+          nativeDrag = true;
+          hidePointer();
+          return;
+        }
+        nativeDrag = false;
+        movePointer(event);
+      }), { passive: true, capture: true });
+      window.addEventListener("pointerup", guard(releasePointer), { passive: true, capture: true });
+      document.addEventListener("pointercancel", guard(() => { releasePointer(); hidePointer(); }), { passive: true });
+      document.addEventListener("lostpointercapture", guard(() => { releasePointer(); hidePointer(); }), { passive: true });
+      document.addEventListener("contextmenu", guard(hidePointer));
+      document.addEventListener("dragstart", guard(() => { nativeDrag = true; hidePointer(); }));
+      document.addEventListener("dragend", guard(() => { releasePointer(); hidePointer(); }));
+      document.addEventListener("selectionchange", guard(() => {
+        if (primaryDown && !window.getSelection()?.isCollapsed) { nativeDrag = true; hidePointer(); }
+      }));
       document.addEventListener("keydown", guard(hidePointer), true);
       document.addEventListener("focusin", guard(event => {
         if (blocked(event.target)) hidePointer();
         const pending = event.target.closest(".reveal-pending");
         if (pending) reveal(pending);
       }));
-      window.addEventListener("blur", guard(hidePointer));
-      document.addEventListener("scroll", guard(hidePointer), { passive: true, capture: true });
+      window.addEventListener("blur", guard(() => { releasePointer(); hidePointer(); }));
+      document.addEventListener("scroll", guard(() => {
+        if (!visible || !enabled()) return;
+        resetMagnet();
+        dirty = true;
+        scheduleFrame();
+      }), { passive: true, capture: true });
       window.addEventListener("resize", guard(() => { hidePointer(); queueScan(); }), { passive: true });
       window.addEventListener("orientationchange", guard(() => { hidePointer(); queueScan(); }), { passive: true });
       document.addEventListener("visibilitychange", guard(syncPreferences));
       finePointer.addEventListener("change", guard(syncPreferences));
       reducedMotion.addEventListener("change", guard(syncPreferences));
+      forcedColors.addEventListener("change", guard(syncPreferences));
       window.addEventListener("pagehide", guard(() => {
         suspended = true;
         mutations.disconnect();
