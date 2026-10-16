@@ -49,7 +49,7 @@ Fragment Mono Latin 400 replaces Geist Mono after a temporary local comparison a
 
 ## Final visual update
 
-The interface uses a 16px root scale and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
+The interface uses a 15.2px root scale and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
 
 `assets/theme-init.js` is an external blocking head script that applies a valid persisted theme before CSS paints. `assets/theme.js` cycles system/light/dark, stores only explicit choices under `theme`, syncs storage events, follows live system preferences, and updates browser metadata. Storage failures fall back to a working in-page choice. No runtime CDN or inline scripts are used.
 
@@ -63,4 +63,4 @@ The owner approved updating only the preview test's two old archive title expect
 
 ## Identity placement correction
 
-The owner clarified that the identity belongs at the top, replacing the archive block entirely. The bottom returns to its earlier minimal footer. Restore the 16px root scale, retain the working theme controls and stable pill surfaces, and keep Projects / Notes / About, Supabase operations and editable intro intact. Display-only title mapping is shared by the header, entry titles and unavailable-entry titles; no production database changes or manual rename are needed.
+The owner clarified that the identity belongs at the top, replacing the archive block entirely. The bottom returns to its earlier minimal footer. Use the refined 15.2px root scale (a 5% reduction from the original 16px), retain the working theme controls and stable pill surfaces, and keep Projects / Notes / About, Supabase operations and editable intro intact. Display-only title mapping is shared by the header, entry titles and unavailable-entry titles; no production database changes or manual rename are needed.
