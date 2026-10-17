@@ -43,6 +43,7 @@
     let infinityTimer = 0;
     let infinityRun = 0;
     let infinityAnimation = null;
+    const feedback = [];
 
     const guard = callback => (...args) => {
       if (failed) return;
@@ -79,6 +80,62 @@
         // A cancelled older run must never settle feedback for a newer click.
         infinityAnimation.finished.then(guard(() => finishInfinity(run)), guard(() => finishInfinity(run)));
       }
+    }
+
+    function finishFeedback(state, run = state.run) {
+      if (run !== state.run) return;
+      state.run += 1;
+      window.clearTimeout(state.timer);
+      state.timer = 0;
+      state.animation = null;
+      state.cleanup?.();
+      state.cleanup = null;
+      state.element.classList.remove("is-playing");
+    }
+
+    function resetFeedback() {
+      feedback.forEach(state => finishFeedback(state));
+    }
+
+    function animateFeedback(state) {
+      if (document.hidden || suspended || reducedMotion.matches || state.timer || state.element.disabled) return;
+      const run = ++state.run;
+      let started = false;
+      const matches = event => event.target === state.target && event.animationName === state.name;
+      const start = guard(event => { if (matches(event)) started = true; });
+      const finish = guard(event => {
+        // Older cancelled events must not finish a newly started interaction.
+        if (!state.animation && started && matches(event)) finishFeedback(state, run);
+      });
+      state.target.addEventListener("animationstart", start);
+      state.target.addEventListener("animationend", finish);
+      state.target.addEventListener("animationcancel", finish);
+      state.cleanup = () => {
+        state.target.removeEventListener("animationstart", start);
+        state.target.removeEventListener("animationend", finish);
+        state.target.removeEventListener("animationcancel", finish);
+      };
+      state.element.classList.add("is-playing");
+      state.timer = window.setTimeout(guard(() => finishFeedback(state, run)), 1000);
+      state.animation = state.target.getAnimations?.().find(animation => animation.animationName === state.name) || null;
+      if (state.animation) {
+        state.animation.finished.then(guard(() => finishFeedback(state, run)), guard(() => finishFeedback(state, run)));
+      }
+    }
+
+    function installFeedback(element, target, name) {
+      if (!element || !target) return;
+      const state = { element, target, name, run: 0, timer: 0, animation: null, cleanup: null };
+      feedback.push(state);
+      element.addEventListener("pointerenter", guard(event => {
+        if (finePointer.matches && event.pointerType !== "touch" && !event.buttons) animateFeedback(state);
+      }), { passive: true });
+      element.addEventListener("focus", guard(() => {
+        if (element.matches(":focus-visible")) animateFeedback(state);
+      }));
+      element.addEventListener("click", guard(() => animateFeedback(state)));
+      // The text remains readable if enhancement fails before this point.
+      if (element.matches("button.interest-trigger")) element.disabled = false;
     }
 
     function resetInterest() {
@@ -331,7 +388,10 @@
     }
 
     function syncPreferences() {
-      if (document.hidden || reducedMotion.matches || suspended) finishInfinity();
+      if (document.hidden || reducedMotion.matches || suspended) {
+        finishInfinity();
+        resetFeedback();
+      }
       if (pointerEffects && enabled()) createPointer();
       else removePointer();
       if (!effects.reveal || reducedMotion.matches || suspended || !("IntersectionObserver" in window)) { revealAll(); return; }
@@ -362,6 +422,8 @@
       try {
         mutations?.disconnect();
         finishInfinity();
+        resetFeedback();
+        document.querySelectorAll("button.interest-trigger").forEach(button => { button.disabled = true; });
         if (infinityButton) infinityButton.hidden = true;
         if (infinityFallback) infinityFallback.hidden = false;
         removePointer();
@@ -428,6 +490,7 @@
         suspended = true;
         mutations.disconnect();
         finishInfinity();
+        resetFeedback();
         removePointer();
         revealAll();
       }));
@@ -447,6 +510,12 @@
         infinityButton.hidden = false;
         if (infinityFallback) infinityFallback.hidden = true;
       }
+      ["crypto", "ai", "tech", "trading", "programming"].forEach(name => {
+        const button = document.querySelector(`.interest-${name} .interest-trigger`);
+        installFeedback(button, button?.querySelector(".interest-icon"), `interest-${name}`);
+      });
+      const brand = document.querySelector("a.brand");
+      installFeedback(brand, brand, "brand-greeting");
     } catch { failOpen(); }
   }
 
