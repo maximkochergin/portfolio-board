@@ -1,8 +1,8 @@
-@font-face { font-family: Geist; src: url("../fonts/Geist-Variable.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
+@font-face { font-family: Inter; src: url("../fonts/Inter-Variable.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
 * { box-sizing: border-box; }
 html { font-size: 32px; }
 html, body { margin: 0; width: 1672px; height: 941px; background: #111111; color: #ededed; }
-body { display: flex; align-items: center; font-family: Geist, sans-serif; }
+body { display: flex; align-items: center; font-family: Inter, sans-serif; }
 main { width: 100%; padding: 3.75rem; }
 h1 { margin: 0; font-size: 6.5rem; font-weight: 500; line-height: .9; letter-spacing: -.04em; }
 .name { margin: 1.25rem 0 0; font-size: 1rem; font-weight: 500; }

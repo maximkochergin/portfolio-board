@@ -1,8 +1,8 @@
-Geist variable webfont
-Source: https://github.com/vercel/geist-font
-Revision: 10dc7658f13c38a474cde201bb09a4617267545b
-Original files: fonts/Geist/webfonts/Geist[wght].woff2
-License: fonts/Geist-OFL.txt (SIL Open Font License 1.1)
+Inter variable webfont
+Source: https://github.com/rsms/inter
+Revision: 353b61b9f4430d5f420d56605a6e7993e0941470
+Original file: docs/font-files/InterVariable.woff2, stored unchanged.
+License: fonts/Inter-OFL.txt (SIL Open Font License 1.1)
 
 Supabase JavaScript browser bundle 2.117.0
 Source package: @supabase/supabase-js@2.117.0, dist/umd/supabase.js
@@ -20,4 +20,8 @@ Revision: 2b75f3ad12b420c9504ef05df8d2564a28f8500e
 Original files: assets/light/<name>-light.svg, stored unchanged as local CSS masks.
 License: icons/Phosphor-LICENSE.txt (MIT)
 
-The inline footer bunny is an original drawing created for this site.
+Tabler Icons: ghost-2
+Source: https://github.com/tabler/tabler-icons
+Revision: a4ce1404bc6d24d3c365afe7b258d6bf6f48d62d
+Original file: icons/outline/ghost-2.svg, stored unchanged as a local CSS mask.
+License: icons/Tabler-LICENSE.txt (MIT), Copyright (c) 2020-2026 Paweł Kuna.

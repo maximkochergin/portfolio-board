@@ -5,17 +5,6 @@ const path = require("node:path");
 const vm = require("node:vm");
 const time = require("../assets/local-time.js");
 
-const boundaries = [
-  ["05:59", "night"], ["06:00", "morning"], ["10:59", "morning"], ["11:00", "day"],
-  ["17:59", "day"], ["18:00", "evening"], ["22:59", "evening"], ["23:00", "night"]
-];
-
-test("scene boundaries follow Ukraine's four parts of the day", () => {
-  for (const [clock, scene] of boundaries) assert.equal(time.sceneForHour(Number(clock.slice(0, 2))), scene, clock);
-  assert.equal(time.sceneForHour(0), "night");
-  for (const invalid of [-1, 24, 1.5, "6", NaN]) assert.throws(() => time.sceneForHour(invalid), RangeError);
-});
-
 test("time overrides require one complete, valid 24-hour time", () => {
   assert.deepEqual(time.parseOverride("?time=00:05"), { hour: 0, minute: 5 });
   assert.deepEqual(time.parseOverride("?manage=1&time=21%3A41&other=ok#work"), { hour: 21, minute: 41 });
@@ -31,7 +20,6 @@ test("Ukraine time uses leading zeros and a midnight hour of 00", () => {
   assert.equal(snapshot.text, "00:05 in Ukraine");
   assert.equal(snapshot.hour, 0);
   assert.equal(snapshot.minute, 5);
-  assert.equal(snapshot.scene, "night");
   assert.equal(snapshot.datetime, "2026-01-16T00:05:00+02:00");
   assert.equal(Date.parse(snapshot.datetime), Date.parse("2026-01-15T22:05:00Z"));
   assert.equal(time.getSnapshot(new Date("2026-07-15T06:04:00Z")).text, "09:04 in Ukraine");
@@ -52,12 +40,13 @@ test("Intl applies Ukraine's spring and autumn daylight-saving changes", () => {
   }
 });
 
-test("preview time updates the visible clock and scene without fabricating an instant", () => {
-  for (const [clock, scene] of boundaries) {
+test("preview time updates the visible clock without fabricating an instant", () => {
+  for (const clock of ["00:00", "05:59", "06:00", "10:59", "11:00", "17:59", "18:00", "22:59", "23:00"]) {
     const snapshot = time.getSnapshot(new Date("2026-01-15T12:00:00Z"), time.parseOverride(`?time=${clock}`));
     assert.equal(snapshot.text, `${clock} in Ukraine`);
     assert.equal(snapshot.datetime, clock);
-    assert.equal(snapshot.scene, scene);
+    assert.equal(snapshot.hour, Number(clock.slice(0, 2)));
+    assert.equal(snapshot.minute, Number(clock.slice(3)));
   }
   assert.throws(() => time.getSnapshot(new Date("invalid")), TypeError);
   assert.equal(time.getSnapshot(new Date("2026-01-15T12:00:00Z"), { hour: 24, minute: 0 }).text, "14:00 in Ukraine");
@@ -83,31 +72,33 @@ test("local-time imports without touching the DOM and falls back to Europe/Kiev"
   assert.ok(requested.every(options => options.hourCycle === "h23"));
 });
 
-test("early initialization shares all scene boundaries and preserves the URL", () => {
+test("early initialization exposes only the direct manage route and preserves the URL", () => {
   const source = fs.readFileSync(path.join(__dirname, "../assets/footer-init.js"), "utf8");
-  for (const [clock, expected] of boundaries) {
-    const location = { search: `?manage=1&time=${clock}&keep=ok`, hash: "#work" };
+  for (const search of ["?manage=1", "?manage=1&time=23:00&keep=ok", "?time=00:00&manage=1"]) {
+    const location = { search, hash: "#work" };
     const root = { dataset: {} };
-    vm.runInNewContext(source, { document: { documentElement: root }, window: { portfolioTime: time, location }, URLSearchParams, Date });
-    assert.equal(root.dataset.bunnyScene, expected);
-    assert.equal(root.dataset.bunnyScene, time.getSnapshot(new Date(), time.parseOverride(location.search)).scene);
-    assert.equal(root.dataset.ownerAccess, "visible");
-    assert.equal(location.search, `?manage=1&time=${clock}&keep=ok`);
+    vm.runInNewContext(source, { document: { documentElement: root }, window: { location }, URLSearchParams });
+    assert.deepEqual(root.dataset, { ownerAccess: "visible" });
+    assert.equal(location.search, search);
     assert.equal(location.hash, "#work");
   }
-  const root = { dataset: {} };
-  vm.runInNewContext(source, { document: { documentElement: root }, window: { portfolioTime: time, location: { search: "?time=23:00" } }, URLSearchParams, Date });
-  assert.equal(root.dataset.bunnyScene, "night");
-  assert.equal(root.dataset.ownerAccess, undefined);
+  for (const search of ["", "?time=23:00", "?manage=0", "?manage=true", "?manage=01"]) {
+    const root = { dataset: {} };
+    vm.runInNewContext(source, { document: { documentElement: root }, window: { location: { search } }, URLSearchParams });
+    assert.deepEqual(root.dataset, {}, search);
+  }
 });
 
-test("early initialization fails safely when the clock is unavailable", () => {
+test("early initialization needs no clock and fails safely when the page context is unavailable", () => {
   const source = fs.readFileSync(path.join(__dirname, "../assets/footer-init.js"), "utf8");
   const root = { dataset: {} };
-  assert.doesNotThrow(() => vm.runInNewContext(source, { document: { documentElement: root }, window: {}, URLSearchParams, Date }));
+  assert.doesNotThrow(() => vm.runInNewContext(source, { document: { documentElement: root }, window: {}, URLSearchParams }));
   assert.deepEqual(root.dataset, {});
   const manageRoot = { dataset: {} };
-  vm.runInNewContext(source, { document: { documentElement: manageRoot }, window: { location: { search: "?manage=1" } }, URLSearchParams, Date });
+  const browser = { location: { search: "?manage=1" } };
+  Object.defineProperty(browser, "portfolioTime", { get() { throw new Error("Unexpected clock access"); } });
+  vm.runInNewContext(source, { document: { documentElement: manageRoot }, window: browser, URLSearchParams });
   assert.equal(manageRoot.dataset.ownerAccess, "visible");
-  assert.equal(manageRoot.dataset.bunnyScene, undefined);
+  assert.deepEqual(manageRoot.dataset, { ownerAccess: "visible" });
+  assert.doesNotThrow(() => vm.runInNewContext(source, { document: { documentElement: null }, window: {} }));
 });

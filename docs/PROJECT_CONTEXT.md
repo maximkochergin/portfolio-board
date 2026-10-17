@@ -12,26 +12,25 @@ A minimalist English-language personal portfolio and notes board, published at h
 
 ## Current visual system
 
-The October 17 redesign uses one centered column with a maximum outer width of 36rem and a 15px root size. Local Geist is the only shipped font. The interface remains neutral monochrome, with system/light/dark modes, readable secondary text, 44px touch controls and 16px mobile form fields. Dates, counters and the Ukraine clock use tabular numerals.
+The October 17 revision uses a centered reading column of approximately 550px, 24px mobile gutters and a 14px root size. Local Inter is the only shipped font. The interface remains neutral monochrome, with system/light/dark modes, readable secondary text, 44px touch controls and 16px mobile form fields. Dates, counters and the Ukraine clock use tabular numerals.
 
-The header contains a quiet quipmug home/top link and theme control. The existing editable introduction appears as prose above wrapping icon pills. Projects / Notes / About remain horizontal at every breakpoint, with a six-pixel active dot below the label. Lists show titles and dates without cards; entry bodies retain the reading column, formatting and native history navigation. Owner dialogs remain scrollable bottom sheets on phones.
+The header contains a small quipmug home/top link and theme control. The existing editable introduction appears as prose above wrapping, underlined text links without icons, pills or animated fills. Projects / Notes / About remain horizontal at every breakpoint, with a six-pixel active dot below the label. Compact lists show titles and dates with subtle separators; entry bodies retain formatting and native history navigation. Owner dialogs remain scrollable bottom sheets on phones.
 
-The footer contains an original inline line-drawn bunny sitting on its divider, Ukraine time, the quipmug signature, Maxim Kochergin, Software Engineer - DevOps and Back to top. The former static identity/interests block is no longer duplicated in the header. The introduction remains owner-controlled; no production content was overwritten.
+The footer contains only a short divider, Ukraine time and a small downloaded Tabler ghost character beside it. There is no large signature, name, role, full-width rail or Back to top control. The header brand remains the top shortcut. The introduction remains owner-controlled; no production content was overwritten.
 
-## Time and bunny
+## Time and character
 
 - assets/local-time.js exports pure browser/CommonJS helpers. TIME_ZONE, its legacy fallback and LOCATION_LABEL live here. Intl formats Europe/Kyiv (fallback Europe/Kiev), handles daylight-saving changes and always uses hourCycle h23.
-- assets/footer-init.js runs synchronously before CSS to choose the initial scene and expose the direct manage route. No-JS defaults to the day pose and hides the clock.
-- assets/footer.js updates once at minute boundaries, pauses while hidden and resynchronizes on return. It updates scene ARIA labels, schedules small blinking/ear motions, handles one short hop per activation and cancels long presses on movement or scrolling.
-- Scene ranges: night 23:00–05:59, morning 06:00–10:59, day 11:00–17:59, evening 18:00–22:59.
-- A strict ?time=HH:MM query previews both the clock and pose. It composes with ?manage=1 and hash routes. A preview datetime is a valid time of day; the real clock uses a full timestamp with its Ukraine offset.
-- Reduced motion keeps every pose static and disables blinking, breathing, floating sleep marks, hops and scene transitions.
+- assets/footer-init.js runs synchronously before CSS to expose the direct manage route. Without JavaScript the clock stays hidden.
+- assets/footer.js updates once at minute boundaries, pauses while hidden and resynchronizes on return. The character gives one short greeting per click and cancels long presses on movement or scrolling. It has no idle animation or scene timers.
+- A strict ?time=HH:MM query previews the clock. It composes with ?manage=1 and hash routes. A preview datetime is a valid time of day; the real clock uses a full timestamp with its Ukraine offset.
+- Reduced motion disables the greeting while preserving long-press access.
 
-The bunny SVG is original and local. Shared geometry keeps all four inline poses below 6KB. Only transforms and opacity animate; capsule fill and theme colors are the stated exceptions.
+The unchanged 581-byte Tabler ghost-2 SVG is served locally as a currentColor CSS mask. Its MIT license and pinned source are recorded in assets/THIRD_PARTY.txt. Only transforms and opacity animate, with theme color transitions as the existing exception.
 
 ## Owner access and data boundary
 
-Owner sign-in is hidden from ordinary visitor display, accessibility and keyboard navigation by CSS. The original #owner-access element stays in the DOM. The ?manage=1 route and recognized owner state expose it. Holding the bunny for 800ms invokes its existing click handler; it does not duplicate authentication logic or bypass access checks. README describes both entry paths.
+Owner sign-in is hidden from ordinary visitor display, accessibility and keyboard navigation by CSS. The original #owner-access element stays in the DOM. The ?manage=1 route and recognized owner state expose it. Holding the small ghost for 800ms invokes its existing click handler; it does not duplicate authentication logic or bypass access checks. README describes both entry paths.
 
 Public reads, private drafts, all five dialogs and existing write/conflict guards remain intact. Production data/settings are not changed for visual work. Never ship a service-role or secret key. Sign-out ends only the current browser session. Owner writes use RLS, version comparisons and the existing save_external_links conflict check.
 
@@ -43,12 +42,12 @@ assets/theme-init.js applies persisted preferences before paint. assets/theme.js
 
 assets/navigation.js maintains horizontal keyboard tabs and a concise Back presentation. assets/motion.js measures the dot on selection, font/viewport changes and orientation changes while preserving View Transitions. assets/fx.js retains optional pointer code behind a single effects object: cursor, magnet and spotlight default false; reveal defaults true. Default pointer effects create no nodes/listeners; content and footer reveal remain guarded and fail open. The real cursor and reduced-motion behavior stay native.
 
-Fonts, icons and the pinned Supabase bundle are local; assets/THIRD_PARTY.txt records their provenance. CSP permits only local scripts/styles/fonts/images, with the exact existing Supabase connect origin. No inline script/style blocks or style attributes are introduced. Inline SVG is intentional for bunny-part animation. Only the inert favicon has a separately hashed embedded theme stylesheet in the preview response.
+Fonts, icons and the pinned Supabase bundle are local; assets/THIRD_PARTY.txt records their provenance. CSP permits only local scripts/styles/fonts/images, with the exact existing Supabase connect origin. No inline script/style blocks or style attributes are introduced. Only the inert favicon has a separately hashed embedded theme stylesheet in the preview response.
 
 ## Checks and limits
 
-Run npm run check and npm test. New pure tests cover all eight scene boundaries, midnight, daylight-saving transitions, strict overrides, the zone fallback and shared early initialization. Preview tests now request the retained Geist asset and expect the requested visible project date.
+Run npm run check and npm test. Pure tests cover midnight, daylight-saving transitions, strict overrides, the zone fallback and early manage initialization. Preview tests request the Inter asset and expect the visible project date. Removed scene assertions belonged to the deleted illustration behavior.
 
-Browser QA covers both themes, all four scenes at 1x/2x DPR, 320/360/390/430/768/1280/1920 and phone landscape, touch long press, owner flows and route restoration. Physical mobile Safari/Android hardware remains a separate manual check.
+Browser QA covers both themes, 320/360/390/430/768/1280/1920 and phone landscape, touch long press, owner flows and route restoration. Physical mobile Safari/Android hardware remains a separate manual check.
 
 GitHub Pages provides HTTPS but cannot configure every response-level security header or cache policy. robots.txt lives at the project subpath. Server Auth quotas and operational setup remain documented in SETUP.md; browser cooldowns and hidden entry points do not replace server protections. Historical audits under docs/history describe earlier versions and are not current design instructions.

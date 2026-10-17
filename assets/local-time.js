@@ -40,14 +40,6 @@
     return validClock(value) ? value : null;
   }
 
-  function sceneForHour(hour) {
-    if (!Number.isInteger(hour) || hour < 0 || hour > 23) throw new RangeError("Hour must be an integer from 0 to 23.");
-    if (hour < 6 || hour >= 23) return "night";
-    if (hour < 11) return "morning";
-    if (hour < 18) return "day";
-    return "evening";
-  }
-
   function getSnapshot(date = new Date(), override = null) {
     const timestamp = date instanceof Date ? date.getTime() : NaN;
     if (!Number.isFinite(timestamp)) throw new TypeError("A valid Date is required.");
@@ -65,8 +57,8 @@
     // A preview is a time of day, not a claim about an absolute instant.
     const datetime = preview ? clock
       : `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${clock}:00${offsetText}`;
-    return { hour, minute, text: `${clock} in ${LOCATION_LABEL}`, datetime, scene: sceneForHour(hour), timeZone: activeTimeZone };
+    return { hour, minute, text: `${clock} in ${LOCATION_LABEL}`, datetime, timeZone: activeTimeZone };
   }
 
-  return Object.freeze({ TIME_ZONE, FALLBACK_TIME_ZONE, LOCATION_LABEL, parseOverride, sceneForHour, getSnapshot });
+  return Object.freeze({ TIME_ZONE, FALLBACK_TIME_ZONE, LOCATION_LABEL, parseOverride, getSnapshot });
 });
