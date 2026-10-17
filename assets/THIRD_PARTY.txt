@@ -12,7 +12,7 @@ Integrity: sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1ae
 License: vendor/supabase-LICENSE.txt (MIT)
 
 Phosphor Icons, Light weight: social logos, envelope-simple, file-text,
-lock-simple, warning-circle, arrow-right, arrow-up, monitor, sun, moon,
+lock-simple, warning-circle, arrow-left, arrow-right, arrow-up, monitor, sun, moon,
 infinity, currency-btc, sparkle, atom, chart-line-up,
 and asterisk-simple
 Source: https://github.com/phosphor-icons/core
@@ -20,8 +20,4 @@ Revision: 2b75f3ad12b420c9504ef05df8d2564a28f8500e
 Original files: assets/light/<name>-light.svg, stored unchanged as local CSS masks.
 License: icons/Phosphor-LICENSE.txt (MIT)
 
-Fragment Mono, Latin, normal 400
-Source: https://github.com/weiweihuanghuang/fragment-mono
-Distribution: https://cdn.jsdelivr.net/fontsource/fonts/fragment-mono@latest/latin-400-normal.woff2
-License source: https://raw.githubusercontent.com/google/fonts/main/ofl/fragmentmono/OFL.txt
-License: fonts/FragmentMono-OFL.txt (SIL Open Font License 1.1)
+The inline footer bunny is an original drawing created for this site.

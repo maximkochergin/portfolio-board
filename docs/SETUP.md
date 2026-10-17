@@ -1,4 +1,4 @@
-# working on archive
+# working on quipmug
 
 This is the practical companion to the [project introduction](../README.md). The production site is static; Supabase stores posts and contacts, and RLS controls who can read or write them.
 
@@ -28,7 +28,7 @@ The preview server listens on `http://127.0.0.1:4174/` and serves only the publi
 5. If the Supabase project URL changes, update the exact `connect-src` origin in both [`index.html`](../index.html) and [`serve.mjs`](../serve.mjs). The browser client currently accepts `https://*.supabase.co` project URLs, not a custom domain.
 6. Add the final HTTPS site URL to **Authentication → URL Configuration → Redirect URLs**. For local owner sign-in, add `http://localhost:4174` and `http://127.0.0.1:4174` too.
 
-On any page, use the discreet **Owner sign in** link in the footer to request a link for the existing owner account. The deployed direct URL is also `https://quipmug.github.io/portfolio-board/?manage=1`; locally use `http://127.0.0.1:4174/?manage=1`. **New entry**, **Edit links**, **Edit intro**, and **Sign out** appear after the session is recognized as the owner. Sign out ends only the current browser session. Drafts remain private even when someone knows their direct URL.
+Open `https://quipmug.github.io/portfolio-board/?manage=1`, or hold the footer bunny for about a second to open the existing owner sign-in dialog. The footer link is hidden from ordinary visitors and becomes visible on the manage route or in a recognized owner session. Locally use `http://127.0.0.1:4174/?manage=1`. **New entry**, **Edit links**, **Edit intro**, and **Sign out** appear after the session is recognized as the owner. Sign out ends only the current browser session. Drafts remain private even when someone knows their direct URL; hiding the entry point does not grant or enforce access.
 
 The owner can publish or save a draft, edit existing posts, and change the external links through **Edit links** in the owner workspace. Leaving a contact field empty hides its text link. Posts can use `##`/`###` headings, lists, `**strong**`, `*emphasis*`, inline backticks, and fenced code blocks. Raw HTML is displayed as text.
 

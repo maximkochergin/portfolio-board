@@ -1,9 +1,9 @@
 (() => {
   function initialize() {
     const navigation = document.querySelector(".switcher");
-    const mobile = window.matchMedia("(max-width: 767px)");
-    const orient = () => navigation?.setAttribute("aria-orientation", mobile.matches ? "horizontal" : "vertical");
-    orient();
+    if (navigation && navigation.getAttribute("aria-orientation") !== "horizontal") {
+      navigation.setAttribute("aria-orientation", "horizontal");
+    }
     navigation?.addEventListener("keydown", event => {
       if (!(event.altKey || event.ctrlKey || event.metaKey)
         || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)
@@ -11,9 +11,15 @@
       // Preserve browser shortcuts before the tab handler can cancel their default action.
       event.stopPropagation();
     }, true);
-    mobile.addEventListener("change", orient);
-    window.addEventListener("resize", orient);
-    window.addEventListener("orientationchange", orient);
+    const back = document.querySelector("#back-to-list");
+    if (back) {
+      const syncBackLabel = () => {
+        if (back.textContent !== "Back") back.textContent = "Back";
+      };
+      const labels = new MutationObserver(syncBackLabel);
+      labels.observe(back, { childList: true });
+      syncBackLabel();
+    }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
   else initialize();

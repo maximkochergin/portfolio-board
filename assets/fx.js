@@ -1,10 +1,12 @@
 (() => {
+  const effects = Object.freeze({ cursor: false, magnet: false, spotlight: false, reveal: true });
+
   function initialize() {
     const root = document.documentElement;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const forcedColors = window.matchMedia("(forced-colors: active)");
-    const revealSelector = ".post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table)";
+    const revealSelector = ".post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table), .site-footer";
     const excluded = "dialog, [role='dialog'], #board-controls, #owner-actions, input, textarea, select, [contenteditable]:not([contenteditable='false']), [inert], :disabled, [aria-disabled='true']";
     const infinityButton = document.querySelector("button.role-connector");
     const infinityFallback = document.querySelector(".role-connector-fallback");
@@ -45,6 +47,7 @@
       catch { failOpen(); }
     };
     const enabled = () => finePointer.matches && !reducedMotion.matches && !forcedColors.matches && !suspended && !document.hidden;
+    const pointerEffects = effects.cursor || effects.magnet || effects.spotlight;
     const blocked = element => modalOpen || !element?.closest || Boolean(element.closest(excluded + ", .panel-ghost"));
     const inViewport = () => x >= 0 && y >= 0 && x < root.clientWidth && y < root.clientHeight;
 
@@ -117,7 +120,7 @@
     }
 
     function createPointer() {
-      if (cursor || !enabled()) return;
+      if (!effects.cursor || cursor || !enabled()) return;
       cursor = document.createElement("span");
       cursor.className = "fx-cursor";
       cursor.setAttribute("aria-hidden", "true");
@@ -136,19 +139,19 @@
     function updateSurfaces() {
       const target = document.elementFromPoint(x, y);
       if (!inViewport() || blocked(target)) { hidePointer(); return; }
-      cursor.classList.toggle("is-interactive", Boolean(target.closest("a[href], button:not(:disabled), summary, [role='button']:not([aria-disabled='true'])")));
-      cursor.classList.toggle("is-entry", Boolean(target.closest(".post-list > .post-item")));
-      const overInfinity = Boolean(target.closest("button.role-connector"));
-      cursor.classList.toggle("is-infinity", overInfinity);
+      cursor?.classList.toggle("is-interactive", Boolean(target.closest("a[href], button:not(:disabled), summary, [role='button']:not([aria-disabled='true'])")));
+      cursor?.classList.toggle("is-entry", Boolean(target.closest(".post-list > .post-item")));
+      const overInfinity = effects.cursor && Boolean(target.closest("button.role-connector"));
+      cursor?.classList.toggle("is-infinity", overInfinity);
       if (overInfinity && infinityButton) {
         const box = infinityButton.getBoundingClientRect();
         const tilt = Math.max(-12, Math.min(12, (x - box.left - box.width / 2) * .6));
         infinityButton.style.setProperty("--loop-tilt", tilt.toFixed(1) + "deg");
         infinityButton.classList.add("is-reacting");
       } else resetInfinityHover();
-      const nextInterest = target.closest(".interest-item");
+      const nextInterest = effects.cursor ? target.closest(".interest-item") : null;
       if (nextInterest !== interest) resetInterest();
-      cursor.classList.toggle("is-interest", Boolean(nextInterest));
+      cursor?.classList.toggle("is-interest", Boolean(nextInterest));
       if (nextInterest) {
         interest = nextInterest;
         const box = interest.getBoundingClientRect();
@@ -157,7 +160,7 @@
         interest.classList.add("is-reacting");
       }
       // Only the actual hovered link moves, so empty space never attracts a target.
-      const nextMagnet = target.closest(".contact-link, .switcher button");
+      const nextMagnet = effects.magnet ? target.closest(".contact-link, .switcher button") : null;
       if (nextMagnet !== magnet) resetMagnet();
       if (nextMagnet) {
         const box = nextMagnet.getBoundingClientRect();
@@ -179,7 +182,7 @@
         magnet.style.setProperty("--magnet-x", magnetX.toFixed(1) + "px");
         magnet.style.setProperty("--magnet-y", magnetY.toFixed(1) + "px");
       }
-      const list = target.closest(".post-list");
+      const list = effects.spotlight ? target.closest(".post-list") : null;
       if (list !== spotlight) resetSpotlight();
       if (list) {
         spotlight = list;
@@ -205,6 +208,7 @@
       if (!visible || !enabled()) return;
       if (dirty) { dirty = false; updateSurfaces(); }
       if (!visible) return;
+      if (!cursor || !echo) { lastFrame = 0; return; }
       const elapsed = lastFrame ? Math.max(0, Math.min(50, timestamp - lastFrame)) : 16.7;
       lastFrame = timestamp;
       const ease = 1 - Math.exp(-elapsed / 20);
@@ -225,7 +229,7 @@
     }
 
     function movePointer(event) {
-      if (!enabled() || !cursor || event.pointerType === "touch") { hidePointer(); return; }
+      if (!pointerEffects || !enabled() || event.pointerType === "touch") { hidePointer(); return; }
       primaryDown = Boolean(event.buttons & 1);
       if (!event.buttons) nativeDrag = false;
       if (nativeDrag || (event.buttons & ~1)) { hidePointer(); return; }
@@ -238,8 +242,8 @@
         echoX = x;
         echoY = y;
         lean = targetLean = 0;
-        echo.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-        cursor.style.setProperty("--cursor-lean", "0deg");
+        if (echo) echo.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        cursor?.style.setProperty("--cursor-lean", "0deg");
       }
       lastMove = performance.now();
       if (visible) {
@@ -247,17 +251,19 @@
         targetLean = Math.max(-5, Math.min(5, (x - previousX) / elapsed * 2));
       }
       known = visible = dirty = true;
-      cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      cursor.classList.toggle("is-edge-right", x + 70 > root.clientWidth);
-      cursor.classList.toggle("is-edge-bottom", y + 32 > root.clientHeight);
+      if (cursor) cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      cursor?.classList.toggle("is-edge-right", x + 70 > root.clientWidth);
+      cursor?.classList.toggle("is-edge-bottom", y + 32 > root.clientHeight);
       // Clamp immediately as well as on animation frames, even during fast sweeps.
-      keepEchoClose();
-      echo.style.transform = `translate3d(${echoX}px, ${echoY}px, 0)`;
-      cursor.classList.add("is-visible");
-      echo.classList.add("is-visible");
-      cursor.classList.toggle("is-pressed", Boolean(event.buttons & 1));
-      echo.classList.toggle("is-pressed", Boolean(event.buttons & 1));
-      root.classList.add("has-custom-cursor");
+      if (cursor && echo) {
+        keepEchoClose();
+        echo.style.transform = `translate3d(${echoX}px, ${echoY}px, 0)`;
+        cursor.classList.add("is-visible");
+        echo.classList.add("is-visible");
+        cursor.classList.toggle("is-pressed", Boolean(event.buttons & 1));
+        echo.classList.toggle("is-pressed", Boolean(event.buttons & 1));
+        root.classList.add("has-custom-cursor");
+      }
       scheduleFrame();
     }
 
@@ -294,8 +300,12 @@
       });
       document.querySelectorAll(revealSelector).forEach(element => {
         if (seen.has(element) || element.closest("[hidden], .panel-ghost") || !element.getClientRects().length) return;
+        if (element.getBoundingClientRect().top < window.innerHeight) {
+          // Loading rows can push the static footer below the first screen later.
+          if (!element.matches(".site-footer")) seen.add(element);
+          return;
+        }
         seen.add(element);
-        if (element.getBoundingClientRect().top < window.innerHeight) return;
         element.classList.add("motion-entered", "reveal-pending");
         pending.add(element);
         intersection.observe(element);
@@ -310,9 +320,9 @@
 
     function syncPreferences() {
       if (document.hidden || reducedMotion.matches || suspended) finishInfinity();
-      if (enabled()) createPointer();
+      if (pointerEffects && enabled()) createPointer();
       else removePointer();
-      if (reducedMotion.matches || suspended || !("IntersectionObserver" in window)) { revealAll(); return; }
+      if (!effects.reveal || reducedMotion.matches || suspended || !("IntersectionObserver" in window)) { revealAll(); return; }
       if (!intersection) {
         intersection = new IntersectionObserver(guard(entries => {
           entries.forEach(entry => { if (entry.isIntersecting) reveal(entry.target); });
@@ -357,48 +367,50 @@
       observe();
       syncModal();
       syncPreferences();
-      document.addEventListener("pointermove", guard(movePointer), { passive: true });
-      document.addEventListener("pointerover", guard(movePointer), { passive: true });
-      document.addEventListener("pointerout", guard(event => { if (!event.relatedTarget) hidePointer(); }), { passive: true });
-      document.addEventListener("pointerdown", guard(event => {
-        primaryDown = Boolean(event.buttons & 1);
-        if (event.button !== 0 || blocked(event.target)
-          || event.clientX >= root.clientWidth || event.clientY >= root.clientHeight) {
-          nativeDrag = true;
-          hidePointer();
-          return;
-        }
-        nativeDrag = false;
-        movePointer(event);
-      }), { passive: true, capture: true });
-      window.addEventListener("pointerup", guard(releasePointer), { passive: true, capture: true });
-      document.addEventListener("pointercancel", guard(() => { releasePointer(); hidePointer(); }), { passive: true });
-      document.addEventListener("lostpointercapture", guard(() => { releasePointer(); hidePointer(); }), { passive: true });
-      document.addEventListener("contextmenu", guard(hidePointer));
-      document.addEventListener("dragstart", guard(() => { nativeDrag = true; hidePointer(); }));
-      document.addEventListener("dragend", guard(() => { releasePointer(); hidePointer(); }));
-      document.addEventListener("selectionchange", guard(() => {
-        if (primaryDown && !window.getSelection()?.isCollapsed) { nativeDrag = true; hidePointer(); }
-      }));
-      document.addEventListener("keydown", guard(hidePointer), true);
+      if (pointerEffects) {
+        document.addEventListener("pointermove", guard(movePointer), { passive: true });
+        document.addEventListener("pointerover", guard(movePointer), { passive: true });
+        document.addEventListener("pointerout", guard(event => { if (!event.relatedTarget) hidePointer(); }), { passive: true });
+        document.addEventListener("pointerdown", guard(event => {
+          primaryDown = Boolean(event.buttons & 1);
+          if (event.button !== 0 || blocked(event.target)
+            || event.clientX >= root.clientWidth || event.clientY >= root.clientHeight) {
+            nativeDrag = true;
+            hidePointer();
+            return;
+          }
+          nativeDrag = false;
+          movePointer(event);
+        }), { passive: true, capture: true });
+        window.addEventListener("pointerup", guard(releasePointer), { passive: true, capture: true });
+        document.addEventListener("pointercancel", guard(() => { releasePointer(); hidePointer(); }), { passive: true });
+        document.addEventListener("lostpointercapture", guard(() => { releasePointer(); hidePointer(); }), { passive: true });
+        document.addEventListener("contextmenu", guard(hidePointer));
+        document.addEventListener("dragstart", guard(() => { nativeDrag = true; hidePointer(); }));
+        document.addEventListener("dragend", guard(() => { releasePointer(); hidePointer(); }));
+        document.addEventListener("selectionchange", guard(() => {
+          if (primaryDown && !window.getSelection()?.isCollapsed) { nativeDrag = true; hidePointer(); }
+        }));
+        document.addEventListener("keydown", guard(hidePointer), true);
+        document.addEventListener("scroll", guard(() => {
+          if (!visible || !enabled()) return;
+          resetMagnet();
+          dirty = true;
+          scheduleFrame();
+        }), { passive: true, capture: true });
+        finePointer.addEventListener("change", guard(syncPreferences));
+        forcedColors.addEventListener("change", guard(syncPreferences));
+      }
       document.addEventListener("focusin", guard(event => {
         if (blocked(event.target)) hidePointer();
         const pending = event.target.closest(".reveal-pending");
         if (pending) reveal(pending);
       }));
       window.addEventListener("blur", guard(() => { releasePointer(); hidePointer(); }));
-      document.addEventListener("scroll", guard(() => {
-        if (!visible || !enabled()) return;
-        resetMagnet();
-        dirty = true;
-        scheduleFrame();
-      }), { passive: true, capture: true });
       window.addEventListener("resize", guard(() => { hidePointer(); queueScan(); }), { passive: true });
       window.addEventListener("orientationchange", guard(() => { hidePointer(); queueScan(); }), { passive: true });
       document.addEventListener("visibilitychange", guard(syncPreferences));
-      finePointer.addEventListener("change", guard(syncPreferences));
       reducedMotion.addEventListener("change", guard(syncPreferences));
-      forcedColors.addEventListener("change", guard(syncPreferences));
       window.addEventListener("pagehide", guard(() => {
         suspended = true;
         mutations.disconnect();

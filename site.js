@@ -346,6 +346,16 @@ function postMetadata(post) {
   return parts.join(" · ");
 }
 
+// Reuse the existing metadata and date format for the other two sections.
+const originalPostMetadata = postMetadata;
+postMetadata = function (post) {
+  const metadata = originalPostMetadata(post);
+  const date = new Date(post.published_at);
+  if (post.category === "notes" || Number.isNaN(date.getTime())) return metadata;
+  const label = dateFormatter.format(date);
+  return metadata ? metadata + " · " + label : label;
+};
+
 function syncSection() {
   const reading = !detail.hidden;
   document.querySelector("#profile-introduction").hidden = reading || !profile.introduction;

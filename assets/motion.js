@@ -154,15 +154,55 @@
     const indicator = document.createElement("span");
     indicator.className = "tab-indicator";
     indicator.setAttribute("aria-hidden", "true");
+    let indicatorFrame = 0;
+    let indicatorPosition = "";
 
     function syncIndicator() {
+      indicatorFrame = 0;
       const selected = tabs.find(tab => tab.getAttribute("aria-selected") === "true");
       if (!selected) return;
       const category = selected.id.replace(/^tab-/, "");
       if (!["work", "notes", "about"].includes(category)) return;
-      navigation.dataset.activeTab = category;
       if (!indicator.isConnected) navigation.append(indicator);
+      const label = selected.querySelector(".tab-top > span") || selected.querySelector(".tab-top") || selected;
+      const navBox = navigation.getBoundingClientRect();
+      const labelBox = label.getBoundingClientRect();
+      if (!navBox.width || !labelBox.width) return;
+      const fontSize = Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 15;
+      const x = labelBox.left + labelBox.width / 2 - navBox.left + navigation.scrollLeft - navigation.clientLeft - 3;
+      const y = labelBox.bottom - navBox.top + navigation.scrollTop - navigation.clientTop + fontSize * .4;
+      const position = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+      if (position !== indicatorPosition) {
+        indicator.style.transform = position;
+        indicatorPosition = position;
+      }
+      navigation.dataset.activeTab = category;
       navigation.dataset.motion = "ready";
+    }
+
+    function queueIndicator() {
+      if (!indicatorFrame) indicatorFrame = window.requestAnimationFrame(syncIndicator);
+    }
+
+    window.addEventListener("resize", queueIndicator, { passive: true });
+    window.addEventListener("orientationchange", queueIndicator, { passive: true });
+    window.addEventListener("pageshow", queueIndicator);
+    window.addEventListener("pagehide", () => {
+      if (indicatorFrame) window.cancelAnimationFrame(indicatorFrame);
+      indicatorFrame = 0;
+    });
+    if ("ResizeObserver" in window) {
+      const geometry = new ResizeObserver(queueIndicator);
+      geometry.observe(navigation);
+      tabs.forEach(tab => {
+        geometry.observe(tab);
+        const label = tab.querySelector(".tab-top > span") || tab.querySelector(".tab-top");
+        if (label) geometry.observe(label);
+      });
+    }
+    if (document.fonts) {
+      document.fonts.ready.then(queueIndicator).catch(() => {});
+      document.fonts.addEventListener?.("loadingdone", queueIndicator);
     }
 
     function visiblePanel() {
@@ -268,7 +308,7 @@
         }
         previousSelectedTab = selectedTab;
       }
-      syncIndicator();
+      queueIndicator();
       const panel = visiblePanel();
       if (panel !== previousPanel) {
         clearPanelFade();

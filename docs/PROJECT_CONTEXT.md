@@ -1,84 +1,54 @@
 # Project context
 
-## Purpose
+## Purpose and architecture
 
-A minimalist, English-language personal portfolio and notes board. Visitors can browse published work, notes, and about entries; one owner can manage posts and private drafts.
+A minimalist English-language personal portfolio and notes board, published at https://quipmug.github.io/portfolio-board/. Visitors browse Projects, Notes and About; one owner manages entries, private drafts, contacts and the introduction through Supabase.
 
-## Stack and architecture
+- Static HTML, CSS and vanilla browser JavaScript; no application framework or production server.
+- index.html contains the stable application and owner-dialog hooks. styles.css defines the visual system.
+- site.js owns data loading, routes, filters, authentication and owner operations. Its original metadata formatter has a small presentation wrapper to show the existing published date in all three sections; date format and Draft text are preserved.
+- config.js holds the public Supabase URL and publishable key. RLS and the UUID owner check remain the security boundary; hidden controls never grant permissions.
+- serve.mjs is a loopback preview server with an explicit public-file boundary. GitHub Actions checks the code and deploys the static allowlist on pushes to main.
 
-- Static HTML, CSS, and browser JavaScript; no application framework or production server.
-- `index.html` is the page structure; `styles.css` holds the visual system; `site.js` handles tabs, search, post display, Supabase reads, and owner actions.
-- `assets/navigation.js` keeps tab orientation in sync with the responsive layout.
-- `config.js` contains the Supabase URL and publishable key. The key is public by design; database permissions must remain enforced by RLS.
-- Supabase Auth uses email sign-in links. PostgreSQL tables and owner checks are defined in `supabase/schema.sql`; upgrades go in `supabase/migrations/`.
-- `serve.mjs` is a loopback-only local preview server. GitHub Actions checks the scripts/tests and deploys an explicit static-file allowlist to GitHub Pages.
+## Current visual system
 
-## Important decisions and boundaries
+The October 17 redesign uses one centered column with a maximum outer width of 36rem and a 15px root size. Local Geist is the only shipped font. The interface remains neutral monochrome, with system/light/dark modes, readable secondary text, 44px touch controls and 16px mobile form fields. Dates, counters and the Ukraine clock use tabular numerals.
 
-- Keep the frontend static and dependency-light. Do not add a server or framework for features that fit the current model.
-- RLS is the security boundary for public reads, private drafts, and owner writes. UI checks only control what the owner sees.
-- Never place Supabase service-role credentials in the repository or browser. Do not expose additional tables or APIs without an explicit access policy.
-- GitHub Pages hosts the project under `/portfolio-board/`; it forces HTTPS but does not let this project configure every response security header or cache policy. The page uses a CSP meta policy.
-- The owner supplied the public identity: Maxim Kochergin, Software Engineer - DevOps. The role is displayed with a neutral infinity mask instead of a text dash. Do not invent personal links.
+The header contains a quiet quipmug home/top link and theme control. The existing editable introduction appears as prose above wrapping icon pills. Projects / Notes / About remain horizontal at every breakpoint, with a six-pixel active dot below the label. Lists show titles and dates without cards; entry bodies retain the reading column, formatting and native history navigation. Owner dialogs remain scrollable bottom sheets on phones.
 
-## Current state
+The footer contains an original inline line-drawn bunny sitting on its divider, Ukraine time, the quipmug signature, Maxim Kochergin, Software Engineer - DevOps and Back to top. The former static identity/interests block is no longer duplicated in the header. The introduction remains owner-controlled; no production content was overwritten.
 
-The site is published at `https://quipmug.github.io/portfolio-board/`. The October 15 redesign uses neutral monochrome light and dark themes selected by `prefers-color-scheme`, local Geist and Fragment Mono fonts, a larger quiet site title, and three supporting text sizes. Preserve the text-first layout, no cards, noise textures or heavy motion, and no clock or greeting. Projects / Notes / About use vertical desktop tabs, horizontal mobile tabs, a moving active dot with a static CSS fallback, single-column previews, and an optional filter for sections with six or more entries. Motion is limited to opacity and transform; reduced motion disables it. `assets/motion.js` adds progressive enhancement around the existing entry navigation without changing data loading or owner operations. Fonts and the pinned Supabase browser bundle load locally; `assets/THIRD_PARTY.txt` records their sources and licenses. CSP permits only local scripts, styles, fonts and images, with the exact Supabase connection origin. The obsolete inline JSON-LD was removed in the final visual update. Contacts are near the introduction. Neither the portfolio nor the README contains inspiration credits; the README contains no stack description or launch instructions. Owner editing controls are hidden from visitors; a discreet Owner sign in link in the footer opens owner sign-in, and `?manage=1` remains a direct route. The owner can edit the title/introduction through Edit intro; no personal identity is filled automatically. Sign out ends only the current browser session. `history/REVIEW.md` records the 2026-09-25 audit; its historical findings should be checked against current code before treating them as open bugs.
+## Time and bunny
 
-For a new session, the user only needs to describe the task. `AGENTS.md` carries the repository workflow automatically; Codex Memory may retain user preferences, but Git and the working tree remain authoritative for code and in-progress changes. When resuming a particular unfinished task in a new thread, state its intended outcome briefly; do not paste the project history.
+- assets/local-time.js exports pure browser/CommonJS helpers. TIME_ZONE, its legacy fallback and LOCATION_LABEL live here. Intl formats Europe/Kyiv (fallback Europe/Kiev), handles daylight-saving changes and always uses hourCycle h23.
+- assets/footer-init.js runs synchronously before CSS to choose the initial scene and expose the direct manage route. No-JS defaults to the day pose and hides the clock.
+- assets/footer.js updates once at minute boundaries, pauses while hidden and resynchronizes on return. It updates scene ARIA labels, schedules small blinking/ear motions, handles one short hop per activation and cancels long presses on movement or scrolling.
+- Scene ranges: night 23:00–05:59, morning 06:00–10:59, day 11:00–17:59, evening 18:00–22:59.
+- A strict ?time=HH:MM query previews both the clock and pose. It composes with ?manage=1 and hash routes. A preview datetime is a valid time of day; the real clock uses a full timestamp with its Ukraine offset.
+- Reduced motion keeps every pose static and disables blinking, breathing, floating sleep marks, hops and scene transitions.
 
-The October 2026 frontend fixes preserve pending post links through loading failures, protect unsaved posts and contact edits, prevent duplicate sign-in requests, and check post versions on deletion as well as editing. Lists render on demand and reuse unchanged DOM; auth events coalesce reloads. Saving and deleting respect navigation that happens while follow-up reads are pending. The regression suite covers these flows with mocked requests; browser checks use an isolated memory fixture for owner writes.
+The bunny SVG is original and local. Shared geometry keeps all four inline poses below 6KB. Only transforms and opacity animate; capsule fill and theme colors are the stated exceptions.
 
-The October 9 simplification adds bounded SDK/transport/UI waits, preserves retry guards across pages, resets filters between sections, and prevents duplicate inserts after uncertain saves. Site profile updates use the existing UUID owner boundary and version checks. Production Auth quotas and residual limitations are documented in SETUP.md; a browser cooldown or hidden button never replaces server protection.
+## Owner access and data boundary
 
-## Interaction update
+Owner sign-in is hidden from ordinary visitor display, accessibility and keyboard navigation by CSS. The original #owner-access element stays in the DOM. The ?manage=1 route and recognized owner state expose it. Holding the bunny for 800ms invokes its existing click handler; it does not duplicate authentication logic or bypass access checks. README describes both entry paths.
 
-The October 16 interaction update keeps Geist on all controls and links, with Fragment Mono reserved for entry dates, metadata and captions. Local Phosphor Light masks provide persistent link indicators and touch row arrows. Layout starts at 320px; tabs become vertical at 768px. Owner dialogs become scrollable bottom sheets below that breakpoint. `assets/fx.js` adds guarded scroll reveals and optional fine-pointer cursor, magnetic links and list spotlight effects; reduced motion disables them. CSSOM property writes are explicitly authorized for effect coordinates, while inline style markup and `setAttribute('style')` remain prohibited. Do not add new client origins or change the data/owner routing for visual work.
+Public reads, private drafts, all five dialogs and existing write/conflict guards remain intact. Production data/settings are not changed for visual work. Never ship a service-role or secret key. Sign-out ends only the current browser session. Owner writes use RLS, version comparisons and the existing save_external_links conflict check.
 
-## Known limitations
+SDK/transport/UI waits are bounded. New-entry retries reuse a UUID after uncertain writes. Unsaved entry/contact/profile changes retain unload/discard guards. Regression tests cover failures, late replies, cooldowns, conflicts, deep links and focus restoration; interactive owner QA uses an isolated browser-memory fixture without production writes or email sends.
 
-- GitHub Pages cannot set all response-level security headers or a custom static cache policy; consider a host change only if those controls are needed.
-- `robots.txt` lives at the GitHub Pages project subpath, not the host root.
-- Editing and deleting compare post `updated_at` values. Contact saves send only changed platforms through `save_external_links`; the server compares the URLs the owner reviewed and rejects the entire batch on a conflict. The October 12 regression checks also cover early sign-in, delayed editors, keyboard navigation, focus restoration, and URL expansion beyond the database length limit.
+## Progressive enhancement and assets
 
-## Contact and dialog refinement
+assets/theme-init.js applies persisted preferences before paint. assets/theme.js preserves live system mode, storage synchronization and theme metadata. All storage access is guarded.
 
-Header contacts are wrapping 44px pills with Phosphor Light masks selected by href in CSS. A bottom-up neutral fill inverts focused, pressed, or hovered pills; touch gets only press feedback. The cursor uses an angular pointer and a fading angular echo, while magnetic movement is preserved. External-link arrows have been removed; entry row arrows remain. Owner sign-in uses a small lock mask. All owner dialogs share 16px corners, neutral blurred backdrops, 48px fields and full-width primary actions, with bottom-sheet geometry on phones. Busy indicators follow existing aria-busy states; alert masks reuse existing error nodes. No data or auth behavior changes.
+assets/navigation.js maintains horizontal keyboard tabs and a concise Back presentation. assets/motion.js measures the dot on selection, font/viewport changes and orientation changes while preserving View Transitions. assets/fx.js retains optional pointer code behind a single effects object: cursor, magnet and spotlight default false; reveal defaults true. Default pointer effects create no nodes/listeners; content and footer reveal remain guarded and fail open. The real cursor and reduced-motion behavior stay native.
 
-Fragment Mono Latin 400 replaces Geist Mono after a temporary local comparison against Martian Mono and Sometype Mono at 12–13px in both themes. Fragment was chosen for its compact width and small-size clarity next to Geist. Only the selected WOFF2 and its upstream OFL-1.1 license are shipped. Eyebrows, previews and operational labels use Geist.
+Fonts, icons and the pinned Supabase bundle are local; assets/THIRD_PARTY.txt records their provenance. CSP permits only local scripts/styles/fonts/images, with the exact existing Supabase connect origin. No inline script/style blocks or style attributes are introduced. Inline SVG is intentional for bunny-part animation. Only the inert favicon has a separately hashed embedded theme stylesheet in the preview response.
 
-## Final visual update
+## Checks and limits
 
-The interface uses a 14.8px root scale with a 15px main-text floor and rem/em layout units; touch targets remain at least 44px, mobile fields remain 16px, and metadata stays at least 12px. The 65ch reading column is unchanged. Fixed pixel pointer geometry and hairlines are deliberate exceptions.
+Run npm run check and npm test. New pure tests cover all eight scene boundaries, midnight, daylight-saving transitions, strict overrides, the zone fallback and shared early initialization. Preview tests now request the retained Geist asset and expect the requested visible project date.
 
-`assets/theme-init.js` is an external blocking head script that applies a valid persisted theme before CSS paints. `assets/theme.js` cycles system/light/dark, stores only explicit choices under `theme`, syncs storage events, follows live system preferences, and updates browser metadata. Storage failures fall back to a working in-page choice. No runtime CDN or inline scripts are used.
+Browser QA covers both themes, all four scenes at 1x/2x DPR, 320/360/390/430/768/1280/1920 and phone landscape, touch long press, owner flows and route restoration. Physical mobile Safari/Android hardware remains a separate manual check.
 
-Contact pills use a single background-size fill and inset outline, not a transformed overlay or active scale. Magnetic offsets are quantized to half pixels and applied with translate3d without a transform transition on pills. Icons use rounded whole-pixel em dimensions. This removes the separate curved layers and fractional interpolation that produced edge artifacts.
-
-The static brand and profile fallback are quipmug. The legacy Supabase title archive is mapped to quipmug for display only. Other custom titles and the editable source value stay intact. No production data is changed for this redesign. The supplied identity is displayed under the brand in the top header, with a Phosphor connector between the two role labels. The footer has returned to its original discreet Owner sign in link, with no large signature, divider, or Back to top link.
-
-The root favicon.svg is theme-aware; assets/brand/q-mark.svg is its reusable geometric source. favicon-32.png and apple-touch-icon.png are local raster fallbacks. assets/brand/cover.html and cover.css are the source for the 1672x941 sharing image, rendered with local Geist; a Phosphor infinity mask connects the two role labels. Root icon files are explicitly allowed by the preview server and included in the Pages artifact. Only the inert SVG favicon response permits its exact embedded theme stylesheet by hash; HTML pages retain self-only external styles and scripts.
-
-The owner approved updating only the preview test's two old archive title expectations and replacing its obsolete inline JSON-LD expectation with local-script/CSP and brand metadata checks. The remaining test contracts are unchanged.
-
-## Identity placement correction
-
-The owner clarified that the identity belongs at the top, replacing the archive block entirely. The bottom returns to its earlier minimal footer. Use the refined 14.8px root scale with readable 15px main text, retain the working theme controls and stable pill surfaces, and keep Projects / Notes / About, Supabase operations and editable intro intact. Display-only title mapping is shared by the header, entry titles and unavailable-entry titles; no production database changes or manual rename are needed.
-
-## Interests and pointer refinement
-
-The owner supplied Crypto, AI, Tech and Trading as interests. A plain Exploring row under the role uses local Phosphor Light currency-btc, sparkle, atom and chart-line-up masks. These are informational labels, not buttons. The role connector uses infinity as a quiet DevOps cycle symbol; the sharing image matches it and includes the interest sentence. All six new assets, including the cursor asterisk, are unchanged official MIT SVGs recorded in THIRD_PARTY.txt.
-
-At fine-pointer hover with motion enabled, assets/fx.js now replaces the native pointer with a small cut-paper shape, bounded velocity lean and press feedback. A faint angular echo follows briefly and fades when movement settles; requestAnimationFrame stops at idle. Entry hover adds a View label. Interest hover adds a small asterisk badge and gives the corresponding icon a bounded tilt. There are no cursor circles or rings. The native pointer is restored over inputs, disabled controls, owner areas/dialogs, scrollbars, outside the window, during keyboard use and on cleanup/failure. Touch and reduced motion create no cursor nodes. CSS cursor hiding is also guarded by the same media conditions and the active root class.
-
-## Interaction reliability follow-up
-
-The infinity connector is progressively enhanced into a 44px button. Hover gives its mark a bounded tilt and adds a small infinity badge to the pointer; click, tap, Enter or Space plays one short dimensional turn. Repeated activation never queues loops. Reduced motion uses static press feedback, and missing or failed FX leaves a decorative fallback. Visibility changes and page lifecycle events clear pending feedback.
-
-FX observes disabled, inert and link state changes, restores the native pointer on canceled gestures, revalidates hovered surfaces on nested scrolling, and releases reveal classes when a pending node is detached so reused content cannot stay hidden. Contact pills invert on keyboard focus and touch press as well as hover. List focus feedback changes only secondary title color, preserving readable metadata instead of fading entire rows. Coarse-pointer and no-hover controls retain 16px input text even in wide phone landscape. Modified navigation keys keep their browser defaults through a small capture guard in navigation.js; site.js and owner/data behavior remain unchanged.
-
-## Cursor precision follow-up
-
-The pointer keeps an exact, unsmoothed hotspot and a visible pointed tip in every state. Its smaller badges and nearby View label preserve that anchor; labels flip inward at viewport edges. Continuous lean has no CSS transition and is bounded to five degrees. The faint echo stays within six pixels, uses time-based easing and stops at idle. Magnets affect only the actual hovered contact or tab, with three-pixel quantized movement rather than attraction from empty space.
-
-Right and middle clicks, text selection, native dragging and dragging out of a search field retain native pointer behavior until release. Capture-phase release handling, cancellation, focus loss and live contenteditable checks prevent stuck press or editing states. Scrolling refreshes the target under a stationary pointer, preserving its position while clearing obsolete hover feedback. Keyboard input hides the custom pointer without prematurely ending a physical drag. Forced-colors mode retains the native pointer so system contrast choices do not interfere with difference blending.
+GitHub Pages provides HTTPS but cannot configure every response-level security header or cache policy. robots.txt lives at the project subpath. Server Auth quotas and operational setup remain documented in SETUP.md; browser cooldowns and hidden entry points do not replace server protections. Historical audits under docs/history describe earlier versions and are not current design instructions.
