@@ -9,6 +9,7 @@
     const revealSelector = ".post-list > .post-item, .detail .body > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,img,figure,table), .site-footer";
     const excluded = "dialog, [role='dialog'], #board-controls, #owner-actions, input, textarea, select, [contenteditable]:not([contenteditable='false']), [inert], :disabled, [aria-disabled='true']";
     const infinityButton = document.querySelector("button.role-connector");
+    const infinityMark = infinityButton?.querySelector(".role-connector-mark");
     const infinityFallback = document.querySelector(".role-connector-fallback");
     const seen = new WeakSet();
     const pending = new Set();
@@ -40,6 +41,8 @@
     let primaryDown = false;
     let nativeDrag = false;
     let infinityTimer = 0;
+    let infinityRun = 0;
+    let infinityAnimation = null;
 
     const guard = callback => (...args) => {
       if (failed) return;
@@ -53,20 +56,29 @@
 
     function resetInfinityHover() {
       infinityButton?.classList.remove("is-reacting");
-      infinityButton?.style.removeProperty("--loop-tilt");
+      infinityButton?.style.removeProperty("--loop-angle");
     }
 
-    function finishInfinity() {
+    function finishInfinity(run = infinityRun) {
+      if (run !== infinityRun) return;
+      infinityRun += 1;
       window.clearTimeout(infinityTimer);
       infinityTimer = 0;
+      infinityAnimation = null;
       infinityButton?.classList.remove("is-looping");
     }
 
     function animateInfinity() {
-      if (!infinityButton || document.hidden || infinityTimer) return;
+      if (!infinityButton || document.hidden || suspended || reducedMotion.matches || infinityTimer) return;
+      const run = ++infinityRun;
       infinityButton.classList.add("is-looping");
       // The timer also settles feedback when animations are disabled or interrupted.
-      infinityTimer = window.setTimeout(guard(finishInfinity), 950);
+      infinityTimer = window.setTimeout(guard(() => finishInfinity(run)), 950);
+      infinityAnimation = infinityMark?.getAnimations?.().find(animation => animation.animationName === "infinity-loop") || null;
+      if (infinityAnimation) {
+        // A cancelled older run must never settle feedback for a newer click.
+        infinityAnimation.finished.then(guard(() => finishInfinity(run)), guard(() => finishInfinity(run)));
+      }
     }
 
     function resetInterest() {
@@ -146,7 +158,7 @@
       if (overInfinity && infinityButton) {
         const box = infinityButton.getBoundingClientRect();
         const tilt = Math.max(-12, Math.min(12, (x - box.left - box.width / 2) * .6));
-        infinityButton.style.setProperty("--loop-tilt", tilt.toFixed(1) + "deg");
+        infinityButton.style.setProperty("--loop-angle", tilt.toFixed(1) + "deg");
         infinityButton.classList.add("is-reacting");
       } else resetInfinityHover();
       const nextInterest = effects.cursor ? target.closest(".interest-item") : null;
@@ -324,9 +336,10 @@
       else removePointer();
       if (!effects.reveal || reducedMotion.matches || suspended || !("IntersectionObserver" in window)) { revealAll(); return; }
       if (!intersection) {
+        // Tall code blocks may never reach a fractional visibility threshold.
         intersection = new IntersectionObserver(guard(entries => {
           entries.forEach(entry => { if (entry.isIntersecting) reveal(entry.target); });
-        }), { threshold: .1, rootMargin: "0px 0px -24px 0px" });
+        }), { threshold: 0, rootMargin: "0px 0px -24px 0px" });
         scanReveals();
         root.classList.add("js-reveal");
       }
@@ -428,10 +441,9 @@
       if (infinityButton) {
         infinityButton.addEventListener("click", guard(animateInfinity));
         const finish = guard(event => {
-          if (event.animationName === "infinity-loop") finishInfinity();
+          if (!infinityAnimation && event.target === infinityMark && event.animationName === "infinity-loop") finishInfinity();
         });
-        infinityButton.addEventListener("animationend", finish);
-        infinityButton.addEventListener("animationcancel", finish);
+        infinityMark?.addEventListener("animationend", finish);
         infinityButton.hidden = false;
         if (infinityFallback) infinityFallback.hidden = true;
       }
