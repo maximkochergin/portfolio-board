@@ -7,7 +7,7 @@
 
   const TIME_ZONE = "Europe/Kyiv";
   const FALLBACK_TIME_ZONE = "Europe/Kiev";
-  const LOCATION_LABEL = "Ukraine";
+  const LOCATION_LABEL = "Kyiv";
   let formatter;
   let activeTimeZone;
 
@@ -40,6 +40,14 @@
     return validClock(value) ? value : null;
   }
 
+  function sceneForHour(hour) {
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+    if (hour < 6 || hour >= 23) return "night";
+    if (hour < 11) return "morning";
+    if (hour < 18) return "day";
+    return "evening";
+  }
+
   function getSnapshot(date = new Date(), override = null) {
     const timestamp = date instanceof Date ? date.getTime() : NaN;
     if (!Number.isFinite(timestamp)) throw new TypeError("A valid Date is required.");
@@ -51,14 +59,16 @@
     const hour = preview ? preview.hour : localHour;
     const minute = preview ? preview.minute : parts.minute;
     const clock = `${pad(hour)}:${pad(minute)}`;
+    const displayClock = `${hour % 12 || 12}:${pad(minute)} ${hour < 12 ? "AM" : "PM"}`;
     const localTimestamp = Date.UTC(parts.year, parts.month - 1, parts.day, localHour, parts.minute);
     const offset = Math.round((localTimestamp - minuteStart) / 60000);
     const offsetText = `${offset < 0 ? "-" : "+"}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
     // A preview is a time of day, not a claim about an absolute instant.
     const datetime = preview ? clock
       : `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${clock}:00${offsetText}`;
-    return { hour, minute, text: `${clock} in ${LOCATION_LABEL}`, datetime, timeZone: activeTimeZone };
+    return { hour, minute, text: `${displayClock} in ${LOCATION_LABEL}`, datetime,
+      scene: sceneForHour(hour), timeZone: activeTimeZone };
   }
 
-  return Object.freeze({ TIME_ZONE, FALLBACK_TIME_ZONE, LOCATION_LABEL, parseOverride, getSnapshot });
+  return Object.freeze({ TIME_ZONE, FALLBACK_TIME_ZONE, LOCATION_LABEL, parseOverride, sceneForHour, getSnapshot });
 });

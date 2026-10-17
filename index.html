@@ -11,8 +11,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://bctmgeblffqdmkiioxuf.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'" />
     <script src="./assets/theme-init.js?v=1"></script>
-    <script src="./assets/local-time.js?v=quiet-2"></script>
-    <script src="./assets/footer-init.js?v=quiet-2"></script>
+    <script src="./assets/local-time.js?v=quiet-3"></script>
+    <script src="./assets/footer-init.js?v=quiet-3"></script>
     <title>quipmug</title>
     <link rel="canonical" href="https://quipmug.github.io/portfolio-board/" />
     <meta property="og:type" content="website" />
@@ -32,12 +32,12 @@
     <link rel="icon" href="./favicon.svg?v=quipmug-1" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=1" sizes="180x180" />
     <link rel="preload" href="./assets/fonts/Inter-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="./styles.css?v=quiet-2" />
+    <link rel="stylesheet" href="./styles.css?v=quiet-3" />
     <script src="./assets/theme.js?v=2" defer></script>
-    <script src="./assets/navigation.js?v=quiet-2" defer></script>
-    <script src="./assets/motion.js?v=quiet-2" defer></script>
-    <script src="./assets/fx.js?v=quiet-2" defer></script>
-    <script src="./assets/footer.js?v=quiet-2" defer></script>
+    <script src="./assets/navigation.js?v=quiet-3" defer></script>
+    <script src="./assets/motion.js?v=quiet-3" defer></script>
+    <script src="./assets/fx.js?v=quiet-3" defer></script>
+    <script src="./assets/footer.js?v=quiet-3" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to the archive</a>
@@ -114,7 +114,12 @@
       <footer class="site-footer">
         <div class="footer-time">
           <time class="local-time" id="ukraine-time" hidden></time>
-          <div class="footer-mascot" id="footer-mascot" role="img" aria-label="A small ghost"><span aria-hidden="true"></span></div>
+          <div class="footer-mascot" id="footer-mascot" role="img" aria-label="A small ghost">
+            <span data-scene="morning" aria-hidden="true"></span>
+            <span data-scene="day" aria-hidden="true"></span>
+            <span data-scene="evening" aria-hidden="true"></span>
+            <span data-scene="night" aria-hidden="true"></span>
+          </div>
         </div>
         <a class="owner-access owner-access--discreet" id="owner-access" href="?manage=1">Owner sign in</a>
       </footer>
@@ -189,6 +194,6 @@
     <script src="./config.js"></script>
     <script id="supabase-sdk" src="./assets/vendor/supabase-2.117.0.js?v=1" integrity="sha384-xPW3QHswsICVC2mW6BFNwMbhpLkbZ133fKOhxNx3QGGgAOJfL3O9t8r2aWn1aez6" crossorigin="anonymous" async></script>
     <script src="./assets/post-format.js?v=git-dark-1" defer></script>
-    <script src="./site.js?v=quiet-2" defer></script>
+    <script src="./site.js?v=quiet-3" defer></script>
   </body>
 </html>

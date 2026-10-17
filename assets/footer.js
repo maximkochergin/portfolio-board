@@ -9,6 +9,7 @@
     const pageTop = document.querySelector("#page-top");
     const authDialog = document.querySelector("#auth-dialog");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sceneLabels = { morning: "A ghost waking up", day: "A cheerful ghost", evening: "A ghost relaxing", night: "A ghost sleeping" };
     let suspended = document.hidden;
     let minuteTimer = 0;
     let greetingTimer = 0;
@@ -67,6 +68,8 @@
       const time = window.portfolioTime;
       if (time?.getSnapshot && time.parseOverride) {
         const snapshot = time.getSnapshot(new Date(), time.parseOverride(window.location.search));
+        root.dataset.mascotScene = snapshot.scene;
+        mascot?.setAttribute("aria-label", sceneLabels[snapshot.scene] || "A small ghost");
         if (clock) {
           clock.textContent = snapshot.text;
           clock.dateTime = snapshot.datetime;

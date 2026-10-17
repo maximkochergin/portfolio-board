@@ -12,21 +12,22 @@ A minimalist English-language personal portfolio and notes board, published at h
 
 ## Current visual system
 
-The October 17 revision uses a centered reading column of approximately 550px, 24px mobile gutters and a 14px root size. Local Inter is the only shipped font. The interface remains neutral monochrome, with system/light/dark modes, readable secondary text, 44px touch controls and 16px mobile form fields. Dates, counters and the Ukraine clock use tabular numerals.
+The October 17 revision uses a centered reading column of approximately 530px, 23px mobile gutters and a 13.5px root size. Local Inter is the only shipped font. The interface remains neutral monochrome, with system/light/dark modes, readable secondary text, 44px touch controls and 16px mobile form fields. Dates, counters and the Kyiv clock use tabular numerals.
 
 The header contains a small quipmug home/top link and theme control. The existing editable introduction appears as prose above wrapping, underlined text links without icons, pills or animated fills. Projects / Notes / About remain horizontal at every breakpoint, with a six-pixel active dot below the label. Compact lists show titles and dates with subtle separators; entry bodies retain formatting and native history navigation. Owner dialogs remain scrollable bottom sheets on phones.
 
-The footer contains only a short divider, Ukraine time and a small downloaded Tabler ghost character beside it. There is no large signature, name, role, full-width rail or Back to top control. The header brand remains the top shortcut. The introduction remains owner-controlled; no production content was overwritten.
+The footer contains only Kyiv time and a small Tabler ghost character beside it. There is no divider, large signature, name, role, full-width rail or Back to top control. The header brand remains the top shortcut. The introduction remains owner-controlled; no production content was overwritten.
 
 ## Time and character
 
-- assets/local-time.js exports pure browser/CommonJS helpers. TIME_ZONE, its legacy fallback and LOCATION_LABEL live here. Intl formats Europe/Kyiv (fallback Europe/Kiev), handles daylight-saving changes and always uses hourCycle h23.
-- assets/footer-init.js runs synchronously before CSS to expose the direct manage route. Without JavaScript the clock stays hidden.
-- assets/footer.js updates once at minute boundaries, pauses while hidden and resynchronizes on return. The character gives one short greeting per click and cancels long presses on movement or scrolling. It has no idle animation or scene timers.
-- A strict ?time=HH:MM query previews the clock. It composes with ?manage=1 and hash routes. A preview datetime is a valid time of day; the real clock uses a full timestamp with its Ukraine offset.
+- assets/local-time.js exports pure browser/CommonJS helpers. TIME_ZONE, its legacy fallback and LOCATION_LABEL live here. Intl resolves Europe/Kyiv (fallback Europe/Kiev) with daylight-saving changes. Display uses a 12-hour clock, for example 3:25 PM in Kyiv; internal hours and datetime remain 24-hour values.
+- assets/footer-init.js runs synchronously before CSS to select the initial ghost face and expose the direct manage route. Without JavaScript the clock stays hidden and the daytime face remains visible.
+- assets/footer.js updates the clock, face and English ARIA label together at minute boundaries, pauses while hidden and resynchronizes on return. The character gives one short greeting per click and cancels long presses on movement or scrolling. It has no idle animation timers.
+- Ghost scenes follow Kyiv time: night 23:00–05:59, morning 06:00–10:59, day 11:00–17:59, evening 18:00–22:59. The original body stays the same; waking, cheerful, relaxed and sleeping faces fade between states.
+- A strict 24-hour ?time=HH:MM query previews both the clock and face. It composes with ?manage=1 and hash routes. A preview datetime is a valid time of day; the real clock uses a full timestamp with its Kyiv offset.
 - Reduced motion disables the greeting while preserving long-press access.
 
-The unchanged 581-byte Tabler ghost-2 SVG is served locally as a currentColor CSS mask. Its MIT license and pinned source are recorded in assets/THIRD_PARTY.txt. Only transforms and opacity animate, with theme color transitions as the existing exception.
+The unchanged 581-byte Tabler ghost-2 SVG and three face adaptations are served locally as currentColor CSS masks. Their MIT license and pinned source are recorded in assets/THIRD_PARTY.txt. Only transforms and opacity animate, with theme color transitions as the existing exception.
 
 ## Owner access and data boundary
 
@@ -46,7 +47,7 @@ Fonts, icons and the pinned Supabase bundle are local; assets/THIRD_PARTY.txt re
 
 ## Checks and limits
 
-Run npm run check and npm test. Pure tests cover midnight, daylight-saving transitions, strict overrides, the zone fallback and early manage initialization. Preview tests request the Inter asset and expect the visible project date. Removed scene assertions belonged to the deleted illustration behavior.
+Run npm run check and npm test. Pure tests cover AM/PM at midnight and noon, daylight-saving transitions, strict overrides, the zone fallback, all scene boundaries and shared early initialization. Preview tests request the Inter asset and expect the visible project date.
 
 Browser QA covers both themes, 320/360/390/430/768/1280/1920 and phone landscape, touch long press, owner flows and route restoration. Physical mobile Safari/Android hardware remains a separate manual check.
 

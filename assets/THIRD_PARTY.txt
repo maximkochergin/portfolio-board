@@ -24,4 +24,6 @@ Tabler Icons: ghost-2
 Source: https://github.com/tabler/tabler-icons
 Revision: a4ce1404bc6d24d3c365afe7b258d6bf6f48d62d
 Original file: icons/outline/ghost-2.svg, stored unchanged as a local CSS mask.
+The local ghost-morning.svg, ghost-evening.svg and ghost-night.svg adapt its face paths;
+the character body is unchanged. These derivatives share the same MIT license.
 License: icons/Tabler-LICENSE.txt (MIT), Copyright (c) 2020-2026 Paweł Kuna.
