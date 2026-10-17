@@ -16,7 +16,7 @@ The October 17 revision uses a centered reading column of approximately 530px, 2
 
 The header contains a small quipmug home/top link and theme control. The existing editable introduction appears as prose above wrapping, underlined text links without icons, pills or animated fills. Projects / Notes / About remain horizontal at every breakpoint, with a six-pixel active dot below the label. Compact lists show titles and dates with subtle separators; entry bodies retain formatting and native history navigation. Owner dialogs remain scrollable bottom sheets on phones.
 
-The footer contains only Kyiv time and a small Tabler ghost character beside it. There is no divider, large signature, name, role, full-width rail or Back to top control. The header brand remains the top shortcut. The introduction remains owner-controlled; no production content was overwritten.
+The footer has a compact signature: Maxim Kochergin above quipmug, then Software Engineer and DevOps joined by an interactive infinity mark, followed by small crypto, AI, tech and trading interests. Kyiv time and the small Tabler ghost sit below. There is no divider, full-width rail or Back to top control. The header brand remains the top shortcut. The introduction remains owner-controlled; no production content was overwritten.
 
 ## Time and character
 

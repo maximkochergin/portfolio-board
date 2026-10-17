@@ -212,9 +212,35 @@ dialog form[aria-busy="true"] .primary::before { content: ""; width: 1rem; heigh
 @keyframes dialog-enter { from { opacity: 0; transform: translateY(.5rem); } to { opacity: 1; transform: translateY(0); } }
 @keyframes button-busy { to { transform: rotate(360deg); } }
 
-/* A small clock and a locally hosted Tabler character. */
+/* The compact signature keeps the clock and character as the final detail. */
 .site-footer { margin-top: 3.429rem; }
-.footer-time { display: flex; align-items: center; gap: .571rem; min-height: 44px; }
+.footer-signature { min-width: 0; }
+.signature-name, .signature-brand, .signature-role { margin: 0; }
+.signature-name { color: var(--muted); font-size: .889rem; line-height: 1.5; }
+.signature-brand { margin-top: .25rem; color: var(--ink); font-size: 1.333rem; font-weight: 500; line-height: 1.2; letter-spacing: -.035em; }
+.signature-role { display: flex; align-items: center; flex-wrap: wrap; gap: 0 .15rem; margin-top: .1rem; color: var(--muted); font-size: .889rem; line-height: 1.5; }
+.role-connector { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; margin-inline: -.25rem; border: 0; border-radius: .5rem; color: var(--ink); background: transparent; }
+.role-connector:focus-visible { outline-offset: 1px; }
+.role-connector-mark, .role-connector-fallback { display: inline-block; flex-shrink: 0; width: 1.4em; height: 1.4em; background: currentColor; -webkit-mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; mask: url("./assets/icons/infinity-light.svg") center / contain no-repeat; }
+.role-connector-fallback { width: 44px; height: 44px; margin-inline: -.25rem; -webkit-mask-size: 1.4em; mask-size: 1.4em; }
+.role-connector-mark { transition: transform 300ms var(--motion-ease); transform: rotate(var(--loop-tilt,0deg)); }
+.role-connector.is-looping .role-connector-mark { animation: infinity-loop 800ms var(--motion-ease) both; }
+@keyframes infinity-loop {
+  0% { transform: perspective(8rem) rotateY(0deg) rotate(0deg) scale(1); }
+  35% { transform: perspective(8rem) rotateY(180deg) rotate(-18deg) scale(1.18); }
+  70% { transform: perspective(8rem) rotateY(300deg) rotate(12deg) scale(1.08); }
+  100% { transform: perspective(8rem) rotateY(360deg) rotate(0deg) scale(1); }
+}
+.signature-interests { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .6rem; margin-top: .3rem; color: var(--muted); font-size: .889rem; line-height: 1.5; }
+.interests { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem .7rem; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.interest-item { display: inline-flex; align-items: center; gap: .25rem; }
+.interest-icon { display: inline-block; flex: none; width: 1.1em; height: 1.1em; background: currentColor; -webkit-mask: var(--interest-icon) center / contain no-repeat; mask: var(--interest-icon) center / contain no-repeat; opacity: .8; }
+.interest-crypto { --interest-icon: url("./assets/icons/currency-btc-light.svg"); }
+.interest-ai { --interest-icon: url("./assets/icons/sparkle-light.svg"); }
+.interest-tech { --interest-icon: url("./assets/icons/atom-light.svg"); }
+.interest-trading { --interest-icon: url("./assets/icons/chart-line-up-light.svg"); }
+@media (hover: hover) and (pointer: fine) { .role-connector:is(:hover,.is-reacting) .role-connector-mark { transform: rotate(var(--loop-tilt,-8deg)) scale(1.14); } }
+.footer-time { display: flex; align-items: center; gap: .571rem; min-height: 44px; margin-top: .85rem; }
 .local-time { color: var(--muted); font-size: var(--text-small); font-variant-numeric: tabular-nums; }
 .footer-mascot { position: relative; display: inline-grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; color: var(--muted); cursor: pointer; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .footer-mascot > span { grid-area: 1 / 1; width: 2rem; height: 2rem; background: currentColor; -webkit-mask: var(--ghost-face) center / contain no-repeat; mask: var(--ghost-face) center / contain no-repeat; --greeting-name: none; opacity: 0; transition: opacity 350ms var(--motion-ease); pointer-events: none; }
@@ -257,7 +283,7 @@ html.js-reveal :is(.post-item,.detail .body > *,.site-footer).reveal-visible { a
 html.js-reveal .post-item.reveal-visible { transform: translateX(var(--row-shift,0px)); }
 html.js-reveal .post-item:focus-within { opacity: 1; transform: none; }
 .panel-ghost .reveal-pending, .panel-ghost .reveal-visible { opacity: 1 !important; transform: none !important; animation: none; }
-html.theme-changing, html.theme-changing body, html.theme-changing :is(dialog,input,textarea,select,.primary,.post-item,.site-footer,.theme-toggle,.brand,.hero > p,.tab-top,.local-time,.footer-mascot) { transition: background-color 250ms, color 250ms, border-color 250ms; }
+html.theme-changing, html.theme-changing body, html.theme-changing :is(dialog,input,textarea,select,.primary,.post-item,.site-footer,.footer-signature,.theme-toggle,.brand,.hero > p,.tab-top,.local-time,.footer-mascot) { transition: background-color 250ms, color 250ms, border-color 250ms; }
 
 /* Optional pointer effects are dormant unless enabled in assets/fx.js. */
 .fx-cursor, .fx-cursor-echo { position: fixed; top: 0; left: 0; z-index: 70; color: #ffffff; mix-blend-mode: difference; opacity: 0; pointer-events: none; }
