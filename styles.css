@@ -60,10 +60,13 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 
 /* One reading column on every screen. */
 .site-shell { width: 100%; max-width: 42.715rem; min-height: 100vh; min-height: 100dvh; margin-inline: auto; padding: 2.286rem calc(1.714rem + env(safe-area-inset-right,0px)) calc(4rem + env(safe-area-inset-bottom,0px)) calc(1.714rem + env(safe-area-inset-left,0px)); }
-.site-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; margin-bottom: 1.143rem; }
+.site-header { display: grid; grid-template-columns: minmax(0,1fr) 44px; align-items: start; column-gap: 1rem; min-width: 0; margin-bottom: 1.143rem; }
+.site-identity { display: contents; }
+.site-identity > .brand, .site-identity > .signature-name { grid-column: 1; }
+.site-identity > .signature-role, .site-identity > .signature-interests { grid-column: 1 / -1; }
 .site-header:focus:not(:focus-visible), #main-content:focus:not(:focus-visible) { outline: none; }
 .brand { display: inline-flex; align-items: center; min-height: 44px; max-width: 100%; font-size: 1rem; font-weight: 500; line-height: 1.43; }
-.theme-toggle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: .75rem; border: 0; color: var(--ink); background: transparent; --theme-icon: url("./assets/icons/monitor-light.svg"); }
+.theme-toggle { grid-column: 2; grid-row: 1 / span 2; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: .75rem; border: 0; color: var(--ink); background: transparent; --theme-icon: url("./assets/icons/monitor-light.svg"); }
 .theme-toggle::before { content: ""; width: 1.143em; height: 1.143em; background: currentColor; -webkit-mask: var(--theme-icon) center / contain no-repeat; mask: var(--theme-icon) center / contain no-repeat; }
 .theme-toggle[data-mode="light"] { --theme-icon: url("./assets/icons/sun-light.svg"); }
 .theme-toggle[data-mode="dark"] { --theme-icon: url("./assets/icons/moon-light.svg"); }
@@ -212,12 +215,10 @@ dialog form[aria-busy="true"] .primary::before { content: ""; width: 1rem; heigh
 @keyframes dialog-enter { from { opacity: 0; transform: translateY(.5rem); } to { opacity: 1; transform: translateY(0); } }
 @keyframes button-busy { to { transform: rotate(360deg); } }
 
-/* The compact signature keeps the clock and character as the final detail. */
+/* Small identity details accompany the existing brand in the header. */
 .site-footer { margin-top: 3.429rem; }
-.footer-signature { min-width: 0; }
-.signature-name, .signature-brand, .signature-role { margin: 0; }
+.signature-name, .signature-role { margin: 0; }
 .signature-name { color: var(--muted); font-size: .889rem; line-height: 1.5; }
-.signature-brand { margin-top: .25rem; color: var(--ink); font-size: 1.333rem; font-weight: 500; line-height: 1.2; letter-spacing: -.035em; }
 .signature-role { display: flex; align-items: center; flex-wrap: wrap; gap: 0 .15rem; margin-top: .1rem; color: var(--muted); font-size: .889rem; line-height: 1.5; }
 .role-connector { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; margin-inline: -.25rem; border: 0; border-radius: .5rem; color: var(--ink); background: transparent; }
 .role-connector:focus-visible { outline-offset: 1px; }
@@ -240,7 +241,8 @@ dialog form[aria-busy="true"] .primary::before { content: ""; width: 1rem; heigh
 .interest-tech { --interest-icon: url("./assets/icons/atom-light.svg"); }
 .interest-trading { --interest-icon: url("./assets/icons/chart-line-up-light.svg"); }
 @media (hover: hover) and (pointer: fine) { .role-connector:is(:hover,.is-reacting) .role-connector-mark { transform: rotate(var(--loop-tilt,-8deg)) scale(1.14); } }
-.footer-time { display: flex; align-items: center; gap: .571rem; min-height: 44px; margin-top: .85rem; }
+/* The footer contains only the clock, character and existing owner access. */
+.footer-time { display: flex; align-items: center; gap: .571rem; min-height: 44px; }
 .local-time { color: var(--muted); font-size: var(--text-small); font-variant-numeric: tabular-nums; }
 .footer-mascot { position: relative; display: inline-grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; color: var(--muted); cursor: pointer; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .footer-mascot > span { grid-area: 1 / 1; width: 2rem; height: 2rem; background: currentColor; -webkit-mask: var(--ghost-face) center / contain no-repeat; mask: var(--ghost-face) center / contain no-repeat; --greeting-name: none; opacity: 0; transition: opacity 350ms var(--motion-ease); pointer-events: none; }
@@ -283,7 +285,7 @@ html.js-reveal :is(.post-item,.detail .body > *,.site-footer).reveal-visible { a
 html.js-reveal .post-item.reveal-visible { transform: translateX(var(--row-shift,0px)); }
 html.js-reveal .post-item:focus-within { opacity: 1; transform: none; }
 .panel-ghost .reveal-pending, .panel-ghost .reveal-visible { opacity: 1 !important; transform: none !important; animation: none; }
-html.theme-changing, html.theme-changing body, html.theme-changing :is(dialog,input,textarea,select,.primary,.post-item,.site-footer,.footer-signature,.theme-toggle,.brand,.hero > p,.tab-top,.local-time,.footer-mascot) { transition: background-color 250ms, color 250ms, border-color 250ms; }
+html.theme-changing, html.theme-changing body, html.theme-changing :is(dialog,input,textarea,select,.primary,.post-item,.site-footer,.signature-name,.signature-role,.signature-interests,.theme-toggle,.brand,.hero > p,.tab-top,.local-time,.footer-mascot) { transition: background-color 250ms, color 250ms, border-color 250ms; }
 
 /* Optional pointer effects are dormant unless enabled in assets/fx.js. */
 .fx-cursor, .fx-cursor-echo { position: fixed; top: 0; left: 0; z-index: 70; color: #ffffff; mix-blend-mode: difference; opacity: 0; pointer-events: none; }
