@@ -1,0 +1,6 @@
+<!-- Contour and face adapted from Tabler ghost-2. MIT; see Tabler-LICENSE.txt. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 3.25A6.75 6.75 0 0 0 5.25 10v1.35h-.9a1.65 1.65 0 0 0 0 3.3h.9v.6a5.5 5.5 0 0 0 5.5 5.5h9.5a5.1 5.1 0 0 1-1.5-3.6v-2.5h.9a1.65 1.65 0 0 0 0-3.3h-.9V10A6.75 6.75 0 0 0 12 3.25Z" />
+  <path d="M9.7 9.25v1.05m4.6-1.05v1.05" />
+  <path d="M10.1 13.3q1.9 2.2 3.8 0" stroke-width="1.45" />
+</svg>

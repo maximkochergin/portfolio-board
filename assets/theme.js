@@ -8,6 +8,12 @@
   const scheme = document.querySelector('meta[name="color-scheme"]');
   let mode = modes.includes(root.dataset.theme) ? root.dataset.theme : "system";
   let timer;
+  function readPreference() {
+    try {
+      const saved = window.localStorage.getItem("theme");
+      return saved === "light" || saved === "dark" ? saved : "system";
+    } catch { return mode; }
+  }
   function apply(next, animate = false) {
     mode = modes.includes(next) ? next : "system";
     window.clearTimeout(timer);
@@ -48,7 +54,10 @@
   });
   system.addEventListener("change", () => { if (mode === "system") apply("system", true); });
   window.addEventListener("storage", event => {
-    if (event.key === "theme" || event.key === null) apply(event.newValue, true);
+    if (event.key === "theme" || event.key === null) apply(readPreference(), true);
   });
-  apply(mode);
+  window.addEventListener("pageshow", event => {
+    if (event.persisted) apply(readPreference());
+  });
+  apply(readPreference());
 })();

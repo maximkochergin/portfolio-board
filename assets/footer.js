@@ -13,6 +13,7 @@
     let suspended = document.hidden;
     let minuteTimer = 0;
     let greetingTimer = 0;
+    let greetingRun = 0;
     let pressTimer = 0;
     let gesture = null;
     let suppressClick = false;
@@ -24,12 +25,14 @@
       const pointer = gesture?.id;
       if (gesture && suppress) suppressClick = true;
       gesture = null;
+      mascot?.classList.remove("is-pressed");
       if (pointer !== undefined && mascot?.hasPointerCapture?.(pointer)) {
         try { mascot.releasePointerCapture(pointer); } catch { /* The pointer may already be released. */ }
       }
     }
 
     function clearMotion() {
+      greetingRun += 1;
       window.clearTimeout(greetingTimer);
       greetingTimer = 0;
       mascot?.classList.remove("is-greeting");
@@ -54,11 +57,21 @@
 
     function greet() {
       if (!canAnimate() || greetingTimer) return;
+      const run = ++greetingRun;
       mascot.classList.add("is-greeting");
-      greetingTimer = window.setTimeout(guard(() => {
-        greetingTimer = 0;
-        mascot.classList.remove("is-greeting");
-      }), 350);
+      const finish = () => { if (run === greetingRun) clearMotion(); };
+      greetingTimer = window.setTimeout(guard(finish), 650);
+      const animations = mascot.getAnimations?.({ subtree: true }).filter(animation =>
+        animation.effect?.target?.parentElement === mascot && typeof animation.animationName === "string");
+      if (animations?.length) Promise.allSettled(animations.map(animation => animation.finished)).then(finish);
+    }
+
+    function leftGesture(event) {
+      if (!gesture) return false;
+      const bounds = mascot.getBoundingClientRect();
+      return event.clientX < bounds.left || event.clientX > bounds.right
+        || event.clientY < bounds.top || event.clientY > bounds.bottom
+        || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8;
     }
 
     function updateTime() {
@@ -68,6 +81,7 @@
       const time = window.portfolioTime;
       if (time?.getSnapshot && time.parseOverride) {
         const snapshot = time.getSnapshot(new Date(), time.parseOverride(window.location.search));
+        if (root.dataset.mascotScene !== snapshot.scene) clearMotion();
         root.dataset.mascotScene = snapshot.scene;
         mascot?.setAttribute("aria-label", sceneLabels[snapshot.scene] || "A small ghost");
         if (clock) {
@@ -115,23 +129,22 @@
         cancelGesture(false);
         suppressClick = false;
         gesture = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        mascot.classList.add("is-pressed");
         try { mascot.setPointerCapture?.(event.pointerId); } catch { /* Global listeners still track release. */ }
         pressTimer = window.setTimeout(guard(() => {
           pressTimer = 0;
           if (!gesture || document.hidden || suspended || !mascot.isConnected) return;
-          suppressClick = true;
+          cancelGesture();
+          clearMotion();
           ownerAccess?.click();
         }), 800);
       }));
       document.addEventListener("pointermove", guard(event => {
         if (!gesture || event.pointerId !== gesture.id) return;
-        const bounds = mascot.getBoundingClientRect();
-        const outside = event.clientX < bounds.left || event.clientX > bounds.right
-          || event.clientY < bounds.top || event.clientY > bounds.bottom;
-        if (outside || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8) cancelGesture();
+        if (leftGesture(event)) cancelGesture();
       }), { capture: true, passive: true });
       document.addEventListener("pointerup", guard(event => {
-        if (event.pointerId === gesture?.id) cancelGesture(false);
+        if (event.pointerId === gesture?.id) cancelGesture(leftGesture(event));
       }), true);
       document.addEventListener("pointerdown", guard(event => {
         if (gesture && event.pointerId !== gesture.id) cancelGesture();

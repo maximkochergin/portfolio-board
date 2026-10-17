@@ -1,17 +1,6 @@
-<!-- Face adapted from Tabler ghost-2. MIT; see Tabler-LICENSE.txt. -->
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <path d="M9 9q1 1 2 0" stroke-width="1.25" />
-  <path d="M13 9q1 1 2 0" stroke-width="1.25" />
-  <path d="M12 3a7 7 0 0 1 7 7v1l1 0a2 2 0 1 1 0 4l-1 0v3l2 3h-10a6 6 0 0 1 -6 -5.775l0 -.226l-1 0a2 2 0 0 1 0 -4l1 0v-1a7 7 0 0 1 7 -7l0 .001" />
-  <path d="M11.5 13h1" />
+<!-- Contour and face adapted from Tabler ghost-2. MIT; see Tabler-LICENSE.txt. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 3.25A6.75 6.75 0 0 0 5.25 10v1.35h-.9a1.65 1.65 0 0 0 0 3.3h.9v.6a5.5 5.5 0 0 0 5.5 5.5h9.5a5.1 5.1 0 0 1-1.5-3.6v-2.5h.9a1.65 1.65 0 0 0 0-3.3h-.9V10A6.75 6.75 0 0 0 12 3.25Z" />
+  <path d="M8.6 10q1.1-1.2 2.2 0m2.4 0q1.1-1.2 2.2 0" stroke-width="1.35" />
+  <path d="M11.25 13.8h1.5" stroke-width="1.35" />
 </svg>
