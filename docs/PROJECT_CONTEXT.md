@@ -20,7 +20,7 @@ The footer contains only Kyiv time and a small Tabler ghost character beside it.
 
 ## Time and character
 
-- assets/local-time.js exports pure browser/CommonJS helpers. TIME_ZONE, its legacy fallback and LOCATION_LABEL live here. Intl resolves Europe/Kyiv (fallback Europe/Kiev) with daylight-saving changes. Display uses a 12-hour clock, for example 3:25 PM in Kyiv; internal hours and datetime remain 24-hour values.
+- assets/local-time.js exports pure browser/CommonJS helpers. TIME_ZONE, its legacy fallback and LOCATION_LABEL live here. Intl resolves Europe/Kyiv (fallback Europe/Kiev) with daylight-saving changes. Display uses a 12-hour clock, for example 3:25 PM in Kyiv, Ukraine; internal hours and datetime remain 24-hour values.
 - assets/footer-init.js runs synchronously before CSS to select the initial ghost face and expose the direct manage route. Without JavaScript the clock stays hidden and the daytime face remains visible.
 - assets/footer.js updates the clock, face and English ARIA label together at minute boundaries, pauses while hidden and resynchronizes on return. The character gives one short greeting per click and cancels long presses on movement or scrolling. It has no idle animation timers.
 - Ghost scenes follow Kyiv time: night 23:00–05:59, morning 06:00–10:59, day 11:00–17:59, evening 18:00–22:59. The original body stays the same; waking, cheerful, relaxed and sleeping faces fade between states.

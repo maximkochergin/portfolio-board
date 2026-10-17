@@ -17,22 +17,22 @@ test("time overrides require one complete, valid 24-hour time", () => {
 
 test("Kyiv time uses AM/PM and preserves a 24-hour machine-readable value", () => {
   const snapshot = time.getSnapshot(new Date("2026-01-15T22:05:42.999Z"));
-  assert.equal(snapshot.text, "12:05 AM in Kyiv");
+  assert.equal(snapshot.text, "12:05 AM in Kyiv, Ukraine");
   assert.equal(snapshot.hour, 0);
   assert.equal(snapshot.minute, 5);
   assert.equal(snapshot.datetime, "2026-01-16T00:05:00+02:00");
   assert.equal(Date.parse(snapshot.datetime), Date.parse("2026-01-15T22:05:00Z"));
-  assert.equal(time.getSnapshot(new Date("2026-07-15T06:04:00Z")).text, "9:04 AM in Kyiv");
-  assert.equal(time.getSnapshot(new Date("2026-01-15T10:00:00Z")).text, "12:00 PM in Kyiv");
-  assert.equal(time.getSnapshot(new Date("2026-01-15T13:25:00Z")).text, "3:25 PM in Kyiv");
+  assert.equal(time.getSnapshot(new Date("2026-07-15T06:04:00Z")).text, "9:04 AM in Kyiv, Ukraine");
+  assert.equal(time.getSnapshot(new Date("2026-01-15T10:00:00Z")).text, "12:00 PM in Kyiv, Ukraine");
+  assert.equal(time.getSnapshot(new Date("2026-01-15T13:25:00Z")).text, "3:25 PM in Kyiv, Ukraine");
 });
 
 test("Intl applies Ukraine's spring and autumn daylight-saving changes", () => {
   const samples = [
-    ["2026-03-29T00:59:00Z", "2:59 AM in Kyiv", "+02:00"],
-    ["2026-03-29T01:00:00Z", "4:00 AM in Kyiv", "+03:00"],
-    ["2026-10-25T00:59:00Z", "3:59 AM in Kyiv", "+03:00"],
-    ["2026-10-25T01:00:00Z", "3:00 AM in Kyiv", "+02:00"]
+    ["2026-03-29T00:59:00Z", "2:59 AM in Kyiv, Ukraine", "+02:00"],
+    ["2026-03-29T01:00:00Z", "4:00 AM in Kyiv, Ukraine", "+03:00"],
+    ["2026-10-25T00:59:00Z", "3:59 AM in Kyiv, Ukraine", "+03:00"],
+    ["2026-10-25T01:00:00Z", "3:00 AM in Kyiv, Ukraine", "+02:00"]
   ];
   for (const [iso, text, offset] of samples) {
     const snapshot = time.getSnapshot(new Date(iso));
@@ -52,14 +52,14 @@ test("preview time updates the visible clock without fabricating an instant", ()
   ];
   for (const [clock, displayClock, scene] of samples) {
     const snapshot = time.getSnapshot(new Date("2026-01-15T12:00:00Z"), time.parseOverride(`?time=${clock}`));
-    assert.equal(snapshot.text, `${displayClock} in Kyiv`);
+    assert.equal(snapshot.text, `${displayClock} in Kyiv, Ukraine`);
     assert.equal(snapshot.datetime, clock);
     assert.equal(snapshot.hour, Number(clock.slice(0, 2)));
     assert.equal(snapshot.minute, Number(clock.slice(3)));
     assert.equal(snapshot.scene, scene);
   }
   assert.throws(() => time.getSnapshot(new Date("invalid")), TypeError);
-  assert.equal(time.getSnapshot(new Date("2026-01-15T12:00:00Z"), { hour: 24, minute: 0 }).text, "2:00 PM in Kyiv");
+  assert.equal(time.getSnapshot(new Date("2026-01-15T12:00:00Z"), { hour: 24, minute: 0 }).text, "2:00 PM in Kyiv, Ukraine");
 });
 
 test("ghost scenes follow each Kyiv time-of-day boundary", () => {
@@ -87,7 +87,7 @@ test("local-time imports without touching the DOM and falls back to Europe/Kiev"
   Object.defineProperty(sandbox, "document", { get() { throw new Error("Unexpected DOM access"); } });
   vm.runInNewContext(source, sandbox);
   const snapshot = sandbox.module.exports.getSnapshot(new Date("2026-01-15T22:05:00Z"));
-  assert.equal(snapshot.text, "12:05 AM in Kyiv");
+  assert.equal(snapshot.text, "12:05 AM in Kyiv, Ukraine");
   assert.equal(snapshot.timeZone, "Europe/Kiev");
   assert.deepEqual(requested.map(options => options.timeZone), ["Europe/Kyiv", "Europe/Kiev"]);
   assert.ok(requested.every(options => options.hourCycle === "h23"));

@@ -7,7 +7,7 @@
 
   const TIME_ZONE = "Europe/Kyiv";
   const FALLBACK_TIME_ZONE = "Europe/Kiev";
-  const LOCATION_LABEL = "Kyiv";
+  const LOCATION_LABEL = "Kyiv, Ukraine";
   let formatter;
   let activeTimeZone;
 
